@@ -91,8 +91,17 @@ bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
 
     if (cbdata->token.empty())
     {
-        std::string auth_url = get_auth_url(path, "pull");
+        std::string auth_url = get_auth_url(path, scope);
         handle.url(auth_url);
+
+        if (!username.empty())
+        {
+            handle.setopt(CURLOPT_USERNAME, username.c_str());
+        }
+        if (!password.empty())
+        {
+            handle.setopt(CURLOPT_PASSWORD, password.c_str());
+        }
 
         auto end_callback = [this, &cbdata](const Response& response) {
             auto j = response.json();
@@ -121,7 +130,7 @@ bool OCIMirror::prepare(Target *target)
 
     if (!data || data->token.empty())
     {
-        std::string auth_url = get_auth_url(target->target->path, "pull");
+        std::string auth_url = get_auth_url(target->target->path, scope);
         std::cout << "Fetching dl from " << auth_url << std::endl;
         target->setopt(CURLOPT_URL, auth_url.c_str());
 
@@ -198,6 +207,12 @@ CbReturnCode OCIMirror::finalize_auth_callback(TransferStatus status, const std:
         return CbReturnCode::OK;
     }
     return CbReturnCode::ERROR;
+}
+
+std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path)
+{
+    auto& data = path_cb_map[path];
+    return {fmt::format("Authorization: Bearer {}", data->token)};
 }
 
 void OCIMirror::add_extra_headers(Target *target)
