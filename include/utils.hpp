@@ -15,6 +15,8 @@ extern "C"
 
 #define LR_DOWNLOADER_MAXIMAL_RESUME_COUNT 10
 
+constexpr const char empty_sha256[] = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
 inline bool is_sig_interrupted()
 {
     return false;

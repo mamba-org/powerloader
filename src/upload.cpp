@@ -13,6 +13,7 @@
 #include "utils.hpp"
 
 #include "./uploader/oci_upload.cpp"
+#include "./uploader/s3_upload.cpp"
 
 // static size_t manifest_upload(char *ptr, size_t size, size_t nmemb, ManifestReadData *userdata)
 // {
@@ -55,8 +56,16 @@ int main(void)
     std::string GH_SECRET = getenv("GHA_PAT");
     std::string GH_USER = "wolfv";
 
-    OCIMirror mirror("https://ghcr.io", "push", GH_USER, GH_SECRET);
-    oci_upload(mirror, "wolfv/xtensor", "1.1", "xtensor-0.23.10-hc021e02_0.tar.bz2");
+    // OCIMirror mirror("https://ghcr.io", "push", GH_USER, GH_SECRET);
+    // oci_upload(mirror, "wolfv/xtensor", "1.1", "xtensor-0.23.10-hc021e02_0.tar.bz2");
+
+    std::string aws_ackey(getenv("AWS_ACCESS_KEY"));
+    std::string aws_sekey(getenv("AWS_SECRET_KEY"));
+    S3Mirror s3mirror(
+        "https://wolfsuperbuckettest.s3.eu-central-1.amazonaws.com",
+        aws_ackey,
+        aws_sekey);
+    s3_upload(s3mirror, "xtensor-file.tar.bz2", "xtensor-0.23.10-hc021e02_0.tar.bz2");
 
     exit(0);
 }
