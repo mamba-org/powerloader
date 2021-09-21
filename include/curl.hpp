@@ -93,7 +93,6 @@ struct Response
     {
         nlohmann::json j;
         content >> j;
-        // j << content;
         return j;
     }
 };

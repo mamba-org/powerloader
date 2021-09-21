@@ -14,3 +14,21 @@ Current WIP features are:
 - zchunk support for delta-downloads
 
 In the future this might be directly integrated into the `mamba` codebase -- or live seperately.
+
+### Try it out
+
+Install dependencies:
+
+`mamba create -n test -c conda-forge cli11 zchunk libcurl fmt openssl cmake compilers ninja`
+
+Then you can run
+
+```
+conda activate test
+
+mkdir build; cd build
+cmake .. -GNinja
+ninja
+
+./powerloader --help
+```
