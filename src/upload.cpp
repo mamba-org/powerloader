@@ -59,10 +59,12 @@ int main(void)
     OCIMirror mirror("https://ghcr.io", "push", GH_USER, GH_SECRET);
     oci_upload(mirror, "wolfv/xtensor", "1.1", "xtensor-0.23.10-hc021e02_0.tar.bz2");
 
-    std::string aws_ackey(getenv("AWS_ACCESS_KEY"));
-    std::string aws_sekey(getenv("AWS_SECRET_KEY"));
+    std::string aws_ackey = get_env("AWS_ACCESS_KEY");
+    std::string aws_sekey = get_env("AWS_SECRET_KEY");
+    std::string aws_region = get_env("AWS_DEFAULT_REGION");
     S3Mirror s3mirror(
         "https://wolfsuperbuckettest.s3.eu-central-1.amazonaws.com",
+        aws_region,
         aws_ackey,
         aws_sekey);
     s3_upload(s3mirror, "xtensor-file.tar.bz2", "xtensor-0.23.10-hc021e02_0.tar.bz2");

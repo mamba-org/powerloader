@@ -55,6 +55,7 @@ int main()
     std::string aws_sekey = get_env("AWS_SECRET_KEY");
     S3Mirror s3mirror(
         "https://wolfsuperbuckettest.s3.amazonaws.com",
+        "eu-central-1",
         aws_ackey,
         aws_sekey);
 

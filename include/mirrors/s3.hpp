@@ -35,8 +35,7 @@ struct S3CanonicalRequest
     std::string get_signed_headers();
     std::string canonical_request();
 
-    std::string string_to_sign(//const std::chrono::system_clock::time_point& date,
-                               const std::string& region,
+    std::string string_to_sign(const std::string& region,
                                const std::string& service);
 };
 
@@ -46,13 +45,14 @@ struct S3Mirror : public Mirror
     std::string bucket_url;
     std::string aws_access_key_id = "AKIAIOSFODNN7EXAMPLE";
     std::string aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
-
     std::string region = "eu-central-1";
 
     inline S3Mirror(const std::string& bucket_url,
+                    const std::string& region,
                     const std::string& aws_access_key,
                     const std::string& aws_secret_key)
         : bucket_url(bucket_url),
+          region(region),
           aws_access_key_id(aws_access_key),
           aws_secret_access_key(aws_secret_key),
           Mirror(bucket_url)
@@ -91,3 +91,7 @@ struct S3Mirror : public Mirror
     std::vector<std::string> get_auth_headers(const std::string& path);
     std::vector<std::string> get_auth_headers(S3CanonicalRequest& request);
 };
+
+void s3_upload(S3Mirror& mirror, 
+               const std::string& path,
+               const fs::path& file);

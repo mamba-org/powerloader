@@ -68,8 +68,7 @@ std::string S3CanonicalRequest::canonical_request()
     return ss.str();
 }
 
-std::string S3CanonicalRequest::string_to_sign(//const std::chrono::system_clock::time_point& date,
-                           const std::string& region,
+std::string S3CanonicalRequest::string_to_sign(const std::string& region,
                            const std::string& service)
 {
     std::stringstream ss;

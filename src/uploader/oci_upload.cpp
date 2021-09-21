@@ -1,18 +1,6 @@
 #include <filesystem>
 #include "mirrors/oci.hpp"
 
-struct OCIUpload
-{
-    OCIMirror mirror;
-    std::string upload_url;
-    std::string digest;
-    std::string auth_token;
-
-    std::string get_final_url()
-    {
-        return fmt::format("{}/{}?digest={}", mirror.mirror.url, upload_url, digest);
-    }
-};
 
 void oci_upload(OCIMirror& mirror, 
                 const std::string& reference,
@@ -29,14 +17,11 @@ void oci_upload(OCIMirror& mirror,
     }
 
     std::string preupload_url = mirror.get_preupload_url(reference);
-    std::cout << "PREUPLOAD URL: " << preupload_url << "\n\n\n\n";
     auto response = CURLHandle(preupload_url)
         .setopt(CURLOPT_CUSTOMREQUEST, "POST")
         // .setopt(CURLOPT_VERBOSE, 1L)
         .add_headers(mirror.get_auth_headers(reference))
         .perform();
-
-    std::cout << response.content.str() << std::endl;
 
     std::string temp_upload_location = response.header["location"];
     std::string upload_url = fmt::format("{}{}?digest={}", mirror.mirror.url, temp_upload_location, digest);

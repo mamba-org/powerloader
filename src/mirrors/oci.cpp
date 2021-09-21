@@ -58,7 +58,6 @@ OCIMirror::AuthCallbackData *OCIMirror::get_data(Target *target)
 
 bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
 {
-    std::cout << "PREPARING MIRROR! << " << path << std::endl;
     auto it = path_cb_map.find(path);
     if (it == path_cb_map.end())
     {
