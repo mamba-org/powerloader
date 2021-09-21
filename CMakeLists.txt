@@ -30,12 +30,12 @@ set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
 
 option(WITH_ZCHUNK "Enable zchunk" ON)
 
-target_include_directories(powerloader PUBLIC 
+target_include_directories(powerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
 )
 
-target_include_directories(dpowerloader PUBLIC 
+target_include_directories(dpowerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
 )

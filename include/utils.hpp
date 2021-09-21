@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string_view>
+#include <array>
+#include <fmt/core.h>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <array>
-#include <fstream>
-#include <fmt/core.h>
+#include <string_view>
 
 extern "C"
 {
@@ -17,23 +17,28 @@ extern "C"
 
 #define EMPTY_SHA "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
-inline bool is_sig_interrupted()
+inline bool
+is_sig_interrupted()
 {
     return false;
 }
 
-inline bool starts_with(const std::string_view &str, const std::string_view &prefix)
+inline bool
+starts_with(const std::string_view& str, const std::string_view& prefix)
 {
     return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
 }
 
-inline bool ends_with(const std::string_view &str, const std::string_view &suffix)
+inline bool
+ends_with(const std::string_view& str, const std::string_view& suffix)
 {
-    return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+    return str.size() >= suffix.size()
+           && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 }
 
 template <class B>
-inline std::vector<char> hex_to_bytes(const B &buffer, std::size_t size) noexcept
+inline std::vector<char>
+hex_to_bytes(const B& buffer, std::size_t size) noexcept
 {
     std::vector<char> res;
     if (size % 2 != 0)
@@ -49,13 +54,15 @@ inline std::vector<char> hex_to_bytes(const B &buffer, std::size_t size) noexcep
 }
 
 template <class B>
-inline std::vector<char> hex_to_bytes(const B &buffer) noexcept
+inline std::vector<char>
+hex_to_bytes(const B& buffer) noexcept
 {
     return hex_to_bytes(buffer, buffer.size());
 }
 
 template <class B>
-inline std::string hex_string(const B &buffer, std::size_t size)
+inline std::string
+hex_string(const B& buffer, std::size_t size)
 {
     std::ostringstream oss;
     oss << std::hex;
@@ -67,12 +74,14 @@ inline std::string hex_string(const B &buffer, std::size_t size)
 }
 
 template <class B>
-inline std::string hex_string(const B &buffer)
+inline std::string
+hex_string(const B& buffer)
 {
     return hex_string(buffer, buffer.size());
 }
 
-inline std::string sha256(const std::string &str) noexcept
+inline std::string
+sha256(const std::string& str) noexcept
 {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
@@ -83,7 +92,8 @@ inline std::string sha256(const std::string &str) noexcept
 }
 
 // template <class Arg1, class Args...>
-// inline void print(const char *message_template, const Arg1 &message_arg1, const Args &...message_args)
+// inline void print(const char *message_template, const Arg1 &message_arg1,
+// const Args &...message_args)
 // {
 //     printf(message_template, message_arg1, message_args...);
 // }
@@ -96,42 +106,52 @@ inline std::string sha256(const std::string &str) noexcept
 class download_error : public std::runtime_error
 {
 public:
-    download_error(const std::string &what = "download error", bool serious = false) : 
-        std::runtime_error(what), serious(serious) {}
+    download_error(const std::string& what = "download error", bool serious = false)
+        : std::runtime_error(what)
+        , serious(serious)
+    {
+    }
     bool serious;
 };
 
 class fatal_download_error : public std::runtime_error
 {
 public:
-    fatal_download_error(const std::string &what = "fatal download error") : std::runtime_error(what) {}
+    fatal_download_error(const std::string& what = "fatal download error")
+        : std::runtime_error(what)
+    {
+    }
 };
 
-inline std::string string_transform(const std::string_view &input, int (*functor)(int))
+inline std::string
+string_transform(const std::string_view& input, int (*functor)(int))
 {
     std::string res(input);
     std::transform(
-        res.begin(), res.end(), res.begin(), [&](unsigned char c)
-        { return functor(c); });
+        res.begin(), res.end(), res.begin(), [&](unsigned char c) { return functor(c); });
     return res;
 }
 
-inline std::string to_upper(const std::string_view &input)
+inline std::string
+to_upper(const std::string_view& input)
 {
     return string_transform(input, std::toupper);
 }
 
-inline std::string to_lower(const std::string_view &input)
+inline std::string
+to_lower(const std::string_view& input)
 {
     return string_transform(input, std::tolower);
 }
 
-inline bool contains(const std::string_view &str, const std::string_view &sub_str)
+inline bool
+contains(const std::string_view& str, const std::string_view& sub_str)
 {
     return str.find(sub_str) != std::string::npos;
 }
 
-inline std::string sha256sum(const std::string& path)
+inline std::string
+sha256sum(const std::string& path)
 {
     std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
 
@@ -157,7 +177,8 @@ inline std::string sha256sum(const std::string& path)
     return hex_string(hash);
 }
 
-inline std::pair<std::string, std::string> parse_header(const std::string_view& header)
+inline std::pair<std::string, std::string>
+parse_header(const std::string_view& header)
 {
     auto colon_idx = header.find(':');
     if (colon_idx != std::string_view::npos)
@@ -181,7 +202,8 @@ inline std::pair<std::string, std::string> parse_header(const std::string_view& 
     return std::make_pair(std::string(), std::string(header));
 }
 
-inline std::string get_env(const char* var)
+inline std::string
+get_env(const char* var)
 {
     const char* val = getenv(var);
     if (!val)
@@ -191,9 +213,8 @@ inline std::string get_env(const char* var)
     return val;
 }
 
-inline std::vector<std::string> split(const std::string_view& input,
-                                const std::string_view& sep,
-                                std::size_t max_split = SIZE_MAX)
+inline std::vector<std::string>
+split(const std::string_view& input, const std::string_view& sep, std::size_t max_split = SIZE_MAX)
 {
     std::vector<std::string> result;
     std::size_t i = 0, j = 0, len = input.size(), n = sep.size();

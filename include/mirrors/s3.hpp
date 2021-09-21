@@ -1,11 +1,14 @@
 #include "mirror.hpp"
 #include "target.hpp"
 
-std::string get_yyyymmdd(const std::chrono::system_clock::time_point &t);
-std::string get_iso8601(const std::chrono::system_clock::time_point &t);
+std::string
+get_yyyymmdd(const std::chrono::system_clock::time_point& t);
+std::string
+get_iso8601(const std::chrono::system_clock::time_point& t);
 
 // TODO replace with proper URL parsing
-std::string get_host(std::string& url);
+std::string
+get_host(std::string& url);
 
 struct S3CanonicalRequest
 {
@@ -22,11 +25,11 @@ struct S3CanonicalRequest
                               const std::string& bucket_url,
                               const std::string& resource = "",
                               const std::string& sha256sum = "")
-        : http_verb(http_verb),
-          bucket_url(bucket_url), 
-          resource(resource),
-          hashed_payload(sha256sum.empty() ? EMPTY_SHA : sha256sum),
-          date(std::chrono::system_clock::now())
+        : http_verb(http_verb)
+        , bucket_url(bucket_url)
+        , resource(resource)
+        , hashed_payload(sha256sum.empty() ? EMPTY_SHA : sha256sum)
+        , date(std::chrono::system_clock::now())
     {
         init_default_headers();
     }
@@ -35,8 +38,7 @@ struct S3CanonicalRequest
     std::string get_signed_headers();
     std::string canonical_request();
 
-    std::string string_to_sign(const std::string& region,
-                               const std::string& service);
+    std::string string_to_sign(const std::string& region, const std::string& service);
 };
 
 // https://gist.github.com/mmaday/c82743b1683ce4d27bfa6615b3ba2332
@@ -51,47 +53,48 @@ struct S3Mirror : public Mirror
                     const std::string& region,
                     const std::string& aws_access_key,
                     const std::string& aws_secret_key)
-        : bucket_url(bucket_url),
-          region(region),
-          aws_access_key_id(aws_access_key),
-          aws_secret_access_key(aws_secret_key),
-          Mirror(bucket_url)
+        : bucket_url(bucket_url)
+        , region(region)
+        , aws_access_key_id(aws_access_key)
+        , aws_secret_access_key(aws_secret_key)
+        , Mirror(bucket_url)
     {
     }
 
-    inline S3Mirror(const std::string &url)
+    inline S3Mirror(const std::string& url)
         : Mirror(url)
     {
     }
 
-    inline bool authenticate(CURLHandle& handle, const std::string& path) { return true; };
+    inline bool authenticate(CURLHandle& handle, const std::string& path)
+    {
+        return true;
+    };
 
-    inline std::string format_url(Target *target)
+    inline std::string format_url(Target* target)
     {
         return fmt::format("{}/{}", bucket_url, target->target->path);
     }
 
-    inline bool need_preparation(Target *target)
+    inline bool need_preparation(Target* target)
     {
         return false;
     }
 
-    inline bool prepare(Target *target)
+    inline bool prepare(Target* target)
     {
         return true;
     }
 
-    std::string calculate_signature(
-        const std::chrono::system_clock::time_point &request_date,
-        const std::string &secret,
-        const std::string &region,
-        const std::string &service,
-        const std::string &string_to_sign);
+    std::string calculate_signature(const std::chrono::system_clock::time_point& request_date,
+                                    const std::string& secret,
+                                    const std::string& region,
+                                    const std::string& service,
+                                    const std::string& string_to_sign);
 
     std::vector<std::string> get_auth_headers(const std::string& path);
     std::vector<std::string> get_auth_headers(S3CanonicalRequest& request);
 };
 
-void s3_upload(S3Mirror& mirror, 
-               const std::string& path,
-               const fs::path& file);
+void
+s3_upload(S3Mirror& mirror, const std::string& path, const fs::path& file);

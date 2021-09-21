@@ -11,11 +11,13 @@ extern "C"
 class DownloadTarget
 {
 public:
-    inline DownloadTarget(
-        const std::string &path,
-        const std::string &base_url,
-        const std::string &fn)
-        : path(path), fn(fn), base_url(base_url), is_zchunk(ends_with(path, ".zck"))
+    inline DownloadTarget(const std::string& path,
+                          const std::string& base_url,
+                          const std::string& fn)
+        : path(path)
+        , fn(fn)
+        , base_url(base_url)
+        , is_zchunk(ends_with(path, ".zck"))
     {
     }
 
@@ -31,10 +33,10 @@ public:
     std::ptrdiff_t expected_size = 0;
     std::ptrdiff_t orig_size = 0;
 
-    Mirror *used_mirror;
+    Mirror* used_mirror;
 
     EndCb endcb = nullptr;
-    void *cbdata = nullptr;
+    void* cbdata = nullptr;
 
     std::vector<Checksum> checksums;
 
@@ -42,7 +44,7 @@ public:
     // error code
 
     // #ifdef WITH_ZCHUNK
-    zckDL *zck_dl = nullptr; /*!<
+    zckDL* zck_dl = nullptr; /*!<
         Zchunk download context */
 
     std::ptrdiff_t zck_header_size; /*!<
@@ -53,5 +55,5 @@ public:
 
     double downloaded; /*!<
         Amount already downloaded in zchunk file */
-    // #endif /* WITH_ZCHUNK */
+                       // #endif /* WITH_ZCHUNK */
 };

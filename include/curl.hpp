@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <map>
-#include <functional>
-#include <sstream>
 #include <filesystem>
+#include <functional>
+#include <map>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -15,7 +15,11 @@
 class curl_error : public std::runtime_error
 {
 public:
-    curl_error(const std::string &what = "download error", bool serious = false) : std::runtime_error(what), serious(serious) {}
+    curl_error(const std::string& what = "download error", bool serious = false)
+        : std::runtime_error(what)
+        , serious(serious)
+    {
+    }
     bool serious;
 };
 
@@ -23,7 +27,7 @@ namespace fs = std::filesystem;
 
 extern "C"
 {
-    #include <curl/curl.h>
+#include <curl/curl.h>
 }
 
 #define LRO_CONNECTTIMEOUT_DEFAULT 30L
@@ -31,12 +35,15 @@ extern "C"
 #define LRO_LOWSPEEDLIMIT_DEFAULT 1000L
 #define LRO_FTPUSEEPSV_DEFAULT 1L
 
-void set_string_upload_callback(CURL* handle, std::istringstream* s);
-void set_file_upload_callback(CURL* handle, std::ifstream* p);
+void
+set_string_upload_callback(CURL* handle, std::istringstream* s);
+void
+set_file_upload_callback(CURL* handle, std::ifstream* p);
 
-inline CURL* get_handle()
+inline CURL*
+get_handle()
 {
-    CURL *h;
+    CURL* h;
 
     // lr_global_init();
 
@@ -82,7 +89,8 @@ struct Response
     long http_status;
     std::string effective_url;
 
-    inline nlohmann::json json() const {
+    inline nlohmann::json json() const
+    {
         nlohmann::json j;
         content >> j;
         // j << content;
@@ -91,14 +99,16 @@ struct Response
 };
 
 template <class T>
-static std::size_t ostream_callback(char *buffer, std::size_t size, std::size_t nitems, T* stream)
+static std::size_t
+ostream_callback(char* buffer, std::size_t size, std::size_t nitems, T* stream)
 {
     stream->write(buffer, size * nitems);
     return size * nitems;
 }
 
 template <class T>
-static std::size_t header_map_callback(char *buffer, std::size_t size, std::size_t nitems, T* header_map)
+static std::size_t
+header_map_callback(char* buffer, std::size_t size, std::size_t nitems, T* header_map)
 {
     auto kv = parse_header(std::string_view(buffer, size * nitems));
     if (!kv.first.empty())
@@ -132,6 +142,17 @@ public:
     CURLHandle& url(const std::string& url)
     {
         setopt(CURLOPT_URL, url.c_str());
+        return *this;
+    }
+
+    CURLHandle& exists_only(bool use_get = false)
+    {
+        setopt(CURLOPT_FAILONERROR, 1L);
+        if (use_get)
+            setopt(CURLOPT_NOBODY, 0L);
+        else
+            setopt(CURLOPT_NOBODY, 1L);
+
         return *this;
     }
 
@@ -185,7 +206,7 @@ public:
         return handle();
     }
 
-    inline CURLHandle& add_header(const std::string &header)
+    inline CURLHandle& add_header(const std::string& header)
     {
         p_headers = curl_slist_append(p_headers, header.c_str());
         if (!p_headers)
@@ -205,7 +226,7 @@ public:
     }
 
     template <class T>
-    inline CURLHandle& setopt(CURLoption opt, const T &val)
+    inline CURLHandle& setopt(CURLoption opt, const T& val)
     {
         CURLcode ok;
         if constexpr (std::is_same<T, std::string>())
@@ -218,7 +239,8 @@ public:
         }
         if (ok != CURLE_OK)
         {
-            throw curl_error(fmt::format("curl: curl_easy_setopt failed {}", curl_easy_strerror(ok)));
+            throw curl_error(
+                fmt::format("curl: curl_easy_setopt failed {}", curl_easy_strerror(ok)));
         }
         return *this;
     }
@@ -227,7 +249,7 @@ public:
     {
         if (m_handle)
         {
-            curl_easy_cleanup(m_handle);   
+            curl_easy_cleanup(m_handle);
         }
         if (p_headers)
         {

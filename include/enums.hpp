@@ -12,44 +12,47 @@ enum class Protocol
     // RSYNC,
 };
 
-enum class DownloadState {
+enum class DownloadState
+{
     WAITING, /*!<
         The target is waiting to be processed. */
     PREPARATION,
-    RUNNING, /*!<
-        The transfer is running. */
+    RUNNING,  /*!<
+         The transfer is running. */
     FINISHED, /*!<
         The transfer is successfully finished. */
-    FAILED, /*!<
-        The transfer is finished without success. */
-} ;
+    FAILED,   /*!<
+          The transfer is finished without success. */
+};
 
-enum class HeaderCbState {
-    DEFAULT, /*!<
-        Default state */
+enum class HeaderCbState
+{
+    DEFAULT,       /*!<
+              Default state */
     HTTP_STATE_OK, /*!<
         HTTP headers with OK state */
-    INTERRUPTED, /*!<
-        Download was interrupted (e.g. Content-Length doesn't match
-        expected size etc.) */
-    DONE, /*!<
-        All headers which we were looking for are already found*/
-} ;
+    INTERRUPTED,   /*!<
+          Download was interrupted (e.g. Content-Length doesn't match
+          expected size etc.) */
+    DONE,          /*!<
+                 All headers which we were looking for are already found*/
+};
 
 /** Enum with zchunk file status */
-enum class ZckState {
+enum class ZckState
+{
     HEADER_CK, /*!<
         The zchunk file is waiting to check whether the header is available
         locally. */
-    HEADER, /*!<
-        The zchunk file is waiting to download the header */
-    BODY_CK, /*!<
-        The zchunk file is waiting to check what chunks are available locally */
-    BODY, /*!<
-        The zchunk file is waiting for its body to be downloaded. */
-    FINISHED /*!<
-        The zchunk file is finished being downloaded. */
-} ;
+    HEADER,    /*!<
+           The zchunk file is waiting to download the header */
+    BODY_CK,   /*!<
+          The zchunk file is waiting to check what chunks are available locally */
+    BODY,      /*!<
+             The zchunk file is waiting for its body to be downloaded. */
+    FINISHED   /*!<
+          The zchunk file is finished being downloaded. */
+};
 
 enum class CbReturnCode
 {
@@ -85,6 +88,4 @@ struct Checksum
  * @param msg               Error message or NULL.
  * @return                  See LrCbReturnCode codes
  */
-typedef CbReturnCode (*EndCb)(TransferStatus status,
-                       const std::string& msg,
-                       void *clientp);
+typedef CbReturnCode (*EndCb)(TransferStatus status, const std::string& msg, void* clientp);

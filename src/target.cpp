@@ -5,7 +5,8 @@
 //     return curl_handle;
 // }
 
-void Target::reset()
+void
+Target::reset()
 {
     // if (curl_handle)
     // {
@@ -19,7 +20,8 @@ void Target::reset()
     }
 }
 
-bool Target::truncate_transfer_file()
+bool
+Target::truncate_transfer_file()
 {
     std::ptrdiff_t offset = 0;
 
@@ -39,7 +41,8 @@ bool Target::truncate_transfer_file()
     return true;
 }
 
-std::shared_ptr<std::ofstream> Target::open_target_file()
+std::shared_ptr<std::ofstream>
+Target::open_target_file()
 {
     /** Open the file to write to */
     if (target->fd && target->fd->is_open())
@@ -77,7 +80,8 @@ std::shared_ptr<std::ofstream> Target::open_target_file()
 }
 
 /* Fail if dl_ctx->fail_no_ranges is set and we get a 200 response */
-std::size_t zckheadercb(char *buffer, std::size_t size, std::size_t nitems, Target *self)
+std::size_t
+zckheadercb(char* buffer, std::size_t size, std::size_t nitems, Target* self)
 {
     assert(self && self->target);
     std::cout << "HEADER callback ZCHUNK!" << std::endl;
@@ -93,16 +97,17 @@ std::size_t zckheadercb(char *buffer, std::size_t size, std::size_t nitems, Targ
     {
         std::cout << "NOT 200 code :/" << std::endl;
     }
-    
+
     return zck_header_cb(buffer, size, nitems, self->target->zck_dl);
 }
 
-std::size_t Target::header_callback(char *buffer, std::size_t size, std::size_t nitems, Target *self)
+std::size_t
+Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Target* self)
 {
     assert(self);
 
     size_t ret = size * nitems;
-    Target *target = self;
+    Target* target = self;
     HeaderCbState state = self->headercb_state;
 
     pfdebug("Header received!");
@@ -116,7 +121,9 @@ std::size_t Target::header_callback(char *buffer, std::size_t size, std::size_t 
     }
 
 #ifdef WITH_ZCHUNK
-    if (target->target->is_zchunk && !target->range_fail) // && target->mirror && target->mirror->mirror.protocol == Protocol::HTTP)
+    if (target->target->is_zchunk
+        && !target->range_fail)  // && target->mirror &&
+                                 // target->mirror->mirror.protocol == Protocol::HTTP)
         return zckheadercb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
 
@@ -126,7 +133,8 @@ std::size_t Target::header_callback(char *buffer, std::size_t size, std::size_t 
     {
         if (target->protocol == Protocol::HTTP && starts_with(header, "HTTP/"))
         {
-            if (contains(header, "200") || contains(header, "206") && !contains(header, "connection established"))
+            if (contains(header, "200")
+                || contains(header, "206") && !contains(header, "connection established"))
             {
                 pfdebug("Header state OK! {}", header);
                 target->headercb_state = HeaderCbState::HTTP_STATE_OK;
@@ -215,7 +223,9 @@ std::size_t Target::header_callback(char *buffer, std::size_t size, std::size_t 
                 pfdebug("Server returned Content-Length: {}", content_length);
                 if (content_length > 0 && content_length != expected)
                 {
-                    pfdebug("Content length from server not matching {} vs {}", content_length, expected);
+                    pfdebug("Content length from server not matching {} vs {}",
+                            content_length,
+                            expected);
                     target->headercb_state = HeaderCbState::INTERRUPTED;
                     // target->headercb_interrupt_reason = fmt::format(
                     //     "Server reports Content-Length: {} but expected size is: {}",
@@ -236,9 +246,10 @@ std::size_t Target::header_callback(char *buffer, std::size_t size, std::size_t 
     return ret;
 }
 
-std::size_t zckwritecb(char *buffer, size_t size, size_t nitems, Target *self)
+std::size_t
+zckwritecb(char* buffer, size_t size, size_t nitems, Target* self)
 {
-    std::cout << "WRITE CB! " << (int)self->zck_state << std::endl;
+    std::cout << "WRITE CB! " << (int) self->zck_state << std::endl;
     if (self->zck_state == ZckState::HEADER)
     {
         std::cout << "It's HEADER time." << std::endl;
@@ -251,7 +262,8 @@ std::size_t zckwritecb(char *buffer, size_t size, size_t nitems, Target *self)
     }
 }
 
-std::size_t Target::write_callback(char *buffer, std::size_t size, std::size_t nitems, Target *self)
+std::size_t
+Target::write_callback(char* buffer, std::size_t size, std::size_t nitems, Target* self)
 {
     assert(self);
 
@@ -261,7 +273,9 @@ std::size_t Target::write_callback(char *buffer, std::size_t size, std::size_t n
     // std::cout << std::endl;
 
 #ifdef WITH_ZCHUNK
-    if (self->target->is_zchunk && !self->range_fail) // && self->mirror && self->mirror->mirror.protocol == Protocol::HTTP)
+    if (self->target->is_zchunk
+        && !self->range_fail)  // && self->mirror && self->mirror->mirror.protocol ==
+                               // Protocol::HTTP)
         return zckwritecb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
 
@@ -280,8 +294,8 @@ std::size_t Target::write_callback(char *buffer, std::size_t size, std::size_t n
     }
 
     /* Deal with situation when user wants only specific byte range of the
-         * target file, and write only the range.
-         */
+     * target file, and write only the range.
+     */
 
     std::size_t cur_range_start = self->writecb_received;
     std::size_t cur_range_end = cur_range_start + all;

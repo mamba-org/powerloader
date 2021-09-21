@@ -1,10 +1,10 @@
 #include <CLI/CLI.hpp>
 
-#include "url.hpp"
 #include "mirror.hpp"
-#include "utils.hpp"
 #include "mirrors/oci.hpp"
 #include "mirrors/s3.hpp"
+#include "url.hpp"
+#include "utils.hpp"
 
 enum KindOf
 {
@@ -13,7 +13,8 @@ enum KindOf
     S3
 };
 
-int handle_upload(const std::vector<std::string> &files, const std::vector<std::string> &mirrors)
+int
+handle_upload(const std::vector<std::string>& files, const std::vector<std::string>& mirrors)
 {
     std::string mirror_url = mirrors[0];
     if (mirrors.size() > 1)
@@ -34,7 +35,7 @@ int handle_upload(const std::vector<std::string> &files, const std::vector<std::
 
     std::cout << "URL: " << url.url() << std::endl;
 
-    for (auto &f : files)
+    for (auto& f : files)
     {
         auto elems = split(f, ":");
         fs::path fpath = elems[0];
@@ -69,11 +70,7 @@ int handle_upload(const std::vector<std::string> &files, const std::vector<std::
             if (url_.back() == '/')
                 url_ = url_.substr(0, url_.size() - 1);
 
-            S3Mirror s3mirror(
-                url_,
-                aws_region,
-                aws_ackey,
-                aws_sekey);
+            S3Mirror s3mirror(url_, aws_region, aws_ackey, aws_sekey);
             s3_upload(s3mirror, elems[1], elems[0]);
         }
     }
@@ -81,18 +78,19 @@ int handle_upload(const std::vector<std::string> &files, const std::vector<std::
     return 1;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char** argv)
 {
     CLI::App app;
 
     std::vector<std::string> upload_files, download_files;
     std::vector<std::string> mirrors;
 
-    CLI::App *s_dl = app.add_subcommand("download", "Download a file");
+    CLI::App* s_dl = app.add_subcommand("download", "Download a file");
     s_dl->add_option("files", download_files, "Files to download");
     s_dl->add_option("-m", mirrors, "Mirror to upload to");
 
-    CLI::App *s_ul = app.add_subcommand("upload", "Upload a file");
+    CLI::App* s_ul = app.add_subcommand("upload", "Upload a file");
     s_ul->add_option("files", upload_files, "Files to upload");
     s_ul->add_option("-m", mirrors, "Mirror to upload to");
 

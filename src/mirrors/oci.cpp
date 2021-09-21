@@ -1,27 +1,30 @@
-#include "target.hpp"
 #include "mirrors/oci.hpp"
+#include "target.hpp"
 
 // OCI Mirror:
 // When knowing the SHA256 we can directly get to the blob
-// When we do not know the SHA256 sum, we need to find the `latest` or some other blob
+// When we do not know the SHA256 sum, we need to find the `latest` or some
+// other blob
 
 // OCI upload process
 // 4 steps:
 //  - first get auth token with push rights
-//  - then 
+//  - then
 
 // This is what an OCI manifest (index) looks like:
 // {
 //     "schemaVersion": 2,
 //     "config": {
 //         "mediaType": "application/vnd.unknown.config.v1+json",
-//         "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+//         "digest":
+//         "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 //         "size": 0
 //     },
 //     "layers": [
 //         {
 //             "mediaType": "application/vnd.unknown.layer.v1+txt",
-//             "digest": "sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4",
+//             "digest":
+//             "sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4",
 //             "size": 13,
 //             "annotations": {
 //                 "org.opencontainers.image.title": "artifact.txt"
@@ -30,23 +33,26 @@
 //     ]
 // }
 
-bool OCIMirror::need_preparation(Target* target)
+bool
+OCIMirror::need_preparation(Target* target)
 {
-    auto *data = get_data(target);
+    auto* data = get_data(target);
     if (data && data->token.empty())
         return true;
-    
+
     if (data && !data->sha256sum.empty())
         return false;
 
-    if (std::none_of(target->target->checksums.begin(), target->target->checksums.end(), [](auto &ck)
-                    { return ck.type == ChecksumType::SHA256; }))
+    if (std::none_of(target->target->checksums.begin(),
+                     target->target->checksums.end(),
+                     [](auto& ck) { return ck.type == ChecksumType::SHA256; }))
         return true;
 
     return false;
 }
 
-OCIMirror::AuthCallbackData *OCIMirror::get_data(Target *target)
+OCIMirror::AuthCallbackData*
+OCIMirror::get_data(Target* target)
 {
     auto it = path_cb_map.find(target->target->path);
     if (it != path_cb_map.end())
@@ -56,7 +62,8 @@ OCIMirror::AuthCallbackData *OCIMirror::get_data(Target *target)
     return nullptr;
 }
 
-bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
+bool
+OCIMirror::prepare(const std::string& path, CURLHandle& handle)
 {
     auto it = path_cb_map.find(path);
     if (it == path_cb_map.end())
@@ -107,11 +114,10 @@ bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
         std::string manifest_url = get_manifest_url(path, "1.0");
 
         handle.url(manifest_url)
-              .add_headers(get_auth_headers(path))
-              .add_header("Accept: application/vnd.oci.image.manifest.v1+json");
+            .add_headers(get_auth_headers(path))
+            .add_header("Accept: application/vnd.oci.image.manifest.v1+json");
 
-        auto finalize_manifest_callback = [this, &cbdata](const Response& response)
-        {
+        auto finalize_manifest_callback = [this, &cbdata](const Response& response) {
             auto j = response.json();
 
             if (j.contains("layers"))
@@ -120,16 +126,18 @@ bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
                 std::size_t expected_size = j["layers"][0]["size"];
                 assert(starts_with(digest, "sha256:"));
 
-                // TODO check if we should push the checksums into the download target or do something
+                // TODO check if we should push the checksums into the download target
+                // or do something
                 //      on the mirror level?!
                 // cbdata->target->target->checksums.push_back(
-                //     Checksum{.type = ChecksumType::SHA256, 
+                //     Checksum{.type = ChecksumType::SHA256,
                 //              .checksum = digest.substr(sizeof("sha256:") - 1)}
                 // );
 
                 cbdata->sha256sum = digest.substr(sizeof("sha256:") - 1);
 
-                // path_shasum[d->target->target->path] = digest.substr(sizeof("sha256:"));
+                // path_shasum[d->target->target->path] =
+                // digest.substr(sizeof("sha256:"));
                 return 0;
             }
             return 1;
@@ -140,7 +148,8 @@ bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
     return true;
 }
 
-std::string OCIMirror::format_url(Target *target)
+std::string
+OCIMirror::format_url(Target* target)
 {
     std::string* checksum = nullptr;
 
@@ -149,7 +158,7 @@ std::string OCIMirror::format_url(Target *target)
         if (ck.type == ChecksumType::SHA256)
             checksum = &ck.checksum;
     }
-    
+
     if (!checksum)
     {
         auto* data = get_data(target);
@@ -157,19 +166,18 @@ std::string OCIMirror::format_url(Target *target)
     }
 
     // https://ghcr.io/v2/wolfv/artifact/blobs/sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4
-    return fmt::format("{}/v2/{}/blobs/sha256:{}",
-                       mirror.url,
-                       target->target->path,
-                       *checksum);
+    return fmt::format("{}/v2/{}/blobs/sha256:{}", mirror.url, target->target->path, *checksum);
 }
 
-std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path)
+std::vector<std::string>
+OCIMirror::get_auth_headers(const std::string& path)
 {
     auto& data = path_cb_map[path];
-    return {fmt::format("Authorization: Bearer {}", data->token)};
+    return { fmt::format("Authorization: Bearer {}", data->token) };
 }
 
-std::string OCIMirror::create_manifest(std::size_t size, const std::string& digest)
+std::string
+OCIMirror::create_manifest(std::size_t size, const std::string& digest)
 {
     std::stringstream ss;
     nlohmann::json j;
@@ -193,7 +201,8 @@ std::string OCIMirror::create_manifest(std::size_t size, const std::string& dige
     return j.dump(4);
 }
 
-std::string OCIMirror::get_digest(const fs::path& p)
+std::string
+OCIMirror::get_digest(const fs::path& p)
 {
     return fmt::format("sha256:{}", sha256sum(p));
 }

@@ -1,24 +1,26 @@
 #include "zck.hpp"
 #include "target.hpp"
 
-zck_hash zck_hash_from_checksum(ChecksumType checksum_type)
+zck_hash
+zck_hash_from_checksum(ChecksumType checksum_type)
 {
     switch (checksum_type)
     {
-    case ChecksumType::SHA1:
-        return ZCK_HASH_SHA1;
-    case ChecksumType::SHA256:
-        return ZCK_HASH_SHA256;
-    default:
-        return ZCK_HASH_UNKNOWN;
+        case ChecksumType::SHA1:
+            return ZCK_HASH_SHA1;
+        case ChecksumType::SHA256:
+            return ZCK_HASH_SHA256;
+        default:
+            return ZCK_HASH_UNKNOWN;
     }
 }
 
-zckCtx *init_zck_read(const char *checksum, ChecksumType checksum_type, ptrdiff_t zck_header_size, int fd)
+zckCtx*
+init_zck_read(const char* checksum, ChecksumType checksum_type, ptrdiff_t zck_header_size, int fd)
 {
     // assert(!err || *err == NULL);
 
-    zckCtx *zck = zck_create();
+    zckCtx* zck = zck_create();
     if (!zck_init_adv_read(zck, fd))
     {
         throw zchunk_error("Unable to initialize zchunk file for reading");
@@ -51,10 +53,14 @@ zckCtx *init_zck_read(const char *checksum, ChecksumType checksum_type, ptrdiff_
     return zck;
 }
 
-zckCtx *zck_init_read_base(const char *checksum, ChecksumType checksum_type, std::ptrdiff_t zck_header_size, int fd)
+zckCtx*
+zck_init_read_base(const char* checksum,
+                   ChecksumType checksum_type,
+                   std::ptrdiff_t zck_header_size,
+                   int fd)
 {
     lseek(fd, 0, SEEK_SET);
-    zckCtx *zck = init_zck_read(checksum, checksum_type, zck_header_size, fd);
+    zckCtx* zck = init_zck_read(checksum, checksum_type, zck_header_size, fd);
 
     std::cout << "Reading base " << checksum << " " << zck_header_size << std::endl;
 
@@ -76,13 +82,16 @@ zckCtx *zck_init_read_base(const char *checksum, ChecksumType checksum_type, std
     return zck;
 }
 
-bool zck_valid_header_base(const char *checksum, ChecksumType checksum_type,
-                           std::ptrdiff_t zck_header_size, int fd)
+bool
+zck_valid_header_base(const char* checksum,
+                      ChecksumType checksum_type,
+                      std::ptrdiff_t zck_header_size,
+                      int fd)
 {
     // lseek(fd, 0L, SEEK_END);
     // std::cout << "File header size: " << ltell(fd) << std::endl;
     lseek(fd, 0, SEEK_SET);
-    zckCtx *zck = init_zck_read(checksum, checksum_type, zck_header_size, fd);
+    zckCtx* zck = init_zck_read(checksum, checksum_type, zck_header_size, fd);
     if (zck == nullptr)
         return false;
 
@@ -96,20 +105,21 @@ bool zck_valid_header_base(const char *checksum, ChecksumType checksum_type,
     return true;
 }
 
-zckCtx *
-zck_init_read(DownloadTarget *target, int fd)
+zckCtx*
+zck_init_read(DownloadTarget* target, int fd)
 {
-    zckCtx *zck = nullptr;
+    zckCtx* zck = nullptr;
     bool found = false;
-    for (auto &chksum : target->checksums)
+    for (auto& chksum : target->checksums)
     {
         pfdebug("Checking checksum: {}: {}", chksum.type, "lll");
         try
         {
             std::cout << "CHKSZ: " << chksum.checksum.size() << std::endl;
-            zck = zck_init_read_base(chksum.checksum.data(), chksum.type, target->zck_header_size, fd);
+            zck = zck_init_read_base(
+                chksum.checksum.data(), chksum.type, target->zck_header_size, fd);
         }
-        catch (const std::exception &e)
+        catch (const std::exception& e)
         {
             pfdebug("Didnt find matching header...");
             continue;
@@ -124,15 +134,14 @@ zck_init_read(DownloadTarget *target, int fd)
     return zck;
 }
 
-bool zck_valid_header(DownloadTarget *target, int fd)
+bool
+zck_valid_header(DownloadTarget* target, int fd)
 {
-    for (auto &chksum : target->checksums)
+    for (auto& chksum : target->checksums)
     {
         std::cout << "CHKSZ: " << chksum.checksum.size() << std::endl;
 
-        if (zck_valid_header_base(chksum.checksum.data(), chksum.type,
-                                  target->zck_header_size,
-                                  fd))
+        if (zck_valid_header_base(chksum.checksum.data(), chksum.type, target->zck_header_size, fd))
         {
             return true;
         }
@@ -140,7 +149,8 @@ bool zck_valid_header(DownloadTarget *target, int fd)
     throw zchunk_error(fmt::format("{}'s zchunk header doesn't match", target->path));
 }
 
-bool zck_clear_header(Target *target)
+bool
+zck_clear_header(Target* target)
 {
     // assert(target && target->f && target->target && target->target->path);
 
@@ -162,10 +172,11 @@ bool zck_clear_header(Target *target)
     return true;
 }
 
-std::vector<fs::path> get_recursive_files(fs::path dir, const std::string &suffix)
+std::vector<fs::path>
+get_recursive_files(fs::path dir, const std::string& suffix)
 {
     std::vector<fs::path> res;
-    for (auto &p : fs::recursive_directory_iterator(dir))
+    for (auto& p : fs::recursive_directory_iterator(dir))
     {
         if (ends_with(p.path().filename().string(), suffix))
         {
@@ -176,7 +187,8 @@ std::vector<fs::path> get_recursive_files(fs::path dir, const std::string &suffi
 }
 
 // TODO replace...
-int lr_copy_content(int source, int dest)
+int
+lr_copy_content(int source, int dest)
 {
     const int bufsize = 2048;
     char buf[bufsize];
@@ -192,9 +204,10 @@ int lr_copy_content(int source, int dest)
     return (size < 0) ? -1 : 0;
 }
 
-bool find_local_zck_header(Target *target)
+bool
+find_local_zck_header(Target* target)
 {
-    zckCtx *zck = nullptr;
+    zckCtx* zck = nullptr;
     bool found = false;
     int fd = fileno(target->f);
 
@@ -207,7 +220,7 @@ bool find_local_zck_header(Target *target)
         fs::path destdir = CACHEDIR;
         fs::path dest = destdir / target->target->path;
 
-        for (const auto &file : filelist)
+        for (const auto& file : filelist)
         {
             if (dest == file)
             {
@@ -226,7 +239,7 @@ bool find_local_zck_header(Target *target)
             {
                 valid_header = zck_valid_header(target->target, chk_fd);
             }
-            catch (zchunk_error &e)
+            catch (zchunk_error& e)
             {
                 std::cout << "No valid header " << e.what() << std::endl;
             };
@@ -234,10 +247,9 @@ bool find_local_zck_header(Target *target)
             if (valid_header)
             {
                 pfdebug("zchunk: Found file with same header at ", file.string());
-                if (lr_copy_content(chk_fd, fd) == 0 &&
-                    ftruncate(fd, lseek(chk_fd, 0, SEEK_END)) >= 0 &&
-                    lseek(fd, 0, SEEK_SET) == 0 &&
-                    (zck = zck_init_read(target->target, chk_fd)))
+                if (lr_copy_content(chk_fd, fd) == 0
+                    && ftruncate(fd, lseek(chk_fd, 0, SEEK_END)) >= 0 && lseek(fd, 0, SEEK_SET) == 0
+                    && (zck = zck_init_read(target->target, chk_fd)))
                 {
                     found = true;
                     break;
@@ -258,11 +270,12 @@ bool find_local_zck_header(Target *target)
 
     if (found)
     {
-        zckCtx *old_zck = zck_dl_get_zck(target->target->zck_dl);
+        zckCtx* old_zck = zck_dl_get_zck(target->target->zck_dl);
         zck_free(&old_zck);
         if (!zck_dl_set_zck(target->target->zck_dl, zck))
         {
-            throw zchunk_error(fmt::format("Unable to setup zchunk download context for {}", target->target->path));
+            throw zchunk_error(fmt::format("Unable to setup zchunk download context for {}",
+                                           target->target->path));
         }
         target->zck_state = ZckState::BODY_CK;
         return true;
@@ -271,9 +284,10 @@ bool find_local_zck_header(Target *target)
     return true;
 }
 
-bool prep_zck_header(Target *target)
+bool
+prep_zck_header(Target* target)
 {
-    zckCtx *zck = nullptr;
+    zckCtx* zck = nullptr;
     int fd = fileno(target->f);
 
     bool valid_header = false;
@@ -281,7 +295,7 @@ bool prep_zck_header(Target *target)
     {
         valid_header = zck_valid_header(target->target, fd);
     }
-    catch (const zchunk_error &e)
+    catch (const zchunk_error& e)
     {
         std::cout << "No valid header " << e.what() << std::endl;
     }
@@ -292,7 +306,7 @@ bool prep_zck_header(Target *target)
         {
             zck = zck_init_read(target->target, fd);
         }
-        catch (const zchunk_error &e)
+        catch (const zchunk_error& e)
         {
             pfdebug("Error reading validated header {}", e.what());
         }
@@ -311,16 +325,18 @@ bool prep_zck_header(Target *target)
     zck = zck_create();
     if (!zck_init_adv_read(zck, fd))
     {
-        throw zchunk_error(fmt::format("Unable to initialize zchunk file {} for reading", target->target->path));
+        throw zchunk_error(
+            fmt::format("Unable to initialize zchunk file {} for reading", target->target->path));
     }
 
     if (target->target->zck_dl)
     {
-        zckCtx *old_zck = zck_dl_get_zck(target->target->zck_dl);
+        zckCtx* old_zck = zck_dl_get_zck(target->target->zck_dl);
         zck_free(&old_zck);
         if (!zck_dl_set_zck(target->target->zck_dl, zck))
         {
-            throw zchunk_error(fmt::format("Unable to setup zchunk download context for {}", target->target->path));
+            throw zchunk_error(fmt::format("Unable to setup zchunk download context for {}",
+                                           target->target->path));
         }
     }
     else
@@ -335,15 +351,18 @@ bool prep_zck_header(Target *target)
     return zck_clear_header(target);
 }
 
-bool find_local_zck_chunks(Target *target)
+bool
+find_local_zck_chunks(Target* target)
 {
     assert(target && target->target && target->target->zck_dl);
 
-    zckCtx *zck = zck_dl_get_zck(target->target->zck_dl);
+    zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
     int fd = fileno(target->f);
     if (zck && fd != zck_get_fd(zck) && !zck_set_fd(zck, fd))
     {
-        throw zchunk_error(fmt::format("Unable to set zchunk file descriptor for {}: {}", target->target->path, zck_get_error(zck)));
+        throw zchunk_error(fmt::format("Unable to set zchunk file descriptor for {}: {}",
+                                       target->target->path,
+                                       zck_get_error(zck)));
     }
     // if (target->target->handle->cachedir)
     if (true)
@@ -355,7 +374,7 @@ bool find_local_zck_chunks(Target *target)
         fs::path destdir = CACHEDIR;
         fs::path dest = destdir / target->target->path;
 
-        for (const auto &file : filelist)
+        for (const auto& file : filelist)
         {
             if (dest == file)
             {
@@ -370,7 +389,7 @@ bool find_local_zck_chunks(Target *target)
                 continue;
             }
 
-            zckCtx *zck_src = zck_create();
+            zckCtx* zck_src = zck_create();
             if (!zck_init_read(zck_src, chk_fd))
             {
                 close(chk_fd);
@@ -380,7 +399,8 @@ bool find_local_zck_chunks(Target *target)
             if (!zck_copy_chunks(zck_src, zck))
             {
                 pfdebug("Error copying chunks: {}", zck_get_error(zck));
-                // g_warning("Error copying chunks from %s to %s: %s", cf, uf, zck_get_error(zck));
+                // g_warning("Error copying chunks from %s to %s: %s", cf, uf,
+                // zck_get_error(zck));
                 zck_free(&zck_src);
                 close(chk_fd);
                 continue;
@@ -391,21 +411,25 @@ bool find_local_zck_chunks(Target *target)
     }
     target->target->downloaded = target->target->total_to_download;
     /* Calculate how many bytes need to be downloaded */
-    for (zckChunk *idx = zck_get_first_chunk(zck); idx != NULL; idx = zck_get_next_chunk(idx))
+    for (zckChunk* idx = zck_get_first_chunk(zck); idx != NULL; idx = zck_get_next_chunk(idx))
         if (zck_get_chunk_valid(idx) != 1)
-            target->target->total_to_download += zck_get_chunk_comp_size(idx) + 92; /* Estimate of multipart overhead */
+            target->target->total_to_download
+                += zck_get_chunk_comp_size(idx) + 92; /* Estimate of multipart overhead */
     target->zck_state = ZckState::BODY;
 
     return true;
 }
 
-bool prepare_zck_body(Target *target)
+bool
+prepare_zck_body(Target* target)
 {
-    zckCtx *zck = zck_dl_get_zck(target->target->zck_dl);
+    zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
     int fd = fileno(target->f);
     if (zck && fd != zck_get_fd(zck) && !zck_set_fd(zck, fd))
     {
-        throw zchunk_error(fmt::format("Unable to set zchunk file descriptor for {}: {}", target->target->path, zck_get_error(zck)));
+        throw zchunk_error(fmt::format("Unable to set zchunk file descriptor for {}: {}",
+                                       target->target->path,
+                                       zck_get_error(zck)));
     }
 
     zck_reset_failed_chunks(zck);
@@ -420,8 +444,8 @@ bool prepare_zck_body(Target *target)
     pfdebug("Chunks that still need to be downloaded: {}", zck_missing_chunks(zck));
 
     zck_dl_reset(target->target->zck_dl);
-    zckRange *range = zck_get_missing_range(zck, target->mirror ? target->mirror->max_ranges : -1);
-    zckRange *old_range = zck_dl_get_range(target->target->zck_dl);
+    zckRange* range = zck_get_missing_range(zck, target->mirror ? target->mirror->max_ranges : -1);
+    zckRange* old_range = zck_dl_get_range(target->target->zck_dl);
     if (old_range)
     {
         zck_range_free(&old_range);
@@ -440,13 +464,15 @@ bool prepare_zck_body(Target *target)
     return true;
 }
 
-bool check_zck(Target *target)
+bool
+check_zck(Target* target)
 {
     assert(target);
     assert(target->f);
     assert(target->target);
 
-    if (target->mirror && (target->mirror->max_ranges == 0 || target->mirror->mirror.protocol != Protocol::HTTP))
+    if (target->mirror
+        && (target->mirror->max_ranges == 0 || target->mirror->mirror.protocol != Protocol::HTTP))
     {
         target->zck_state = ZckState::BODY;
         target->target->expected_size = target->target->orig_size;
@@ -477,7 +503,7 @@ bool check_zck(Target *target)
     if (target->zck_state == ZckState::FINISHED)
         return true;
 
-    zckCtx *zck = zck_dl_get_zck(target->target->zck_dl);
+    zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
     std::cout << "Got a zck dl? " << zck << std::endl;
 
     if (!zck)
@@ -489,7 +515,8 @@ bool check_zck(Target *target)
     }
 
     zck = zck_dl_get_zck(target->target->zck_dl);
-    std::cout << fmt::format("Everything fine? {}", zck_get_error(zck)) << " " << zck << " & " << target->target->zck_dl << std::endl;
+    std::cout << fmt::format("Everything fine? {}", zck_get_error(zck)) << " " << zck << " & "
+              << target->target->zck_dl << std::endl;
 
     if (target->zck_state == ZckState::HEADER)
     {
@@ -538,7 +565,7 @@ bool check_zck(Target *target)
         }
 
         if (cks_good == 1)
-        { // All checksums good
+        {  // All checksums good
             if (target->target->zck_dl)
                 zck_dl_free(&(target->target->zck_dl));
             target->zck_state = ZckState::FINISHED;
@@ -547,9 +574,10 @@ bool check_zck(Target *target)
     }
     zck_reset_failed_chunks(zck);
 
-    // Recalculate how many bytes remain to be downloaded by subtracting from total_to_download
+    // Recalculate how many bytes remain to be downloaded by subtracting from
+    // total_to_download
     target->target->downloaded = target->target->total_to_download;
-    for (zckChunk *idx = zck_get_first_chunk(zck); idx != NULL; idx = zck_get_next_chunk(idx))
+    for (zckChunk* idx = zck_get_first_chunk(zck); idx != NULL; idx = zck_get_next_chunk(idx))
         if (zck_get_chunk_valid(idx) != 1)
             target->target->downloaded -= zck_get_chunk_comp_size(idx) + 92;
     return prepare_zck_body(target);

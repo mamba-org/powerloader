@@ -1,28 +1,28 @@
-#include <set>
-#include <thread>
-#include <filesystem>
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <cassert>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <set>
+#include <sstream>
+#include <thread>
 
 extern "C"
 {
-    #include <unistd.h>
-    #include <fcntl.h>
+#include <fcntl.h>
+#include <unistd.h>
 }
 
 #include <fmt/core.h>
 
 namespace fs = std::filesystem;
 
-#include "downloader.hpp"
 #include "curl.hpp"
-#include "utils.hpp"
+#include "download_target.hpp"
+#include "downloader.hpp"
 #include "enums.hpp"
 #include "mirror.hpp"
-#include "download_target.hpp"
 #include "target.hpp"
+#include "utils.hpp"
 #include "zck.hpp"
 
 Downloader::Downloader()
@@ -37,7 +37,8 @@ Downloader::~Downloader()
     curl_multi_cleanup(multi_handle);
 }
 
-void Downloader::add(DownloadTarget *dl_target)
+void
+Downloader::add(DownloadTarget* dl_target)
 {
     // this function converts a DownloadTarget into a "Target"
     if (!dl_target)
@@ -55,49 +56,48 @@ void Downloader::add(DownloadTarget *dl_target)
 }
 
 /** Check the finished transfer
-     * Evaluate CURL return code and status code of protocol if needed.
-     * @param serious_error     Serious error is an error that isn't fatal,
-     *                          but mirror that generate it should be penalized.
-     *                          E.g.: Connection timeout - a mirror we are unable
-     *                          to connect at is pretty useless for us, but
-     *                          this could be only temporary state.
-     *                          No fatal but also no good.
-     * @param fatal_error       An error that cannot be recovered - e.g.
-     *                          we cannot write to a socket, we cannot write
-     *                          data to disk, bad function argument, ...
-     */
-bool Downloader::check_finished_transfer_status(CURLMsg *msg,
-                                                Target *target)
+ * Evaluate CURL return code and status code of protocol if needed.
+ * @param serious_error     Serious error is an error that isn't fatal,
+ *                          but mirror that generate it should be penalized.
+ *                          E.g.: Connection timeout - a mirror we are unable
+ *                          to connect at is pretty useless for us, but
+ *                          this could be only temporary state.
+ *                          No fatal but also no good.
+ * @param fatal_error       An error that cannot be recovered - e.g.
+ *                          we cannot write to a socket, we cannot write
+ *                          data to disk, bad function argument, ...
+ */
+bool
+Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
 {
     long code = 0;
-    char *effective_url = NULL;
+    char* effective_url = NULL;
 
     assert(msg);
     assert(target);
 
-    curl_easy_getinfo(msg->easy_handle,
-                      CURLINFO_EFFECTIVE_URL,
-                      &effective_url);
+    curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
 
     pfdebug("Got transfer status --> result: {}", msg->data.result);
     if (msg->data.result != CURLE_OK)
     {
         // There was an error that is reported by CURLcode
 
-        if (msg->data.result == CURLE_WRITE_ERROR &&
-            target->writecb_required_range_written)
+        if (msg->data.result == CURLE_WRITE_ERROR && target->writecb_required_range_written)
         {
             // Download was interrupted by writecb because
             // user want only specified byte range of the
             // target and the range was already downloaded
-            pfdebug("Transfer was interrupted by writecb() because the required range ({} - {}) was downloaded.",
+            pfdebug("Transfer was interrupted by writecb() because the required "
+                    "range ({} - {}) was downloaded.",
                     target->target->byterange_start,
                     target->target->byterange_end);
         }
         else if (target->headercb_state == HeaderCbState::INTERRUPTED)
         {
             // Download was interrupted by header callback
-            throw download_error("Interrupted by header callback " + target->headercb_interrupt_reason);
+            throw download_error("Interrupted by header callback "
+                                 + target->headercb_interrupt_reason);
             // g_set_error(transfer_err, LR_DOWNLOADER_ERROR, LRE_CURL,
             //             "Interrupted by header callback: %s",
             //             target->headercb_interrupt_reason);
@@ -105,17 +105,20 @@ bool Downloader::check_finished_transfer_status(CURLMsg *msg,
         // #ifdef WITH_ZCHUNK
         //             else if (target->range_fail)
         //             {
-        //                 zckRange *range = zck_dl_get_range(target->target->zck_dl);
-        //                 int range_count = zck_get_range_count(range);
-        //                 if (target->mirror->max_ranges >= range_count)
+        //                 zckRange *range =
+        //                 zck_dl_get_range(target->target->zck_dl); int range_count
+        //                 = zck_get_range_count(range); if
+        //                 (target->mirror->max_ranges >= range_count)
         //                 {
         //                     target->mirror->max_ranges = range_count / 2;
-        //                     g_debug("%s: Setting mirror's max_ranges to %i", __func__,
+        //                     g_debug("%s: Setting mirror's max_ranges to %i",
+        //                     __func__,
         //                             target->mirror->max_ranges);
         //                 }
         //                 return TRUE;
         //             }
-        //             else if (target->target->zck_dl != NULL && zck_is_error(zck_dl_get_zck(target->target->zck_dl)) > 0)
+        //             else if (target->target->zck_dl != NULL &&
+        //             zck_is_error(zck_dl_get_zck(target->target->zck_dl)) > 0)
         //             {
         //                 zckCtx *zck = zck_dl_get_zck(target->target->zck_dl);
 
@@ -151,29 +154,29 @@ bool Downloader::check_finished_transfer_status(CURLMsg *msg,
             std::cout << "ERROR: " << error << std::endl;
             switch (msg->data.result)
             {
-            case CURLE_ABORTED_BY_CALLBACK:
-            case CURLE_BAD_FUNCTION_ARGUMENT:
-            case CURLE_CONV_REQD:
-            case CURLE_COULDNT_RESOLVE_PROXY:
-            case CURLE_FILESIZE_EXCEEDED:
-            case CURLE_INTERFACE_FAILED:
-            case CURLE_NOT_BUILT_IN:
-            case CURLE_OUT_OF_MEMORY:
-            //case CURLE_RECV_ERROR:  // See RhBug: 1219817
-            //case CURLE_SEND_ERROR:
-            case CURLE_SSL_CACERT_BADFILE:
-            case CURLE_SSL_CRL_BADFILE:
-            case CURLE_WRITE_ERROR:
-                // Fatal error
-                throw fatal_download_error(error);
-                break;
-            case CURLE_OPERATION_TIMEDOUT:
-                // Serious error
-                throw download_error(error, true);
-                break;
-            default:
-                // Other error are not considered fatal
-                throw download_error(error);
+                case CURLE_ABORTED_BY_CALLBACK:
+                case CURLE_BAD_FUNCTION_ARGUMENT:
+                case CURLE_CONV_REQD:
+                case CURLE_COULDNT_RESOLVE_PROXY:
+                case CURLE_FILESIZE_EXCEEDED:
+                case CURLE_INTERFACE_FAILED:
+                case CURLE_NOT_BUILT_IN:
+                case CURLE_OUT_OF_MEMORY:
+                // case CURLE_RECV_ERROR:  // See RhBug: 1219817
+                // case CURLE_SEND_ERROR:
+                case CURLE_SSL_CACERT_BADFILE:
+                case CURLE_SSL_CRL_BADFILE:
+                case CURLE_WRITE_ERROR:
+                    // Fatal error
+                    throw fatal_download_error(error);
+                    break;
+                case CURLE_OPERATION_TIMEDOUT:
+                    // Serious error
+                    throw download_error(error, true);
+                    break;
+                default:
+                    // Other error are not considered fatal
+                    throw download_error(error);
             }
         }
         return true;
@@ -183,22 +186,21 @@ bool Downloader::check_finished_transfer_status(CURLMsg *msg,
     curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &code);
     if (code)
     {
-        char *effective_ip = NULL;
-        curl_easy_getinfo(msg->easy_handle,
-                          CURLINFO_PRIMARY_IP,
-                          &effective_ip);
+        char* effective_ip = NULL;
+        curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIMARY_IP, &effective_ip);
         // Check status codes for some protocols
         if (effective_url && starts_with(effective_url, "http"))
         {
             // Check HTTP(S) code
             if (code / 100 != 2)
             {
-                throw download_error(fmt::format("Status code: {} for {} (IP: {})",
-                                                 code, effective_url, effective_ip));
+                throw download_error(fmt::format(
+                    "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
                 // g_set_error(transfer_err,
                 //             LR_DOWNLOADER_ERROR,
                 //             LRE_BADSTATUS,
-                //             "Status code: %ld for %s (IP: %s)", code, effective_url, effective_ip);
+                //             "Status code: %ld for %s (IP: %s)", code, effective_url,
+                //             effective_ip);
             }
         }
         else if (effective_url)
@@ -209,7 +211,8 @@ bool Downloader::check_finished_transfer_status(CURLMsg *msg,
                 // g_set_error(transfer_err,
                 //             LR_DOWNLOADER_ERROR,
                 //             LRE_BADSTATUS,
-                //             "Status code: %ld for %s (IP: %s)", code, effective_url, effective_ip);
+                //             "Status code: %ld for %s (IP: %s)", code, effective_url,
+                //             effective_ip);
             }
         }
         else
@@ -218,27 +221,31 @@ bool Downloader::check_finished_transfer_status(CURLMsg *msg,
             // g_set_error(transfer_err,
             //             LR_DOWNLOADER_ERROR,
             //             LRE_BADSTATUS,
-            //             "Status code: %ld for %s (IP: %s)", code, effective_url, effective_ip);
+            //             "Status code: %ld for %s (IP: %s)", code, effective_url,
+            //             effective_ip);
         }
     }
     return true;
 }
 
-bool Downloader::is_max_mirrors_unlimited()
+bool
+Downloader::is_max_mirrors_unlimited()
 {
     return max_mirrors_to_try <= 0;
 }
 
-Mirror *Downloader::select_suitable_mirror(Target *target)
+Mirror*
+Downloader::select_suitable_mirror(Target* target)
 {
     // This variable is used to indentify that all possible mirrors
     // were already tried and the transfer should be marked as failed.
     bool at_least_one_suitable_mirror_found = false;
 
     assert(target);
-    Mirror *selected_mirror = nullptr;
+    Mirror* selected_mirror = nullptr;
 
-    // mirrors_iterated is used to allow to use mirrors multiple times for a target
+    // mirrors_iterated is used to allow to use mirrors multiple times for a
+    // target
     std::size_t mirrors_iterated = 0;
 
     // retry local paths have no reason
@@ -250,7 +257,7 @@ Mirror *Downloader::select_suitable_mirror(Target *target)
     //  number of allowed failures equal to dd->allowed_mirror_failures.
     do
     {
-        for (auto *mirror : target->mirrors)
+        for (auto* mirror : target->mirrors)
         {
             if (mirrors_iterated == 0)
             {
@@ -258,18 +265,19 @@ Mirror *Downloader::select_suitable_mirror(Target *target)
                 {
                     reiterate = true;
                 }
-                if (std::find(target->tried_mirrors.begin(), target->tried_mirrors.end(), mirror) != target->tried_mirrors.end())
+                if (std::find(target->tried_mirrors.begin(), target->tried_mirrors.end(), mirror)
+                    != target->tried_mirrors.end())
                 {
                     // This mirror was already tried for this target
                     continue;
                 }
-                if (mirror->successful_transfers == 0 &&
-                    allowed_mirror_failures > 0 &&
-                    mirror->failed_transfers >= allowed_mirror_failures)
+                if (mirror->successful_transfers == 0 && allowed_mirror_failures > 0
+                    && mirror->failed_transfers >= allowed_mirror_failures)
                 {
                     // Skip bad mirrors
                     pfdebug("Skipping bad mirror ({} failures and no success): {}",
-                            mirror->failed_transfers, mirror->mirror.url);
+                            mirror->failed_transfers,
+                            mirror->mirror.url);
                 }
             }
             else if (mirror->mirror.protocol == Protocol::FILE)
@@ -279,13 +287,15 @@ Mirror *Downloader::select_suitable_mirror(Target *target)
             }
             else if (mirrors_iterated < mirror->failed_transfers)
             {
-                // On subsequent iterations, only skip mirrors that failed proportionally to the number
-                // of iterations. It allows to reuse mirrors with low number of failures first.
+                // On subsequent iterations, only skip mirrors that failed
+                // proportionally to the number of iterations. It allows to reuse
+                // mirrors with low number of failures first.
                 continue;
             }
 
             // TODO no clue why this is...
-            // if (mirrors_iterated == 0 && mirror->mirror->protocol == Protocol::FTP && target->target->is_zchunk)
+            // if (mirrors_iterated == 0 && mirror->mirror->protocol == Protocol::FTP
+            // && target->target->is_zchunk)
             // {
             //     continue
             // }
@@ -299,12 +309,14 @@ Mirror *Downloader::select_suitable_mirror(Target *target)
             //     continue;
             // }
 
-            // if (target->handle && target->handle->offline && c_mirror->mirror->protocol != LR_PROTOCOL_FILE)
+            // if (target->handle && target->handle->offline &&
+            // c_mirror->mirror->protocol != LR_PROTOCOL_FILE)
             // {
             //     if (mirrors_iterated == 0)
             //     {
             //         // Skip each url that doesn't have "file://" or "file:" prefix
-            //         g_debug("%s: Skipping mirror %s - Offline mode enabled", __func__, mirrorurl);
+            //         g_debug("%s: Skipping mirror %s - Offline mode enabled",
+            //         __func__, mirrorurl);
             //     }
             //     continue;
             // }
@@ -314,8 +326,8 @@ Mirror *Downloader::select_suitable_mirror(Target *target)
             // Number of transfers which are downloading from the mirror
             // should always be lower or equal than maximum allowed number
             // of connection to a single host.
-            assert(max_connection_per_host == -1 ||
-                   mirror->running_transfers <= max_connection_per_host);
+            assert(max_connection_per_host == -1
+                   || mirror->running_transfers <= max_connection_per_host);
 
             // Init max of allowed parallel connections from config
             mirror->init_once_allowed_parallel_connections(max_connection_per_host);
@@ -330,24 +342,26 @@ Mirror *Downloader::select_suitable_mirror(Target *target)
             selected_mirror = mirror;
             return mirror;
         }
-    } while (reiterate && target->tried_mirrors.size() < allowed_mirror_failures && ++mirrors_iterated < allowed_mirror_failures);
+    } while (reiterate && target->tried_mirrors.size() < allowed_mirror_failures
+             && ++mirrors_iterated < allowed_mirror_failures);
 
     throw std::runtime_error("No suitable mirror found");
     // return selected_mirror;
 }
 
 /* Select next target */
-bool Downloader::select_next_target(Target **selected_target, std::string *selected_full_url)
+bool
+Downloader::select_next_target(Target** selected_target, std::string* selected_full_url)
 {
     // assert(selected_target);
     // assert(selected_full_url);
 
     *selected_target = nullptr;
 
-    Mirror *mirror = nullptr;
-    for (auto *target : m_targets)
+    Mirror* mirror = nullptr;
+    for (auto* target : m_targets)
     {
-        Mirror *mirror = nullptr;
+        Mirror* mirror = nullptr;
         std::string full_url;
         int complete_url_in_path = 0;
 
@@ -408,7 +422,8 @@ bool Downloader::select_next_target(Target **selected_target, std::string *selec
         // This condition should never be true for a full_url built
         // from a mirror, because select_suitable_mirror() checks if
         // the URL is local if LRO_OFFLINE is enabled by itself.
-        // if (full_url && target->handle && target->handle->offline && !lr_is_local_path(full_url))
+        // if (full_url && target->handle && target->handle->offline &&
+        // !lr_is_local_path(full_url))
         // {
         //     // g_debug("%s: Skipping %s because LRO_OFFLINE is specified",
         //     //         __func__, full_url);
@@ -416,7 +431,8 @@ bool Downloader::select_next_target(Target **selected_target, std::string *selec
         //     // Mark the target as failed
         //     target->state = DownloadState::FAILED;
         //     // lr_downloadtarget_set_error(target->target, LRE_NOURL,
-        //     //                             "Cannot download, offline mode is specified and no "
+        //     //                             "Cannot download, offline mode is
+        //     specified and no "
         //     //                             "local URL is available");
 
         //     // Call end callback
@@ -455,7 +471,7 @@ bool Downloader::select_next_target(Target **selected_target, std::string *selec
         if (mirror || !full_url.empty())
         {
             // Note: mirror is NULL if base_url is used
-            pfdebug("Selected mirror {}", (ptrdiff_t)mirror);
+            pfdebug("Selected mirror {}", (ptrdiff_t) mirror);
             target->mirror = mirror;
 
             *selected_target = target;
@@ -469,9 +485,10 @@ bool Downloader::select_next_target(Target **selected_target, std::string *selec
     return true;
 }
 
-bool Downloader::prepare_next_transfer(bool *candidate_found)
+bool
+Downloader::prepare_next_transfer(bool* candidate_found)
 {
-    Target *target;
+    Target* target;
     // _cleanup_free_ char *full_url = NULL;
     Protocol protocol = Protocol::OTHER;
     bool ret;
@@ -480,11 +497,11 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     std::string full_url;
     ret = select_next_target(&target, &full_url);
     // std::cout << "Got the next target " << ret << std::endl;
-    if (!ret) // Error
+    if (!ret)  // Error
         return false;
 
     // std::cout << "We got a target? " << target << std::endl;
-    if (!target) // Nothing to do
+    if (!target)  // Nothing to do
         return true;
 
     *candidate_found = true;
@@ -539,7 +556,7 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     // Set URL
     h.url(full_url);
 
-    // ~~Set error buffer~~ (DONE inside handle) 
+    // ~~Set error buffer~~ (DONE inside handle)
     // target->errorbuffer[0] = '\0';
     // target->setopt(CURLOPT_ERRORBUFFER, target->errorbuffer);
 
@@ -639,7 +656,7 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     if (target->target->byterange_start > 0)
     {
         assert(!target->target->resume && target->target->range.empty());
-        h.setopt(CURLOPT_RESUME_FROM_LARGE, (curl_off_t)target->target->byterange_start);
+        h.setopt(CURLOPT_RESUME_FROM_LARGE, (curl_off_t) target->target->byterange_start);
     }
 
     // Set range if user specified one
@@ -681,8 +698,8 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     //     // Fill in headers specified by user in LrHandle via LRO_HTTPHEADER
     //     for (int x = 0; target->handle->httpheader[x]; x++)
     //     {
-    //         headers = curl_slist_append(headers, target->handle->httpheader[x]);
-    //         if (!headers)
+    //         headers = curl_slist_append(headers,
+    //         target->handle->httpheader[x]); if (!headers)
     //             lr_out_of_memory();
     //     }
     // }
@@ -705,7 +722,7 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     // Set the state of transfer as running
     target->state = DownloadState::RUNNING;
     pfdebug("Target: RUNNING.");
-    pfdebug("Mirror: {}", (std::ptrdiff_t)target->mirror);
+    pfdebug("Mirror: {}", (std::ptrdiff_t) target->mirror);
     // Increase running transfers counter for mirror
     if (target->mirror)
     {
@@ -730,7 +747,8 @@ fail:
     return false;
 }
 
-bool Downloader::prepare_next_transfers()
+bool
+Downloader::prepare_next_transfers()
 {
     std::size_t length = m_running_transfers.size();
     std::size_t free_slots = max_parallel_connections - length;
@@ -756,13 +774,16 @@ bool Downloader::prepare_next_transfers()
 }
 
 /**
-     * @brief Returns whether the download can be retried, using the same URL in case of base_url or full
-     *        path, or using another mirror in case of using mirrors.
-     *
-     * @param complete_path_or_base_url determine type of download - mirrors or base_url/fullpath
-     * @return gboolean Return TRUE when another chance to download is allowed.
-     */
-bool Downloader::can_retry_download(int num_of_tried_mirrors, const std::string &url)
+ * @brief Returns whether the download can be retried, using the same URL in
+ * case of base_url or full path, or using another mirror in case of using
+ * mirrors.
+ *
+ * @param complete_path_or_base_url determine type of download - mirrors or
+ * base_url/fullpath
+ * @return gboolean Return TRUE when another chance to download is allowed.
+ */
+bool
+Downloader::can_retry_download(int num_of_tried_mirrors, const std::string& url)
 {
     if (!url.empty())
     {
@@ -773,14 +794,14 @@ bool Downloader::can_retry_download(int num_of_tried_mirrors, const std::string 
         return allowed_mirror_failures > num_of_tried_mirrors;
     }
     // this means a mirror was used!
-    return is_max_mirrors_unlimited() ||
-           num_of_tried_mirrors < max_mirrors_to_try;
+    return is_max_mirrors_unlimited() || num_of_tried_mirrors < max_mirrors_to_try;
 }
 
-bool Downloader::check_msgs(bool failfast)
+bool
+Downloader::check_msgs(bool failfast)
 {
     int msgs_in_queue;
-    CURLMsg *msg;
+    CURLMsg* msg;
     while ((msg = curl_multi_info_read(multi_handle, &msgs_in_queue)))
     {
         if (msg->msg != CURLMSG_DONE)
@@ -790,8 +811,8 @@ bool Downloader::check_msgs(bool failfast)
         }
 
         // TODO maybe refactor so that `msg` is passed to current target?
-        Target *current_target = nullptr;
-        for (auto *target : m_running_transfers)
+        Target* current_target = nullptr;
+        for (auto* target : m_running_transfers)
         {
             if (target->curl_handle->ptr() == msg->easy_handle)
             {
@@ -805,11 +826,9 @@ bool Downloader::check_msgs(bool failfast)
             throw std::runtime_error("Could not find target associated with multi request");
         }
 
-        char *tmp_effective_url;
+        char* tmp_effective_url;
 
-        curl_easy_getinfo(msg->easy_handle,
-                          CURLINFO_EFFECTIVE_URL,
-                          &tmp_effective_url);
+        curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &tmp_effective_url);
 
         // Make the effective url persistent to survive the curl_easy_cleanup()
         std::string effective_url(tmp_effective_url);
@@ -825,14 +844,14 @@ bool Downloader::check_msgs(bool failfast)
         {
             transfer_check = check_finished_transfer_status(msg, current_target);
         }
-        catch (const download_error &e)
+        catch (const download_error& e)
         {
             std::cerr << "ERROR: " << e.what() << '\n';
             transfer_err = true;
             serious_err = e.serious;
             // non-fatal download error
         }
-        catch (const fatal_download_error &e)
+        catch (const fatal_download_error& e)
         {
             std::cerr << "ERROR: " << e.what() << '\n';
             transfer_err = true;
@@ -859,7 +878,8 @@ bool Downloader::check_msgs(bool failfast)
 
         current_target->headercb_interrupt_reason.clear();
 
-        m_running_transfers.erase(std::find(m_running_transfers.begin(), m_running_transfers.end(), current_target));
+        m_running_transfers.erase(
+            std::find(m_running_transfers.begin(), m_running_transfers.end(), current_target));
 
         // TODO check if we were preparing here?
         current_target->tried_mirrors.insert(current_target->mirror);
@@ -870,7 +890,8 @@ bool Downloader::check_msgs(bool failfast)
             // TODO
             current_target->mirror->update_statistics(success);
             // if (dd->adaptivemirrorsorting)
-            //     sort_mirrors(target->lrmirrors, target->mirror, success, serious_error);
+            //     sort_mirrors(target->lrmirrors, target->mirror, success,
+            //     serious_error);
         }
 
         // There was an error during transfer
@@ -903,7 +924,8 @@ bool Downloader::check_msgs(bool failfast)
             //         g_info("Downloading was aborted by LR_CB_ERROR from "
             //                "mirror failure callback. Original error was: %s",
             //                original_err_msg);
-            //         g_set_error(&transfer_err, LR_DOWNLOADER_ERROR, LRE_CBINTERRUPTED,
+            //         g_set_error(&transfer_err, LR_DOWNLOADER_ERROR,
+            //         LRE_CBINTERRUPTED,
             //                     "Downloading was aborted by LR_CB_ERROR from "
             //                     "mirror failure callback. Original error was: "
             //                     "%s",
@@ -918,29 +940,36 @@ bool Downloader::check_msgs(bool failfast)
             {
                 // Temporary error (serious_error) during download occurred and
                 // another transfers are running or there are successful transfers
-                // and fewer failed transfers than tried parallel connections. It may be mirror is OK
-                // but accepts fewer parallel connections.
+                // and fewer failed transfers than tried parallel connections. It may be
+                // mirror is OK but accepts fewer parallel connections.
                 // TODO
                 // if (serious_error&& target->mirror &&
                 //     (has_running_transfers(target->mirror) ||
                 //      (target->mirror->successful_transfers > 0 &&
-                //       target->mirror->failed_transfers < target->mirror->max_tried_parallel_connections)))
+                //       target->mirror->failed_transfers <
+                //       target->mirror->max_tried_parallel_connections)))
                 // {
-                //     g_debug("%s: Lower maximum of allowed parallel connections for this mirror", __func__);
-                //     if (has_running_transfers(target->mirror))
-                //         target->mirror->allowed_parallel_connections = target->mirror->running_transfers;
+                //     g_debug("%s: Lower maximum of allowed parallel connections for
+                //     this mirror", __func__); if
+                //     (has_running_transfers(target->mirror))
+                //         target->mirror->allowed_parallel_connections =
+                //         target->mirror->running_transfers;
                 //     else
                 //         target->mirror->allowed_parallel_connections = 1;
 
                 //     // Give used mirror another chance
-                //     target->tried_mirrors = g_slist_remove(target->tried_mirrors, target->mirror);
-                //     num_of_tried_mirrors = g_slist_length(target->tried_mirrors);
+                //     target->tried_mirrors = g_slist_remove(target->tried_mirrors,
+                //     target->mirror); num_of_tried_mirrors =
+                //     g_slist_length(target->tried_mirrors);
                 // }
 
-                // complete_url_in_path and target->base_url doesn't have an alternatives like using
-                // mirrors, therefore they are handled differently
+                // complete_url_in_path and target->base_url doesn't have an
+                // alternatives like using mirrors, therefore they are handled
+                // differently
                 // TODO
-                std::string complete_url_or_base_url = complete_url_in_path ? current_target->target->path : current_target->target->base_url;
+                std::string complete_url_or_base_url = complete_url_in_path
+                                                           ? current_target->target->path
+                                                           : current_target->target->base_url;
                 if (can_retry_download(num_of_tried_mirrors, complete_url_or_base_url))
                 {
                     // Try another mirror or retry
@@ -957,7 +986,8 @@ bool Downloader::check_msgs(bool failfast)
 
 // Truncate file - remove downloaded garbage (error html page etc.)
 #ifdef WITH_ZCHUNK
-                    if (!current_target->target->is_zchunk || current_target->zck_state == ZckState::HEADER)
+                    if (!current_target->target->is_zchunk
+                        || current_target->zck_state == ZckState::HEADER)
                     {
 #endif
                         if (!current_target->truncate_transfer_file())
@@ -971,8 +1001,7 @@ bool Downloader::check_msgs(bool failfast)
             if (!retry)
             {
                 // No more mirrors to try or base_url used or fatal error
-                std::cout << fmt::format("No more retries (tried: {})",
-                                         num_of_tried_mirrors);
+                std::cout << fmt::format("No more retries (tried: {})", num_of_tried_mirrors);
                 current_target->state = DownloadState::FAILED;
 
                 // Call end callback
@@ -1021,8 +1050,8 @@ bool Downloader::check_msgs(bool failfast)
         {
 #ifdef WITH_ZCHUNK
             // No error encountered, transfer finished successfully
-            if (current_target->target->is_zchunk &&
-                current_target->zck_state != ZckState::FINISHED)
+            if (current_target->target->is_zchunk
+                && current_target->zck_state != ZckState::FINISHED)
             {
                 // If we haven't finished downloading zchunk file, setup next
                 // download
@@ -1033,8 +1062,11 @@ bool Downloader::check_msgs(bool failfast)
 
                 // current_target->handle = target->target->handle;
 
-                current_target->tried_mirrors.erase(std::find(current_target->tried_mirrors.begin(), current_target->tried_mirrors.end(), current_target->mirror));
-                // target->tried_mirrors = g_slist_remove(target->tried_mirrors, target->mirror);
+                current_target->tried_mirrors.erase(std::find(current_target->tried_mirrors.begin(),
+                                                              current_target->tried_mirrors.end(),
+                                                              current_target->mirror));
+                // target->tried_mirrors = g_slist_remove(target->tried_mirrors,
+                // target->mirror);
             }
             else
             {
@@ -1058,13 +1090,13 @@ bool Downloader::check_msgs(bool failfast)
 
                 // Call end callback
                 current_target->curl_handle->finalize_transfer();
-                EndCb end_cb = current_target->override_endcb ? current_target->override_endcb : current_target->target->endcb;
-                void *cb_data = current_target->override_endcb ? current_target->override_endcb_data : current_target->target->cbdata;
+                EndCb end_cb = current_target->override_endcb ? current_target->override_endcb
+                                                              : current_target->target->endcb;
+                void* cb_data = current_target->override_endcb ? current_target->override_endcb_data
+                                                               : current_target->target->cbdata;
                 if (end_cb)
                 {
-                    CbReturnCode rc = end_cb(TransferStatus::SUCCESSFUL,
-                                    "",
-                                    cb_data);
+                    CbReturnCode rc = end_cb(TransferStatus::SUCCESSFUL, "", cb_data);
                     // if (rc == LR_CB_ERROR)
                     // {
                     //     target->cb_return_code = LR_CB_ERROR;
@@ -1157,7 +1189,8 @@ bool Downloader::check_msgs(bool failfast)
     return true;
 }
 
-void Downloader::download()
+void
+Downloader::download()
 {
     int still_running, repeats = 0;
     const long max_wait_msecs = 1000;
@@ -1228,7 +1261,8 @@ void Downloader::download()
     // finished = true;
     // for (auto& t : m_targets)
     // {
-    //     if (t.state == DownloadState::WAITING || t.state == DownloadState::RUNNING)
+    //     if (t.state == DownloadState::WAITING || t.state ==
+    //     DownloadState::RUNNING)
     //     {
     //         finished = false;
     //         break;

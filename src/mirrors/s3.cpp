@@ -1,8 +1,9 @@
+#include "mirrors/s3.hpp"
 #include "mirror.hpp"
 #include "target.hpp"
-#include "mirrors/s3.hpp"
 
-std::string get_yyyymmdd(const std::chrono::system_clock::time_point &t)
+std::string
+get_yyyymmdd(const std::chrono::system_clock::time_point& t)
 {
     static constexpr std::size_t yyyymmddlength = sizeof("YYYYMMDD");
     std::time_t t_date = std::chrono::system_clock::to_time_t(t);
@@ -11,7 +12,8 @@ std::string get_yyyymmdd(const std::chrono::system_clock::time_point &t)
     return yyyymmdd;
 }
 
-std::string get_iso8601(const std::chrono::system_clock::time_point &t)
+std::string
+get_iso8601(const std::chrono::system_clock::time_point& t)
 {
     static constexpr std::size_t iso8601length = sizeof("YYYYMMDDTHHMMSSZ");
     std::time_t t_date = std::chrono::system_clock::to_time_t(t);
@@ -21,7 +23,8 @@ std::string get_iso8601(const std::chrono::system_clock::time_point &t)
 }
 
 // TODO replace with proper URL parsing
-std::string get_host(std::string& url)
+std::string
+get_host(std::string& url)
 {
     if (url.find("://") != std::string::npos)
         return url.substr(url.find("://") + 3);
@@ -29,7 +32,8 @@ std::string get_host(std::string& url)
         return url;
 }
 
-void S3CanonicalRequest::init_default_headers()
+void
+S3CanonicalRequest::init_default_headers()
 {
     headers["x-amz-date"] = get_iso8601(date);
     // if (s3_session_token != "")
@@ -39,7 +43,8 @@ void S3CanonicalRequest::init_default_headers()
     headers["Content-Type"] = "application/octet-stream";
 }
 
-std::string S3CanonicalRequest::get_signed_headers()
+std::string
+S3CanonicalRequest::get_signed_headers()
 {
     std::stringstream signed_headers;
     for (auto it = headers.begin(); it != headers.end(); ++it)
@@ -47,7 +52,8 @@ std::string S3CanonicalRequest::get_signed_headers()
     return signed_headers.str();
 }
 
-std::string S3CanonicalRequest::canonical_request()
+std::string
+S3CanonicalRequest::canonical_request()
 {
     std::stringstream canonical_headers, signed_headers;
     for (auto it = headers.begin(); it != headers.end(); ++it)
@@ -58,7 +64,8 @@ std::string S3CanonicalRequest::canonical_request()
     std::stringstream ss;
     ss << http_verb << "\n"
        << "/" << resource << "\n"
-       << "" << "\n" // canonical query string
+       << ""
+       << "\n"  // canonical query string
        << canonical_headers.str() << "\n"
        << get_signed_headers() << "\n"
        << hashed_payload;
@@ -68,8 +75,8 @@ std::string S3CanonicalRequest::canonical_request()
     return ss.str();
 }
 
-std::string S3CanonicalRequest::string_to_sign(const std::string& region,
-                           const std::string& service)
+std::string
+S3CanonicalRequest::string_to_sign(const std::string& region, const std::string& service)
 {
     std::stringstream ss;
     ss << "AWS4-HMAC-SHA256\n"
@@ -83,61 +90,78 @@ std::string S3CanonicalRequest::string_to_sign(const std::string& region,
  * S3Mirror    *
  ***************/
 
-std::string S3Mirror::calculate_signature(
-    const std::chrono::system_clock::time_point &request_date,
-    const std::string &secret,
-    const std::string &region,
-    const std::string &service,
-    const std::string &string_to_sign)
+std::string
+S3Mirror::calculate_signature(const std::chrono::system_clock::time_point& request_date,
+                              const std::string& secret,
+                              const std::string& region,
+                              const std::string& service,
+                              const std::string& string_to_sign)
 {
     std::string yyyymmdd = get_yyyymmdd(request_date);
 
-    const std::string key1{"AWS4" + secret};
+    const std::string key1{ "AWS4" + secret };
 
-    unsigned char *DateKey;
+    unsigned char* DateKey;
     unsigned int DateKeyLen;
-    DateKey = HMAC(EVP_sha256(), key1.c_str(), key1.size(),
-                   reinterpret_cast<const unsigned char *>(yyyymmdd.c_str()), yyyymmdd.size(), NULL, &DateKeyLen);
+    DateKey = HMAC(EVP_sha256(),
+                   key1.c_str(),
+                   key1.size(),
+                   reinterpret_cast<const unsigned char*>(yyyymmdd.c_str()),
+                   yyyymmdd.size(),
+                   NULL,
+                   &DateKeyLen);
 
-    unsigned char *DateRegionKey;
+    unsigned char* DateRegionKey;
     unsigned int DateRegionKeyLen;
-    DateRegionKey = HMAC(EVP_sha256(), DateKey, DateKeyLen,
-                         reinterpret_cast<const unsigned char *>(region.c_str()),
-                         region.size(), NULL, &DateRegionKeyLen);
+    DateRegionKey = HMAC(EVP_sha256(),
+                         DateKey,
+                         DateKeyLen,
+                         reinterpret_cast<const unsigned char*>(region.c_str()),
+                         region.size(),
+                         NULL,
+                         &DateRegionKeyLen);
 
-
-    unsigned char *DateRegionServiceKey;
+    unsigned char* DateRegionServiceKey;
     unsigned int DateRegionServiceKeyLen;
-    DateRegionServiceKey = HMAC(EVP_sha256(), DateRegionKey, DateRegionKeyLen,
-                                reinterpret_cast<const unsigned char *>(service.c_str()),
-                                service.size(), NULL, &DateRegionServiceKeyLen);
+    DateRegionServiceKey = HMAC(EVP_sha256(),
+                                DateRegionKey,
+                                DateRegionKeyLen,
+                                reinterpret_cast<const unsigned char*>(service.c_str()),
+                                service.size(),
+                                NULL,
+                                &DateRegionServiceKeyLen);
 
-    const std::string AWS4_REQUEST{"aws4_request"};
-    unsigned char *SigningKey;
+    const std::string AWS4_REQUEST{ "aws4_request" };
+    unsigned char* SigningKey;
     unsigned int SigningKeyLen;
-    SigningKey = HMAC(EVP_sha256(), DateRegionServiceKey, DateRegionServiceKeyLen,
-                      reinterpret_cast<const unsigned char *>(AWS4_REQUEST.c_str()),
-                      AWS4_REQUEST.size(), NULL, &SigningKeyLen);
+    SigningKey = HMAC(EVP_sha256(),
+                      DateRegionServiceKey,
+                      DateRegionServiceKeyLen,
+                      reinterpret_cast<const unsigned char*>(AWS4_REQUEST.c_str()),
+                      AWS4_REQUEST.size(),
+                      NULL,
+                      &SigningKeyLen);
 
-    unsigned char *Signature;
+    unsigned char* Signature;
     unsigned int SignatureLen;
-    Signature = HMAC(EVP_sha256(), SigningKey, SigningKeyLen,
-                     reinterpret_cast<const unsigned char *>(string_to_sign.c_str()),
-                     string_to_sign.size(), NULL, &SignatureLen);
+    Signature = HMAC(EVP_sha256(),
+                     SigningKey,
+                     SigningKeyLen,
+                     reinterpret_cast<const unsigned char*>(string_to_sign.c_str()),
+                     string_to_sign.size(),
+                     NULL,
+                     &SignatureLen);
 
     return hex_string(Signature, SHA256_DIGEST_LENGTH);
 }
 
-std::vector<std::string> S3Mirror::get_auth_headers(S3CanonicalRequest& request)
+std::vector<std::string>
+S3Mirror::get_auth_headers(S3CanonicalRequest& request)
 {
     std::vector<std::string> headers;
 
     std::string signature = calculate_signature(
-        request.date,
-        aws_secret_access_key,
-        region,
-        "s3",
-        request.string_to_sign(region, "s3"));
+        request.date, aws_secret_access_key, region, "s3", request.string_to_sign(region, "s3"));
 
     std::stringstream authorization_header;
     authorization_header << "AWS4-HMAC-SHA256 Credential=" << aws_access_key_id << "/"
@@ -154,13 +178,10 @@ std::vector<std::string> S3Mirror::get_auth_headers(S3CanonicalRequest& request)
     return headers;
 }
 
-std::vector<std::string> S3Mirror::get_auth_headers(const std::string& path)
+std::vector<std::string>
+S3Mirror::get_auth_headers(const std::string& path)
 {
-    S3CanonicalRequest req_data(
-        "GET",
-        bucket_url,
-        path
-    );
+    S3CanonicalRequest req_data("GET", bucket_url, path);
 
     return get_auth_headers(req_data);
 }

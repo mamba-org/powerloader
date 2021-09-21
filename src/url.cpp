@@ -42,23 +42,23 @@ namespace mamba
         fs::path tmp_path = fs::path(path);
         std::string abs_path = fs::absolute(tmp_path).string();
 
-        // TODO: handle percent encoding
-        // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
-        #if defined(_WIN32)
+// TODO: handle percent encoding
+// https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
+#if defined(_WIN32)
         {
             replace_all(abs_path, "\\", "/");
         }
-        #endif
+#endif
         return file_scheme + abs_path;
     }
 
     std::string unc_url(const std::string& url)
     {
         // Replicate UNC behaviour of url_to_path from conda.common.path
-        // We cannot use URLHandler for this since CURL returns an error when asked to parse
-        // a url of type file://hostname/path
-        // Colon character is excluded to make sure we do not match file URLs with absoulute
-        // paths to a windows drive.
+        // We cannot use URLHandler for this since CURL returns an error when asked to
+        // parse a url of type file://hostname/path Colon character is excluded to
+        // make sure we do not match file URLs with absoulute paths to a windows
+        // drive.
         static const std::regex file_host(R"(file://([^:/]*)(/.*)?)");
         std::smatch match;
         if (std::regex_match(url, match, file_host))

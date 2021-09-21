@@ -1,22 +1,22 @@
 #pragma once
 
 #include <chrono>
-#include <string>
-#include <sstream>
-#include <map>
 #include <iostream>
+#include <map>
+#include <sstream>
+#include <string>
 
 #include "curl.hpp"
-#include "utils.hpp"
 #include "enums.hpp"
+#include "utils.hpp"
 
 #include "nlohmann/json.hpp"
 #include <fmt/core.h>
 
 extern "C"
 {
-#include <openssl/hmac.h>
 #include <openssl/buffer.h>
+#include <openssl/hmac.h>
 #include <openssl/sha.h>
 }
 
@@ -42,8 +42,8 @@ enum class MirrorState
 // mirrors should be dict -> urls mapping
 struct Mirror
 {
-    Mirror(const std::string &url)
-        : mirror{.url = url, .preference = 0, .protocol = Protocol::HTTP}
+    Mirror(const std::string& url)
+        : mirror{ .url = url, .preference = 0, .protocol = Protocol::HTTP }
     {
     }
 
@@ -54,8 +54,9 @@ struct Mirror
 
     std::chrono::steady_clock::time_point next_allowed_retry;
 
-    // Maximum number of allowed parallel connections to this mirror. -1 means no limit.
-    // Dynamically adjusted(decreased) if no fatal(temporary) error will occur.
+    // Maximum number of allowed parallel connections to this mirror. -1 means no
+    // limit. Dynamically adjusted(decreased) if no fatal(temporary) error will
+    // occur.
     int allowed_parallel_connections = 0;
     // The maximum number of tried parallel connections to this mirror
     // (including unsuccessful).
@@ -75,8 +76,7 @@ struct Mirror
         return running_transfers > 0;
     }
 
-    inline void
-    init_once_allowed_parallel_connections(int max_allowed_parallel_connections)
+    inline void init_once_allowed_parallel_connections(int max_allowed_parallel_connections)
     {
         if (allowed_parallel_connections == 0)
         {
@@ -95,8 +95,8 @@ struct Mirror
 
     inline bool is_parallel_connections_limited_and_reached()
     {
-        return allowed_parallel_connections != -1 &&
-               running_transfers >= allowed_parallel_connections;
+        return allowed_parallel_connections != -1
+               && running_transfers >= allowed_parallel_connections;
     }
 
     inline void update_statistics(bool transfer_success)
@@ -105,14 +105,17 @@ struct Mirror
         transfer_success ? successful_transfers++ : failed_transfers++;
     }
 
-    virtual bool prepare(Target *target);
+    virtual bool prepare(Target* target);
     virtual bool prepare(const std::string& path, CURLHandle& handle);
 
-    virtual bool need_preparation(Target *target);
-    virtual bool authenticate(CURLHandle& handle, const std::string& path) { return true; };
+    virtual bool need_preparation(Target* target);
+    virtual bool authenticate(CURLHandle& handle, const std::string& path)
+    {
+        return true;
+    };
 
     virtual std::vector<std::string> get_auth_headers(const std::string& path);
 
     // virtual void add_extra_headers(Target* target) { return; };
-    virtual std::string format_url(Target *target);
+    virtual std::string format_url(Target* target);
 };
