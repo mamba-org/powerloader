@@ -23,32 +23,28 @@ add_library(libpowerloader
 )
 
 add_executable(powerloader src/cli/main.cpp)
-add_executable(dpowerloader src/main.cpp)
-add_executable(upowerloader src/upload.cpp)
 
 set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
 
 option(WITH_ZCHUNK "Enable zchunk" ON)
+option(DEV "Enable dev" OFF)
 
 target_include_directories(powerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
 )
-
-target_include_directories(dpowerloader PUBLIC
-    include
-    ${CURL_INCLUDE_DIRS}
-)
+if (DEV)
+    add_executable(dpowerloader src/main.cpp)
+    target_link_libraries(dpowerloader libpowerloader)
+    target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
+endif()
 
 if (WITH_ZCHUNK)
     target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
-    target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
 endif()
 
 target_link_libraries(libpowerloader ${CURL_LIBRARIES} fmt zck ${OPENSSL_LIBRARIES})
 target_link_libraries(powerloader libpowerloader CLI11::CLI11)
-target_link_libraries(dpowerloader libpowerloader)
-target_link_libraries(upowerloader libpowerloader)
 
 option(ENABLE_TESTS "Enable tests" ON)
 

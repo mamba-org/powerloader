@@ -84,7 +84,8 @@ int
 handle_download(const std::vector<std::string>& urls, const std::vector<std::string>& mirrors)
 {
     // the format for URLs is:
-    // conda-forge:linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2] (last part optional, can be inferred from `path`)
+    // conda-forge:linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2] (last part optional, can be
+    // inferred from `path`)
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2]
     std::vector<DownloadTarget> targets;
     std::map<std::string, std::vector<Mirror*>> mirror_map;

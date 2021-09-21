@@ -237,9 +237,8 @@ split(const std::string_view& input, const std::string_view& sep, std::size_t ma
     return result;
 }
 
-inline std::vector<std::string> rsplit(const std::string_view& input,
-                                const std::string_view& sep,
-                                std::size_t max_split)
+inline std::vector<std::string>
+rsplit(const std::string_view& input, const std::string_view& sep, std::size_t max_split)
 {
     if (max_split == SIZE_MAX)
         return split(input, sep, max_split);
@@ -247,7 +246,7 @@ inline std::vector<std::string> rsplit(const std::string_view& input,
     std::vector<std::string> result;
 
     std::ptrdiff_t i, j, len = static_cast<std::ptrdiff_t>(input.size()),
-                            n = static_cast<std::ptrdiff_t>(sep.size());
+                         n = static_cast<std::ptrdiff_t>(sep.size());
     i = j = len;
 
     while (i >= n)

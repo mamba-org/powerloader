@@ -145,16 +145,16 @@ public:
         return *this;
     }
 
-    CURLHandle& exists_only(bool use_get = false)
-    {
-        setopt(CURLOPT_FAILONERROR, 1L);
-        if (use_get)
-            setopt(CURLOPT_NOBODY, 0L);
-        else
-            setopt(CURLOPT_NOBODY, 1L);
+    // CURLHandle& exists_only(bool use_get = false)
+    // {
+    //     setopt(CURLOPT_FAILONERROR, 1L);
+    //     if (use_get)
+    //         setopt(CURLOPT_NOBODY, 0L);
+    //     else
+    //         setopt(CURLOPT_NOBODY, 1L);
 
-        return *this;
-    }
+    //     return *this;
+    // }
 
     inline Response perform()
     {
