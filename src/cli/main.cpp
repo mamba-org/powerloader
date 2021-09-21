@@ -5,6 +5,8 @@
 #include "mirrors/s3.hpp"
 #include "url.hpp"
 #include "utils.hpp"
+#include "downloader.hpp"
+
 
 enum KindOf
 {
@@ -79,6 +81,73 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
 }
 
 int
+handle_download(const std::vector<std::string>& urls, const std::vector<std::string>& mirrors)
+{
+    // the format for URLs is:
+    // conda-forge:linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2] (last part optional, can be inferred from `path`)
+    // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2]
+    std::vector<DownloadTarget> targets;
+    std::map<std::string, std::vector<Mirror*>> mirror_map;
+
+    for (auto& x : urls)
+    {
+        if (contains(x, "://"))
+        {
+            std::vector<std::string> parts = rsplit(x, ":", 1);
+            std::string url, dst;
+            if (starts_with(parts[1], "//"))
+            {
+                mamba::URLHandler uh(x);
+                url = uh.url();
+                dst = rsplit(uh.path(), "/", 1).back();
+            }
+            else
+            {
+                mamba::URLHandler uh(parts[0]);
+                url = uh.url();
+                dst = parts[1];
+            }
+            std::cout << "Downloading " << url << " to " << dst << std::endl;
+            targets.emplace_back(url, "", dst);
+        }
+        else
+        {
+            std::vector<std::string> parts = split(x, ":");
+            std::string path, mirror, dst;
+            if (parts.size() == 2)
+            {
+                mirror = parts[0];
+                path = parts[1];
+                dst = rsplit(parts[1], "/", 1).back();
+            }
+            else if (parts.size() == 3)
+            {
+                mirror = parts[0];
+                path = parts[1];
+                dst = parts[2];
+            }
+
+            std::cout << "Downloading " << path << " from " << mirror << " to " << dst << std::endl;
+            targets.emplace_back(path, mirror, dst);
+            // DownloadTarget dlauth(path, mirror, dst);
+        }
+    }
+
+    Downloader dl;
+    dl.mirror_map = mirror_map;
+
+    for (auto& t : targets)
+    {
+        dl.add(&t);
+    }
+
+    dl.download();
+
+    return 0;
+}
+
+
+int
 main(int argc, char** argv)
 {
     CLI::App app;
@@ -102,7 +171,7 @@ main(int argc, char** argv)
     }
     if (app.got_subcommand("download"))
     {
-        return 0;
+        return handle_download(download_files, mirrors);
     }
 
     return 0;

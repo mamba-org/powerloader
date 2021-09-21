@@ -236,3 +236,38 @@ split(const std::string_view& input, const std::string_view& sep, std::size_t ma
     result.emplace_back(input.substr(j, len - j));
     return result;
 }
+
+inline std::vector<std::string> rsplit(const std::string_view& input,
+                                const std::string_view& sep,
+                                std::size_t max_split)
+{
+    if (max_split == SIZE_MAX)
+        return split(input, sep, max_split);
+
+    std::vector<std::string> result;
+
+    std::ptrdiff_t i, j, len = static_cast<std::ptrdiff_t>(input.size()),
+                            n = static_cast<std::ptrdiff_t>(sep.size());
+    i = j = len;
+
+    while (i >= n)
+    {
+        if (input[i - 1] == sep[n - 1] && input.substr(i - n, n) == sep)
+        {
+            if (max_split-- <= 0)
+            {
+                break;
+            }
+            result.emplace_back(input.substr(i, j - i));
+            i = j = i - n;
+        }
+        else
+        {
+            i--;
+        }
+    }
+    result.emplace_back(input.substr(0, j));
+    std::reverse(result.begin(), result.end());
+
+    return result;
+}
