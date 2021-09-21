@@ -7,10 +7,10 @@
 #include <set>
 #include <sstream>
 #include <thread>
+
 extern "C"
 {
 #include <unistd.h>
-
 #include <fcntl.h>
 }
 
@@ -85,6 +85,4 @@ public:
     std::size_t max_parallel_connections = 5;
 
     std::map<std::string, std::vector<Mirror*>> mirror_map;
-
-    // std::vector<DownloadTarget*> m_dl_targets;
 };

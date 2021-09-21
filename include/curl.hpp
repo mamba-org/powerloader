@@ -273,11 +273,6 @@ public:
         setopt(CURLOPT_WRITEDATA, &response->content);
     }
 
-    // inline bool operator==(const CURL* other_ptr)
-    // {
-    //     return m_handle == other_ptr;
-    // }
-
     inline CURLHandle& set_end_callback(const std::function<int(const Response&)>& func)
     {
         end_callback = func;

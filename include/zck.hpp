@@ -21,20 +21,6 @@ public:
     }
 };
 
-// LrChecksumType
-// lr_checksum_from_zck_hash(zck_hash zck_checksum_type)
-// {
-//     switch (zck_checksum_type)
-//     {
-//     case ZCK_HASH_SHA1:
-//         return LR_CHECKSUM_SHA1;
-//     case ZCK_HASH_SHA256:
-//         return LR_CHECKSUM_SHA256;
-//     default:
-//         return LR_CHECKSUM_UNKNOWN;
-//     }
-// }
-
 zck_hash
 zck_hash_from_checksum(ChecksumType checksum_type);
 
