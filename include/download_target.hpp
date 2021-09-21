@@ -42,20 +42,19 @@ public:
 
     std::vector<Checksum> checksums;
 
-    // used mirror
     // error code
 
-    // #ifdef WITH_ZCHUNK
-    zckDL* zck_dl = nullptr; /*!<
-        Zchunk download context */
+#ifdef WITH_ZCHUNK
+    // Zchunk download context
+    zckDL* zck_dl = nullptr;
 
-    std::ptrdiff_t zck_header_size; /*!<
-        Zchunk header size */
+    // Zchunk header size
+    std::ptrdiff_t zck_header_size;
 
-    double total_to_download; /*!<
-        Total to download in zchunk file */
+    // Total to download in zchunk file
+    double total_to_download;
 
-    double downloaded; /*!<
-        Amount already downloaded in zchunk file */
-                       // #endif /* WITH_ZCHUNK */
+    // Amount already downloaded in zchunk file
+    double downloaded;
+#endif /* WITH_ZCHUNK */
 };

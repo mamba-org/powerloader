@@ -1,6 +1,8 @@
 #include "zck.hpp"
 #include "target.hpp"
 
+#ifdef WITH_ZCHUNK
+
 zck_hash
 zck_hash_from_checksum(ChecksumType checksum_type)
 {
@@ -582,3 +584,5 @@ check_zck(Target* target)
             target->target->downloaded -= zck_get_chunk_comp_size(idx) + 92;
     return prepare_zck_body(target);
 }
+
+#endif

@@ -79,6 +79,7 @@ Target::open_target_file()
     return target->fd;
 }
 
+#ifdef WITH_ZCHUNK
 /* Fail if dl_ctx->fail_no_ranges is set and we get a 200 response */
 std::size_t
 zckheadercb(char* buffer, std::size_t size, std::size_t nitems, Target* self)
@@ -100,6 +101,7 @@ zckheadercb(char* buffer, std::size_t size, std::size_t nitems, Target* self)
 
     return zck_header_cb(buffer, size, nitems, self->target->zck_dl);
 }
+#endif  // WITH_ZCHUNK
 
 std::size_t
 Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Target* self)
@@ -246,21 +248,20 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
     return ret;
 }
 
+#ifdef WITH_ZCHUNK
 std::size_t
 zckwritecb(char* buffer, size_t size, size_t nitems, Target* self)
 {
-    std::cout << "WRITE CB! " << (int) self->zck_state << std::endl;
     if (self->zck_state == ZckState::HEADER)
     {
-        std::cout << "It's HEADER time." << std::endl;
         return zck_write_zck_header_cb(buffer, size, nitems, self->target->zck_dl);
     }
     else
     {
-        std::cout << "It's CHUNK time." << std::endl;
         return zck_write_chunk_cb(buffer, size, nitems, self->target->zck_dl);
     }
 }
+#endif
 
 std::size_t
 Target::write_callback(char* buffer, std::size_t size, std::size_t nitems, Target* self)
