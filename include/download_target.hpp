@@ -3,6 +3,8 @@
 #include <string>
 
 #include "enums.hpp"
+#include "mirror.hpp"
+
 extern "C"
 {
 #include <zck.h>
