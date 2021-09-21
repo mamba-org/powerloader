@@ -14,12 +14,17 @@ void s3_upload(S3Mirror& mirror,
                        digest);
     request.hashed_payload = digest;
 
+    // this is enough to make a file completely public
+    // request.headers["x-amz-acl"] = "public-read";
+
     CURLHandle uploadrequest(
         fmt::format("{}/{}", mirror.mirror.url, path)
     );
+
+
     uploadrequest
         .setopt(CURLOPT_UPLOAD, 1L)
-        .setopt(CURLOPT_VERBOSE, 1L)
+        // .setopt(CURLOPT_VERBOSE, 1L)
         .setopt(CURLOPT_INFILESIZE_LARGE, fsize)
         .add_headers(mirror.get_auth_headers(request))
     ;
@@ -28,5 +33,4 @@ void s3_upload(S3Mirror& mirror,
     set_file_upload_callback(uploadrequest, &ufile);
 
     auto ret = uploadrequest.perform();
-    std::cout << ret.content.str() << std::endl;
 }

@@ -106,8 +106,13 @@ struct Mirror
     }
 
     virtual bool prepare(Target *target);
+    virtual bool prepare(const std::string& path, CURLHandle& handle);
+
     virtual bool need_preparation(Target *target);
     virtual bool authenticate(CURLHandle& handle, const std::string& path) { return true; };
-    virtual void add_extra_headers(Target* target) { return; };
+
+    virtual std::vector<std::string> get_auth_headers(const std::string& path);
+
+    // virtual void add_extra_headers(Target* target) { return; };
     virtual std::string format_url(Target *target);
 };

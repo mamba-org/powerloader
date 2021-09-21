@@ -8,6 +8,7 @@ struct OCIMirror : public Mirror
     {
         OCIMirror *self;
         Target *target;
+        Response response;
         std::string sha256sum, token, buffer;
     };
 
@@ -41,26 +42,15 @@ struct OCIMirror : public Mirror
 
     AuthCallbackData* get_data(Target* target);
 
-    static std::size_t auth_write_callback(char *buffer, std::size_t size, std::size_t nitems, AuthCallbackData *self);
-    
-    static CbReturnCode finalize_auth_callback(TransferStatus status, const std::string &msg, void *data);
-    static CbReturnCode finalize_manifest_callback(TransferStatus status, const std::string &msg, void *data);
-
-
     std::vector<std::string> get_auth_headers(const std::string& path);
-
-
-    bool prepare(const std::string& path, CURLHandle& handle);
-    virtual bool need_preparation(Target *target);
 
     // authenticate per target, and authentication state
     // is also dependent on each target unfortunately?!
-    virtual bool prepare(Target *target);
-    void add_extra_headers(Target* target);
+    bool prepare(const std::string& path, CURLHandle& handle);
+    virtual bool need_preparation(Target *target);
+
+    // void add_extra_headers(Target* target);
     std::string format_url(Target *target);
-
-    virtual bool authenticate(CURLHandle& handle, const std::string& path);
-
 
     // upload specific functions
     std::string get_digest(const fs::path& p);

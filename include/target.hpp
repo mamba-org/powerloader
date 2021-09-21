@@ -40,33 +40,6 @@ public:
         reset();
     }
 
-    template <class T>
-    inline void setopt(CURLoption opt, const T &val)
-    {
-        CURLcode ok;
-        if constexpr (std::is_same<T, std::string>())
-        {
-            ok = curl_easy_setopt(curl_handle, opt, val.c_str());
-        }
-        else
-        {
-            ok = curl_easy_setopt(curl_handle, opt, val);
-        }
-        if (ok != CURLE_OK)
-        {
-            throw curl_error(fmt::format("curl: curl_easy_setopt failed {}", curl_easy_strerror(ok)));
-        }
-    }
-
-    inline void add_header(const std::string &header)
-    {
-        curl_rqheaders = curl_slist_append(curl_rqheaders, header.c_str());
-        if (!curl_rqheaders)
-        {
-            throw std::bad_alloc();
-        }
-    }
-
     inline CbReturnCode call_endcallback(TransferStatus status)
     {
         EndCb end_cb = override_endcb ? override_endcb : target->endcb;
@@ -90,17 +63,9 @@ public:
         return CbReturnCode::OK;
     }
 
-    inline CURL *finalize_handle()
-    {
-        setopt(CURLOPT_HTTPHEADER, curl_rqheaders);
-        return curl_handle;
-    }
-
     bool truncate_transfer_file();
     std::shared_ptr<std::ofstream> open_target_file();
 
-    CURL *handle() const;
-    bool perform();
     void reset();
 
     DownloadTarget *target;
@@ -134,8 +99,8 @@ public:
 
     CbReturnCode cb_return_code;
 
-    CURL *curl_handle = nullptr;
-    curl_slist *curl_rqheaders = nullptr;
+    // CURL *curl_handle = nullptr;
+    std::unique_ptr<CURLHandle> curl_handle;
     Protocol protocol;
 
     bool range_fail = false;

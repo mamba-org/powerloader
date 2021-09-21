@@ -1,7 +1,6 @@
 #include "mirror.hpp"
 #include "target.hpp"
 #include "mirrors/s3.hpp"
-// https://gist.github.com/mmaday/c82743b1683ce4d27bfa6615b3ba2332
 
 std::string get_yyyymmdd(const std::chrono::system_clock::time_point &t)
 {
@@ -35,7 +34,7 @@ void S3CanonicalRequest::init_default_headers()
     headers["x-amz-date"] = get_iso8601(date);
     // if (s3_session_token != "")
     //     headers["x-amz-security-token"] = s3_session_token;
-    headers["x-amz-content-sha256"] = hashed_payload.empty() ? empty_sha256 : hashed_payload;
+    headers["x-amz-content-sha256"] = hashed_payload;
     headers["Host"] = get_host(bucket_url);
     headers["Content-Type"] = "application/octet-stream";
 }
@@ -130,33 +129,6 @@ std::string S3Mirror::calculate_signature(
     return hex_string(Signature, SHA256_DIGEST_LENGTH);
 }
 
-void S3Mirror::add_extra_headers(Target *target)
-{
-    S3CanonicalRequest req_data(
-        "GET",
-        target->target->path
-    );
-
-    std::string signature = calculate_signature(
-        req_data.date,
-        aws_secret_access_key,
-        region,
-        "s3",
-        req_data.string_to_sign(region, "s3"));
-
-    std::stringstream authorization_header;
-    authorization_header << "AWS4-HMAC-SHA256 Credential=" << aws_access_key_id << "/"
-                         << get_yyyymmdd(req_data.date) << "/" << region << "/s3/aws4_request, "
-                         << "SignedHeaders=" << req_data.get_signed_headers() << ", "
-                         << "Signature=" << signature;
-
-    for (auto& [key, header] : req_data.headers)
-    {
-        target->add_header(fmt::format("{}: {}", key, header));
-    }
-    target->add_header(fmt::format("Authorization: {}", authorization_header.str()));
-}
-
 std::vector<std::string> S3Mirror::get_auth_headers(S3CanonicalRequest& request)
 {
     std::vector<std::string> headers;
@@ -176,6 +148,7 @@ std::vector<std::string> S3Mirror::get_auth_headers(S3CanonicalRequest& request)
 
     for (auto& [key, header] : request.headers)
     {
+        // if (key == "x-amz-content-sha256") continue;
         headers.push_back(fmt::format("{}: {}", key, header));
     }
     headers.push_back(fmt::format("Authorization: {}", authorization_header.str()));
@@ -186,6 +159,7 @@ std::vector<std::string> S3Mirror::get_auth_headers(const std::string& path)
 {
     S3CanonicalRequest req_data(
         "GET",
+        bucket_url,
         path
     );
 

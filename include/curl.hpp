@@ -137,19 +137,11 @@ public:
 
     inline Response perform()
     {
-        Response response;
-
-        // check if there is something set already for these values
-        setopt(CURLOPT_HEADERFUNCTION, header_map_callback<std::map<std::string, std::string>>);
-        setopt(CURLOPT_HEADERDATA, &response.header);
-
-        setopt(CURLOPT_WRITEFUNCTION, ostream_callback<std::stringstream>);
-        setopt(CURLOPT_WRITEDATA, &response.content);
-
+        set_default_callbacks();
         // TODO error handling
         int curl_result = curl_easy_perform(handle());
-        finalize_transfer(response);
-        return response;
+        finalize_transfer(*response);
+        return std::move(*response.release());
     }
 
     inline CURL* handle()
@@ -157,6 +149,12 @@ public:
         if (p_headers)
             setopt(CURLOPT_HTTPHEADER, p_headers);
         return m_handle;
+    }
+
+    inline void finalize_transfer()
+    {
+        if (response)
+            finalize_transfer(*response);
     }
 
     template <class T>
@@ -237,6 +235,27 @@ public:
         }
     }
 
+    inline CURL* ptr() const
+    {
+        return m_handle;
+    }
+
+    inline void set_default_callbacks()
+    {
+        response.reset(new Response);
+        // check if there is something set already for these values
+        setopt(CURLOPT_HEADERFUNCTION, header_map_callback<std::map<std::string, std::string>>);
+        setopt(CURLOPT_HEADERDATA, &response->header);
+
+        setopt(CURLOPT_WRITEFUNCTION, ostream_callback<std::stringstream>);
+        setopt(CURLOPT_WRITEDATA, &response->content);
+    }
+
+    // inline bool operator==(const CURL* other_ptr)
+    // {
+    //     return m_handle == other_ptr;
+    // }
+
     inline CURLHandle& set_end_callback(const std::function<int(const Response&)>& func)
     {
         end_callback = func;
@@ -247,7 +266,6 @@ public:
     curl_slist* p_headers = nullptr;
     char errorbuffer[CURL_ERROR_SIZE];
 
+    std::unique_ptr<Response> response;
     std::function<int(const Response&)> end_callback;
-
-    std::stringstream sheader, sresponse;
 };

@@ -1,35 +1,21 @@
 #include "target.hpp"
 
-CURL *Target::handle() const
-{
-    return curl_handle;
-}
-
-bool Target::perform()
-{
-    target->fd.reset(new std::ofstream("/tmp/test.txt"));
-    int ret = curl_easy_perform(curl_handle);
-    target->fd->flush();
-
-    return true;
-}
+// CURL *Target::handle() const
+// {
+//     return curl_handle;
+// }
 
 void Target::reset()
 {
-    if (curl_handle)
-    {
-        curl_easy_cleanup(curl_handle);
-        curl_handle = nullptr;
-    }
+    // if (curl_handle)
+    // {
+    //     curl_easy_cleanup(curl_handle);
+    //     curl_handle = nullptr;
+    // }
     if (this->f != nullptr)
     {
         fclose(this->f);
         this->f = nullptr;
-    }
-    if (curl_rqheaders)
-    {
-        curl_slist_free_all(curl_rqheaders);
-        curl_rqheaders = nullptr;
     }
 }
 
@@ -96,7 +82,7 @@ std::size_t zckheadercb(char *buffer, std::size_t size, std::size_t nitems, Targ
     assert(self && self->target);
     std::cout << "HEADER callback ZCHUNK!" << std::endl;
     long code = -1;
-    curl_easy_getinfo(self->curl_handle, CURLINFO_RESPONSE_CODE, &code);
+    curl_easy_getinfo(self->curl_handle->ptr(), CURLINFO_RESPONSE_CODE, &code);
     if (code == 200)
     {
         pfdebug("Too many ranges were attempted in one download");
@@ -368,6 +354,7 @@ std::size_t Target::write_callback(char *buffer, std::size_t size, std::size_t n
     assert(nitems > 0);
     // fwrite(ptr, size, nitems, target->f);
     self->target->fd->write(buffer, size * nitems);
+
     // TOOD check failbit!
     // if (cur_written != nitems)
     // {

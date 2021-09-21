@@ -14,7 +14,6 @@ struct S3CanonicalRequest
     std::string bucket_url;
     std::map<std::string, std::string> headers;
     std::map<std::string, std::string> query_string;
-    // this is the hashed payload of an empty string which is the default for GET requests
     std::string hashed_payload;
 
     std::chrono::system_clock::time_point date;
@@ -26,7 +25,7 @@ struct S3CanonicalRequest
         : http_verb(http_verb),
           bucket_url(bucket_url), 
           resource(resource),
-          hashed_payload(sha256sum),
+          hashed_payload(sha256sum.empty() ? EMPTY_SHA : sha256sum),
           date(std::chrono::system_clock::now())
     {
         init_default_headers();
@@ -89,7 +88,6 @@ struct S3Mirror : public Mirror
         const std::string &service,
         const std::string &string_to_sign);
 
-    void add_extra_headers(Target *target);
     std::vector<std::string> get_auth_headers(const std::string& path);
     std::vector<std::string> get_auth_headers(S3CanonicalRequest& request);
 };

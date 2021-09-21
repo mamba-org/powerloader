@@ -35,5 +35,5 @@ TEST(match_spec, parse_version_build)
 
     EXPECT_NE(s, s2);
 
-    s3mirror_signdata.add_extra_headers(nullptr);
+    // s3mirror_signdata.add_extra_headers(nullptr);
 }

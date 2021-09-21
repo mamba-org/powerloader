@@ -32,7 +32,7 @@ void oci_upload(OCIMirror& mirror,
     std::cout << "PREUPLOAD URL: " << preupload_url << "\n\n\n\n";
     auto response = CURLHandle(preupload_url)
         .setopt(CURLOPT_CUSTOMREQUEST, "POST")
-        .setopt(CURLOPT_VERBOSE, 1L)
+        // .setopt(CURLOPT_VERBOSE, 1L)
         .add_headers(mirror.get_auth_headers(reference))
         .perform();
 
@@ -45,7 +45,7 @@ void oci_upload(OCIMirror& mirror,
     CURLHandle chandle(upload_url);
     chandle
         .setopt(CURLOPT_UPLOAD, 1L)
-        .setopt(CURLOPT_VERBOSE, 1L)
+        // .setopt(CURLOPT_VERBOSE, 1L)
         .setopt(CURLOPT_INFILESIZE_LARGE, fsize)
         .add_headers(mirror.get_auth_headers(reference))
         .add_header("Content-Type: application/octet-stream");
@@ -55,16 +55,13 @@ void oci_upload(OCIMirror& mirror,
 
     auto cres = chandle.perform();
 
-    std::cout << cres.http_status << std::endl;
-    std::cout << cres.content.str() << std::endl;
-
     // Now we need to upload the manifest for OCI servers
     std::string manifest_url = fmt::format("{}/v2/{}/manifests/{}", mirror.mirror.url, reference, tag);
     std::string manifest = mirror.create_manifest(fsize, digest);
 
     CURLHandle mhandle(manifest_url);
-    mhandle.setopt(CURLOPT_VERBOSE, 1L)
-           .setopt(CURLOPT_UPLOAD, 1L)
+    mhandle.setopt(CURLOPT_UPLOAD, 1L)
+        //    .setopt(CURLOPT_VERBOSE, 1L)
            .add_headers(mirror.get_auth_headers(reference))
            .add_header("Content-Type: application/vnd.oci.image.manifest.v1+json");
 

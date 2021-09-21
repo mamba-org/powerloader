@@ -15,7 +15,7 @@ extern "C"
 
 #define LR_DOWNLOADER_MAXIMAL_RESUME_COUNT 10
 
-constexpr const char empty_sha256[] = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+#define EMPTY_SHA "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 inline bool is_sig_interrupted()
 {
@@ -179,4 +179,14 @@ inline std::pair<std::string, std::string> parse_header(const std::string_view& 
         return std::make_pair(lkey, std::string(value));
     }
     return std::make_pair(std::string(), std::string(header));
+}
+
+inline std::string get_env(const char* var)
+{
+    const char* val = getenv(var);
+    if (!val)
+    {
+        throw std::runtime_error(std::string("Could not find env var: ") + var);
+    }
+    return val;
 }

@@ -56,8 +56,8 @@ int main(void)
     std::string GH_SECRET = getenv("GHA_PAT");
     std::string GH_USER = "wolfv";
 
-    // OCIMirror mirror("https://ghcr.io", "push", GH_USER, GH_SECRET);
-    // oci_upload(mirror, "wolfv/xtensor", "1.1", "xtensor-0.23.10-hc021e02_0.tar.bz2");
+    OCIMirror mirror("https://ghcr.io", "push", GH_USER, GH_SECRET);
+    oci_upload(mirror, "wolfv/xtensor", "1.1", "xtensor-0.23.10-hc021e02_0.tar.bz2");
 
     std::string aws_ackey(getenv("AWS_ACCESS_KEY"));
     std::string aws_sekey(getenv("AWS_SECRET_KEY"));

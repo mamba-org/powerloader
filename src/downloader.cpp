@@ -235,11 +235,7 @@ Mirror *Downloader::select_suitable_mirror(Target *target)
     // were already tried and the transfer should be marked as failed.
     bool at_least_one_suitable_mirror_found = false;
 
-    // assert(dd);
-    // assert(target);
-    // assert(selected_mirror);
-    // assert(!err || *err == NULL);
-
+    assert(target);
     Mirror *selected_mirror = nullptr;
 
     // mirrors_iterated is used to allow to use mirrors multiple times for a target
@@ -252,7 +248,6 @@ Mirror *Downloader::select_suitable_mirror(Target *target)
     //  the first iteration, relax the conditions (by allowing previously
     //  failing mirrors to be used again) and do additional iterations up to
     //  number of allowed failures equal to dd->allowed_mirror_failures.
-
     do
     {
         for (auto *mirror : target->mirrors)
@@ -517,30 +512,23 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
 
     // Prepare CURL easy handle
     CURLcode c_rc;
-    CURL *h;
     // if (false && target->handle)
     // {
     //     h = curl_easy_duphandle(target->handle->handle());
     // }
     // else
     // {
-    h = get_handle();
+    // h = get_handle();
+    target->curl_handle.reset(new CURLHandle());
+    CURLHandle& h = *(target->curl_handle);
     // }
-    if (!h)
-    {
-        // Something went wrong
-        throw curl_error("CURL handle creation failed");
-        // g_set_error(err, LR_DOWNLOADER_ERROR, LRE_CURL,
-        //             "curl_easy_duphandle() call failed");
-        // goto fail;
-    }
-    target->curl_handle = h;
+
     if (target->mirror && target->mirror->need_preparation(target))
     {
-        target->mirror->prepare(target);
+        target->mirror->prepare(target->target->path, h);
         target->state = DownloadState::PREPARATION;
 
-        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, target->finalize_handle());
+        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
 
         // Add the transfer to the list of running transfers
         m_running_transfers.push_back(target);
@@ -549,11 +537,11 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     }
 
     // Set URL
-    target->setopt(CURLOPT_URL, full_url.c_str());
+    h.url(full_url);
 
-    // Set error buffer
-    target->errorbuffer[0] = '\0';
-    target->setopt(CURLOPT_ERRORBUFFER, target->errorbuffer);
+    // ~~Set error buffer~~ (DONE inside handle) 
+    // target->errorbuffer[0] = '\0';
+    // target->setopt(CURLOPT_ERRORBUFFER, target->errorbuffer);
 
     // Prepare FILE
     target->open_target_file();
@@ -637,7 +625,7 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
 
         curl_off_t used_offset = target->original_offset;
         pfdebug("Trying to resume from offset {}", used_offset);
-        target->setopt(CURLOPT_RESUME_FROM_LARGE, used_offset);
+        h.setopt(CURLOPT_RESUME_FROM_LARGE, used_offset);
     }
 
     // Add librepo extended attribute to the file
@@ -651,14 +639,14 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     if (target->target->byterange_start > 0)
     {
         assert(!target->target->resume && target->target->range.empty());
-        target->setopt(CURLOPT_RESUME_FROM_LARGE, (curl_off_t)target->target->byterange_start);
+        h.setopt(CURLOPT_RESUME_FROM_LARGE, (curl_off_t)target->target->byterange_start);
     }
 
     // Set range if user specified one
     if (!target->target->range.empty())
     {
         assert(!target->target->resume && !target->target->byterange_start);
-        target->setopt(CURLOPT_RANGE, target->target->range.c_str());
+        h.setopt(CURLOPT_RANGE, target->target->range);
     }
 
     // Prepare progress callback
@@ -674,18 +662,19 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     // Prepare header callback
     if (target->target->expected_size > 0)
     {
-        target->setopt(CURLOPT_HEADERFUNCTION, &Target::header_callback);
-        target->setopt(CURLOPT_HEADERDATA, target);
+        h.setopt(CURLOPT_HEADERFUNCTION, &Target::header_callback);
+        h.setopt(CURLOPT_HEADERDATA, target);
     }
 
     // Prepare write callback
-    target->setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
-    target->setopt(CURLOPT_WRITEDATA, target);
+    h.setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
+    h.setopt(CURLOPT_WRITEDATA, target);
+    h.setopt(CURLOPT_VERBOSE, 1L);
 
     // Set extra HTTP headers
     if (target->mirror)
     {
-        target->mirror->add_extra_headers(target);
+        h.add_headers(target->mirror->get_auth_headers(target->target->path));
     }
     // if (target->handle && target->handle->httpheader)
     // {
@@ -701,12 +690,16 @@ bool Downloader::prepare_next_transfer(bool *candidate_found)
     if (target->target->no_cache)
     {
         // Add headers that tell proxy to serve us fresh data
-        target->add_header("Cache-Control: no-cache");
-        target->add_header("Pragma: no-cache");
+        h.add_header("Cache-Control: no-cache");
+        h.add_header("Pragma: no-cache");
     }
 
     // Add the new handle to the curl multi handle
-    CURLMcode cm_rc = curl_multi_add_handle(multi_handle, target->finalize_handle());
+    std::cout << "adding multihandle." << std::endl;
+    CURL* handle = h;
+    std::cout << "C Handle = " << handle;
+    CURLMcode cm_rc = curl_multi_add_handle(multi_handle, handle);
+    std::cout << "CURL Returns " << cm_rc << " " << curl_multi_strerror(cm_rc);
     assert(cm_rc == CURLM_OK);
 
     // Set the state of transfer as running
@@ -800,7 +793,7 @@ bool Downloader::check_msgs(bool failfast)
         Target *current_target = nullptr;
         for (auto *target : m_running_transfers)
         {
-            if (target->handle() == msg->easy_handle)
+            if (target->curl_handle->ptr() == msg->easy_handle)
             {
                 current_target = target;
                 break;
@@ -861,7 +854,7 @@ bool Downloader::check_msgs(bool failfast)
     transfer_error:
 
         // Cleanup
-        curl_multi_remove_handle(multi_handle, current_target->handle());
+        curl_multi_remove_handle(multi_handle, current_target->curl_handle->ptr());
         current_target->reset();
 
         current_target->headercb_interrupt_reason.clear();
@@ -1064,6 +1057,7 @@ bool Downloader::check_msgs(bool failfast)
                 // remove_librepo_xattr(target->target);
 
                 // Call end callback
+                current_target->curl_handle->finalize_transfer();
                 EndCb end_cb = current_target->override_endcb ? current_target->override_endcb : current_target->target->endcb;
                 void *cb_data = current_target->override_endcb ? current_target->override_endcb_data : current_target->target->cbdata;
                 if (end_cb)

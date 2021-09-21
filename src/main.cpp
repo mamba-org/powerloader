@@ -51,10 +51,10 @@ int main()
     // Target t(&zcktest);
 
     // Mirror m1("https://github.com");
-    std::string aws_ackey(getenv("AWS_ACCESS_KEY"));
-    std::string aws_sekey(getenv("AWS_SECRET_KEY"));
+    std::string aws_ackey = get_env("AWS_ACCESS_KEY");
+    std::string aws_sekey = get_env("AWS_SECRET_KEY");
     S3Mirror s3mirror(
-        "https://wolfsuperbuckettest.s3.eu-central-1.amazonaws.com",
+        "https://wolfsuperbuckettest.s3.amazonaws.com",
         aws_ackey,
         aws_sekey);
 
@@ -71,7 +71,7 @@ int main()
     // Mirror m3("https://beta.mamba.pm/conda-forge");
 
     // std::vector<Mirror*> ms({&m1, &m2, &m3});
-    std::vector<Mirror *> ms({&m1, &m2});
+    std::vector<Mirror *> ms({&m1});
 
     DownloadTarget a(
         "https://github.com",
@@ -102,7 +102,8 @@ int main()
     Downloader dl;
     dl.mirror_map = mirror_map;
 
-    dl.add(&s3target);
+    // dl.add(&s3target);
+    dl.add(&dlauth);
 
     // dl.add(&dlauth);
     // dl.add(&zcktest);
