@@ -106,7 +106,7 @@ bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
         handle.set_default_callbacks();
 
         std::string manifest_url = get_manifest_url(path, "1.0");
-        std::cout << "Fetching manifest from " << manifest_url << std::endl;
+
         handle.url(manifest_url)
               .add_headers(get_auth_headers(path))
               .add_header("Accept: application/vnd.oci.image.manifest.v1+json");
@@ -135,6 +135,7 @@ bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
             }
             return 1;
         };
+
         handle.set_end_callback(finalize_manifest_callback);
     }
     return true;
@@ -190,8 +191,7 @@ std::string OCIMirror::create_manifest(std::size_t size, const std::string& dige
     layer["digest"] = digest;
 
     j["layers"].push_back(layer);
-    ss << j.dump(4);
-    return ss.str();
+    return j.dump(4);
 }
 
 std::string OCIMirror::get_digest(const fs::path& p)
