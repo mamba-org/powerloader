@@ -1,7 +1,7 @@
 #include "mirrors/oci.hpp"
 #include <filesystem>
 
-void
+Response
 oci_upload(OCIMirror& mirror,
            const std::string& reference,
            const std::string& tag,
@@ -29,15 +29,12 @@ oci_upload(OCIMirror& mirror,
     std::cout << "Upload url: " << upload_url << std::endl;
 
     CURLHandle chandle(upload_url);
-    chandle
-        .setopt(CURLOPT_UPLOAD, 1L)
-        // .setopt(CURLOPT_VERBOSE, 1L)
-        .setopt(CURLOPT_INFILESIZE_LARGE, fsize)
-        .add_headers(mirror.get_auth_headers(reference))
-        .add_header("Content-Type: application/octet-stream");
 
     std::ifstream ufile(file, std::ios::in | std::ios::binary);
-    set_file_upload_callback(chandle, &ufile);
+    chandle.setopt(CURLOPT_UPLOAD, 1L)
+        .add_headers(mirror.get_auth_headers(reference))
+        .add_header("Content-Type: application/octet-stream")
+        .upload(ufile);
 
     auto cres = chandle.perform();
 
@@ -46,15 +43,14 @@ oci_upload(OCIMirror& mirror,
         = fmt::format("{}/v2/{}/manifests/{}", mirror.mirror.url, reference, tag);
     std::string manifest = mirror.create_manifest(fsize, digest);
 
+    std::istringstream manifest_stream(manifest);
+
     CURLHandle mhandle(manifest_url);
     mhandle
-        .setopt(CURLOPT_UPLOAD, 1L)
-        //    .setopt(CURLOPT_VERBOSE, 1L)
+        // .setopt(CURLOPT_VERBOSE, 1L)
         .add_headers(mirror.get_auth_headers(reference))
-        .add_header("Content-Type: application/vnd.oci.image.manifest.v1+json");
+        .add_header("Content-Type: application/vnd.oci.image.manifest.v1+json")
+        .upload(manifest_stream);
 
-    std::istringstream manifest_stream(manifest);
-    set_string_upload_callback(mhandle, &manifest_stream);
-
-    mhandle.perform();
+    return mhandle.perform();
 }

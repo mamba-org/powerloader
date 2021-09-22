@@ -96,5 +96,5 @@ struct S3Mirror : public Mirror
     std::vector<std::string> get_auth_headers(S3CanonicalRequest& request);
 };
 
-void
+Response
 s3_upload(S3Mirror& mirror, const std::string& path, const fs::path& file);

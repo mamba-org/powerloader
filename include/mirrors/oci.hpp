@@ -64,7 +64,7 @@ struct OCIMirror : public Mirror
     std::string create_manifest(std::size_t size, const std::string& digest);
 };
 
-void
+Response
 oci_upload(OCIMirror& mirror,
            const std::string& reference,
            const std::string& tag,

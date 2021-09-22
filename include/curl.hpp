@@ -35,10 +35,9 @@ extern "C"
 #define LRO_LOWSPEEDLIMIT_DEFAULT 1000L
 #define LRO_FTPUSEEPSV_DEFAULT 1L
 
-void
-set_string_upload_callback(CURL* handle, std::istringstream* s);
-void
-set_file_upload_callback(CURL* handle, std::ifstream* p);
+template <class T>
+std::size_t
+read_callback(char* ptr, std::size_t size, std::size_t nmemb, T* stream);
 
 inline CURL*
 get_handle()
@@ -270,6 +269,24 @@ public:
 
         setopt(CURLOPT_WRITEFUNCTION, ostream_callback<std::stringstream>);
         setopt(CURLOPT_WRITEDATA, &response->content);
+    }
+
+    template <class S>
+    inline CURLHandle& upload(S& stream)
+    {
+        stream.seekg(0, stream.end);
+        curl_off_t fsize = stream.tellg();
+        stream.seekg(0, stream.beg);
+
+        if (fsize != -1)
+        {
+            setopt(CURLOPT_INFILESIZE_LARGE, fsize);
+        }
+
+        setopt(CURLOPT_UPLOAD, 1L);
+        setopt(CURLOPT_READFUNCTION, read_callback<S>);
+        setopt(CURLOPT_READDATA, &stream);
+        return *this;
     }
 
     inline CURLHandle& set_end_callback(const std::function<int(const Response&)>& func)

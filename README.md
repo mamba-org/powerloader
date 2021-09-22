@@ -17,9 +17,9 @@ In the future this might be directly integrated into the `mamba` codebase -- or 
 
 ### Try it out
 
-Install dependencies:
+Install dependencies (remove `zchunk` on Windows or where it's not available):
 
-`mamba create -n test -c conda-forge cli11 nlohmann_json zchunk libcurl fmt openssl cmake cxx-compiler ninja`
+`mamba env create -n powerloader -f environment.yml`
 
 Then you can run
 
