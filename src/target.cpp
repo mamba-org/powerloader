@@ -128,7 +128,7 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
 #ifdef WITH_ZCHUNK
     if (target->target->is_zchunk
         && !target->range_fail)  // && target->mirror &&
-                                 // target->mirror->mirror.protocol == Protocol::HTTP)
+                                 // target->mirror->protocol == Protocol::HTTP)
         return zckheadercb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
 
@@ -278,7 +278,7 @@ Target::write_callback(char* buffer, std::size_t size, std::size_t nitems, Targe
 
 #ifdef WITH_ZCHUNK
     if (self->target->is_zchunk
-        && !self->range_fail)  // && self->mirror && self->mirror->mirror.protocol ==
+        && !self->range_fail)  // && self->mirror && self->mirror->protocol ==
                                // Protocol::HTTP)
         return zckwritecb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */

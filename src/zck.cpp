@@ -474,7 +474,7 @@ check_zck(Target* target)
     assert(target->target);
 
     if (target->mirror
-        && (target->mirror->max_ranges == 0 || target->mirror->mirror.protocol != Protocol::HTTP))
+        && (target->mirror->max_ranges == 0 || target->mirror->protocol != Protocol::HTTP))
     {
         target->zck_state = ZckState::BODY;
         target->target->expected_size = target->target->orig_size;

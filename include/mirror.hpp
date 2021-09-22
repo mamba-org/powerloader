@@ -24,9 +24,6 @@ class Target;
 
 struct InternalMirror
 {
-    std::string url; /*!< URL of the mirror */
-    int preference;  /*!< Integer number 1-100 - higher is better */
-    Protocol protocol;
 };
 
 enum class MirrorState
@@ -43,14 +40,20 @@ enum class MirrorState
 struct Mirror
 {
     Mirror(const std::string& url)
-        : mirror{ .url = url, .preference = 0, .protocol = Protocol::HTTP }
+        : url(url), preference(0), protocol(Protocol::HTTP)
     {
     }
 
-    MirrorState state = MirrorState::READY;
-    bool authenticated = false;
+    // URL of the mirror
+    std::string url;
+    // Integer number 1-100 - higher is better
+    int preference;
+    // Protocol of mirror (can be detected from URL)
+    Protocol protocol;
 
-    InternalMirror mirror;
+    MirrorState state = MirrorState::READY;
+
+    bool authenticated = false;
 
     std::chrono::steady_clock::time_point next_allowed_retry;
 

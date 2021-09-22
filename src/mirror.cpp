@@ -25,7 +25,7 @@ Mirror::need_preparation(Target* target)
 std::string
 Mirror::format_url(Target* target)
 {
-    return fmt::format("{}/{}", mirror.url, target->target->path);
+    return fmt::format("{}/{}", url, target->target->path);
 }
 
 std::vector<std::string>

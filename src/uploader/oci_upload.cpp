@@ -25,7 +25,7 @@ oci_upload(OCIMirror& mirror,
 
     std::string temp_upload_location = response.header["location"];
     std::string upload_url
-        = fmt::format("{}{}?digest={}", mirror.mirror.url, temp_upload_location, digest);
+        = fmt::format("{}{}?digest={}", mirror.url, temp_upload_location, digest);
     std::cout << "Upload url: " << upload_url << std::endl;
 
     CURLHandle chandle(upload_url);
@@ -40,7 +40,7 @@ oci_upload(OCIMirror& mirror,
 
     // Now we need to upload the manifest for OCI servers
     std::string manifest_url
-        = fmt::format("{}/v2/{}/manifests/{}", mirror.mirror.url, reference, tag);
+        = fmt::format("{}/v2/{}/manifests/{}", mirror.url, reference, tag);
     std::string manifest = mirror.create_manifest(fsize, digest);
 
     std::istringstream manifest_stream(manifest);

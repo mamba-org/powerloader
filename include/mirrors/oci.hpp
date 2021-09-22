@@ -34,17 +34,17 @@ struct OCIMirror : public Mirror
 
     std::string get_auth_url(const std::string& repo, const std::string& scope)
     {
-        return fmt::format("{}/token?scope=repository:{}:{}", mirror.url, repo, scope);
+        return fmt::format("{}/token?scope=repository:{}:{}", url, repo, scope);
     }
 
     std::string get_manifest_url(const std::string& repo, const std::string& reference)
     {
-        return fmt::format("{}/v2/{}/manifests/{}", mirror.url, repo, reference);
+        return fmt::format("{}/v2/{}/manifests/{}", url, repo, reference);
     }
 
     std::string get_preupload_url(const std::string& repo)
     {
-        return fmt::format("{}/v2/{}/blobs/uploads/", mirror.url, repo);
+        return fmt::format("{}/v2/{}/blobs/uploads/", url, repo);
     }
 
     AuthCallbackData* get_data(Target* target);

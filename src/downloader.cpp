@@ -256,7 +256,7 @@ Downloader::select_suitable_mirror(Target* target)
         {
             if (mirrors_iterated == 0)
             {
-                if (mirror->mirror.protocol != Protocol::FILE)
+                if (mirror->protocol != Protocol::FILE)
                 {
                     reiterate = true;
                 }
@@ -272,10 +272,10 @@ Downloader::select_suitable_mirror(Target* target)
                     // Skip bad mirrors
                     pfdebug("Skipping bad mirror ({} failures and no success): {}",
                             mirror->failed_transfers,
-                            mirror->mirror.url);
+                            mirror->url);
                 }
             }
-            else if (mirror->mirror.protocol == Protocol::FILE)
+            else if (mirror->protocol == Protocol::FILE)
             {
                 // retry of local paths have no reason
                 continue;
@@ -289,13 +289,13 @@ Downloader::select_suitable_mirror(Target* target)
             }
 
             // TODO no clue why this is...
-            // if (mirrors_iterated == 0 && mirror->mirror->protocol == Protocol::FTP
+            // if (mirrors_iterated == 0 && mirror->protocol == Protocol::FTP
             // && target->target->is_zchunk)
             // {
             //     continue
             // }
 
-            // if (mirror->mirror->protocol == Protocol::RSYNC)
+            // if (mirror->protocol == Protocol::RSYNC)
             // {
             //     if (mirrors_iterated == 0)
             //     {
@@ -305,7 +305,7 @@ Downloader::select_suitable_mirror(Target* target)
             // }
 
             // if (target->handle && target->handle->offline &&
-            // c_mirror->mirror->protocol != LR_PROTOCOL_FILE)
+            // c_mirror->protocol != LR_PROTOCOL_FILE)
             // {
             //     if (mirrors_iterated == 0)
             //     {

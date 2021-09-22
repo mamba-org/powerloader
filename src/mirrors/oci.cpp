@@ -166,7 +166,7 @@ OCIMirror::format_url(Target* target)
     }
 
     // https://ghcr.io/v2/wolfv/artifact/blobs/sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4
-    return fmt::format("{}/v2/{}/blobs/sha256:{}", mirror.url, target->target->path, *checksum);
+    return fmt::format("{}/v2/{}/blobs/sha256:{}", url, target->target->path, *checksum);
 }
 
 std::vector<std::string>
