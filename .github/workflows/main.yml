@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: test
+    steps:
+      - uses: actions/checkout@v2
+      - name: install mamba
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: environment.yml
+      - name: build powerloader
+        shell: bash -l {0}
+        run: |
+          mkdir build; cd build
+          cmake .. \
+            -GNinja \
+            -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+            -DWITH_ZCHUNK=ON \
+            -DENABLE_TESTS=ON
+          ninja
+      - name: run powerloader tests
+        shell: bash -l {0}
+        run: |
+          cd build
+          ninja test

@@ -1,6 +1,7 @@
 #pragma once
 
 #define CACHEDIR "/Users/wolfvollprecht/Programs/powerdownloader/cache"
+#define PARTEXT ".pdpart"
 
 enum class Protocol
 {

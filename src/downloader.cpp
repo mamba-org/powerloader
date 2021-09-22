@@ -196,11 +196,6 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
             {
                 throw download_error(fmt::format(
                     "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
-                // g_set_error(transfer_err,
-                //             LR_DOWNLOADER_ERROR,
-                //             LRE_BADSTATUS,
-                //             "Status code: %ld for %s (IP: %s)", code, effective_url,
-                //             effective_ip);
             }
         }
         else if (effective_url)
@@ -208,15 +203,15 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
             // Check FTP
             if (code / 100 != 2)
             {
-                // g_set_error(transfer_err,
-                //             LR_DOWNLOADER_ERROR,
-                //             LRE_BADSTATUS,
-                //             "Status code: %ld for %s (IP: %s)", code, effective_url,
-                //             effective_ip);
+                throw download_error(fmt::format(
+                    "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
             }
         }
         else
         {
+            throw download_error(
+                fmt::format("Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
+
             // Other protocols
             // g_set_error(transfer_err,
             //             LR_DOWNLOADER_ERROR,
@@ -601,7 +596,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
 
     // Allow resume only for files that were originally being
     // downloaded by librepo
-    // if (target->resume && !has_librepo_xattr(fd))
+    // if (target->resume && fs::exist(!is_resumable(target->target->fn, ))
     // {
     //     target->resume = false;
     //     p_debug("Resume ignored, existing file was not originally "
@@ -644,14 +639,6 @@ Downloader::prepare_next_transfer(bool* candidate_found)
         pfdebug("Trying to resume from offset {}", used_offset);
         h.setopt(CURLOPT_RESUME_FROM_LARGE, used_offset);
     }
-
-    // Add librepo extended attribute to the file
-    // This xattr states that file is being downloaded by librepo
-    // This xattr is removed once the file is completely downloaded
-    // If librepo tries to resume a download, it checks if the xattr is present.
-    // If it isn't the download is not resumed, but whole file is
-    // downloaded again.
-    // add_librepo_xattr(fd, target->target->fn);
 
     if (target->target->byterange_start > 0)
     {
@@ -984,6 +971,12 @@ Downloader::check_msgs(bool failfast)
                     current_target->state = DownloadState::WAITING;
                     retry = true;
 
+                    // range fail
+                    // if (status_code == 416)
+                    // {
+                    //     // if our resume file is too large we need to completely truncate it
+                    //     current_target->original_offset = 0;
+                    // }
 // Truncate file - remove downloaded garbage (error html page etc.)
 #ifdef WITH_ZCHUNK
                     if (!current_target->target->is_zchunk

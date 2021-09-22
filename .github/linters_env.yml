@@ -1,0 +1,7 @@
+name: lintersenv
+channels:
+- conda-forge
+dependencies:
+- clang-tools=11.1.0
+- python 3.8
+- pre-commit

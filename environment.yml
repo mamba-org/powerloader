@@ -1,0 +1,16 @@
+name: powerloader
+channels:
+- conda-forge
+dependencies:
+  - cmake
+  - ninja
+  - cxx-compiler
+  - libcurl
+  - openssl
+  - nlohmann_json
+  - cli11
+  - zchunk
+  - fmt
+  - gtest
+  # necessary for gtest cmake to work properly
+  - gmock

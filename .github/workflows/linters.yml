@@ -1,0 +1,25 @@
+name: Linters (Python, C++)
+
+on:
+  push:
+   branches:
+     - master
+     - main
+  pull_request:
+    branches:
+     - master
+     - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: install mamba
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: .github/linters_env.yml
+    - name: Run all linters
+      shell: bash -l {0}
+      run: |
+        pre-commit run --all-files --verbose --show-diff-on-failure

@@ -81,7 +81,9 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
 }
 
 int
-handle_download(const std::vector<std::string>& urls, const std::vector<std::string>& mirrors)
+handle_download(const std::vector<std::string>& urls,
+                const std::vector<std::string>& mirrors,
+                bool resume)
 {
     // the format for URLs is:
     // conda-forge:linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2] (last part optional, can be
@@ -110,6 +112,7 @@ handle_download(const std::vector<std::string>& urls, const std::vector<std::str
             }
             std::cout << "Downloading " << url << " to " << dst << std::endl;
             targets.emplace_back(url, "", dst);
+            targets.back().resume = resume;
         }
         else
         {
@@ -130,6 +133,8 @@ handle_download(const std::vector<std::string>& urls, const std::vector<std::str
 
             std::cout << "Downloading " << path << " from " << mirror << " to " << dst << std::endl;
             targets.emplace_back(path, mirror, dst);
+            targets.back().resume = resume;
+
             // DownloadTarget dlauth(path, mirror, dst);
         }
     }
@@ -153,12 +158,14 @@ main(int argc, char** argv)
 {
     CLI::App app;
 
+    bool resume = false;
     std::vector<std::string> upload_files, download_files;
     std::vector<std::string> mirrors;
 
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
     s_dl->add_option("files", download_files, "Files to download");
-    s_dl->add_option("-m", mirrors, "Mirror to upload to");
+    s_dl->add_option("-m", mirrors, "Mirrors from where to download");
+    s_dl->add_option("-r,--resume", resume, "Try to resume");
 
     CLI::App* s_ul = app.add_subcommand("upload", "Upload a file");
     s_ul->add_option("files", upload_files, "Files to upload");
@@ -172,7 +179,7 @@ main(int argc, char** argv)
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(download_files, mirrors);
+        return handle_download(download_files, mirrors, resume);
     }
 
     return 0;

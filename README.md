@@ -19,7 +19,7 @@ In the future this might be directly integrated into the `mamba` codebase -- or 
 
 Install dependencies:
 
-`mamba create -n test -c conda-forge cli11 zchunk libcurl fmt openssl cmake compilers ninja`
+`mamba create -n test -c conda-forge cli11 nlohmann_json zchunk libcurl fmt openssl cmake cxx-compiler ninja`
 
 Then you can run
 

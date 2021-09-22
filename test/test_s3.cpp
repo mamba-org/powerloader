@@ -2,15 +2,7 @@
 
 #include "mirrors/s3.hpp"
 
-// S3 data we need:
-// we can assume a url like `s3://mybucket/path/to/file.txt`
-// and environment variables such as
-// $ export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-// $ export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-// $ export AWS_DEFAULT_REGION=us-west-2
-// $ export AWS_REGION=us-west-2
-
-TEST(match_spec, parse_version_build)
+TEST(s3, signdata)
 {
     // S3Mirror::SignData s3mirror_signdata("GET", "");
     S3Mirror s3mirror_signdata("someurl");
@@ -20,12 +12,11 @@ TEST(match_spec, parse_version_build)
     auto s = s3mirror_signdata.calculate_signature(
         p0, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "eu", "s3", "thisisateststring");
 
-    EXPECT_EQ(s, "5ab6621ee11b8e1fb42215c4f03f9b2e5808c608325da059b6df88dc2852ce93");
+    EXPECT_EQ(s, "85ae731ab003e28b9d40bedf8f10967f43025942de2bae7dc99679c50a194457");
 
     auto s2 = s3mirror_signdata.calculate_signature(
         p0, "wXalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "eu", "s3", "thisisateststring");
 
     EXPECT_NE(s, s2);
-
     // s3mirror_signdata.add_extra_headers(nullptr);
 }

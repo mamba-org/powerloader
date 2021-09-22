@@ -23,6 +23,7 @@ Target::reset()
 bool
 Target::truncate_transfer_file()
 {
+    std::cout << "Truncating transfer file " << std::endl;
     std::ptrdiff_t offset = 0;
 
     auto p = fs::path(target->fn);
@@ -62,16 +63,18 @@ Target::open_target_file()
         // Use supplied filename
         // int open_flags = O_CREAT | O_TRUNC | O_RDWR;
         std::ios::openmode open_flags;
+        std::cout << "RESUME: " << this->resume << " vs " << target->is_zchunk << std::endl;
         if (this->resume || target->is_zchunk)
         {
-            open_flags = std::ios::out | std::ios::binary | std::ios::ate;
+            std::cout << "Open with ate" << std::endl;
+            open_flags = std::ios::app | std::ios::binary | std::ios::ate;
         }
         else
         {
             open_flags = std::ios::out | std::ios::trunc | std::ios::binary;
         }
 
-        target->fd.reset(new std::ofstream(target->fn, open_flags));
+        target->fd.reset(new std::ofstream(target->fn + PARTEXT, open_flags));
         // TODO set permissions using fs::permissions?!
         // fd = open(target->fn, open_flags, 0666);
     }
