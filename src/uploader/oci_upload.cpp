@@ -39,8 +39,7 @@ oci_upload(OCIMirror& mirror,
     auto cres = chandle.perform();
 
     // Now we need to upload the manifest for OCI servers
-    std::string manifest_url
-        = fmt::format("{}/v2/{}/manifests/{}", mirror.url, reference, tag);
+    std::string manifest_url = fmt::format("{}/v2/{}/manifests/{}", mirror.url, reference, tag);
     std::string manifest = mirror.create_manifest(fsize, digest);
 
     std::istringstream manifest_stream(manifest);

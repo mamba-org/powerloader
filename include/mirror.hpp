@@ -40,7 +40,9 @@ enum class MirrorState
 struct Mirror
 {
     Mirror(const std::string& url)
-        : url(url), preference(0), protocol(Protocol::HTTP)
+        : url(url)
+        , preference(0)
+        , protocol(Protocol::HTTP)
     {
     }
 

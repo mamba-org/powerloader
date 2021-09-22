@@ -115,20 +115,15 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
     Target* target = self;
     HeaderCbState state = self->headercb_state;
 
-    pfdebug("Header received!");
-
     if (state == HeaderCbState::DONE || state == HeaderCbState::INTERRUPTED)
     {
-        pfdebug("Header but nothing to do :/");
-
         // Nothing to do
         return ret;
     }
 
 #ifdef WITH_ZCHUNK
-    if (target->target->is_zchunk
-        && !target->range_fail)  // && target->mirror &&
-                                 // target->mirror->protocol == Protocol::HTTP)
+    if (target->target->is_zchunk && !target->range_fail && target->mirror
+        && target->mirror->protocol == Protocol::HTTP)
         return zckheadercb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
 
@@ -141,12 +136,12 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
             if (contains(header, "200")
                 || contains(header, "206") && !contains(header, "connection established"))
             {
-                pfdebug("Header state OK! {}", header);
+                // pfdebug("Header state OK! {}", header);
                 target->headercb_state = HeaderCbState::HTTP_STATE_OK;
             }
             else
             {
-                pfdebug("Header state not OK! {}", header);
+                // pfdebug("Header state not OK! {}", header);
             }
         }
         // else if (lrtarget->protocol == LR_PROTOCOL_FTP)
@@ -277,9 +272,8 @@ Target::write_callback(char* buffer, std::size_t size, std::size_t nitems, Targe
     // std::cout << std::endl;
 
 #ifdef WITH_ZCHUNK
-    if (self->target->is_zchunk
-        && !self->range_fail)  // && self->mirror && self->mirror->protocol ==
-                               // Protocol::HTTP)
+    if (self->target->is_zchunk && !self->range_fail && self->mirror
+        && self->mirror->protocol == Protocol::HTTP)
         return zckwritecb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
 

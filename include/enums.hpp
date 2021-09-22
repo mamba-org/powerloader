@@ -8,9 +8,8 @@ enum class Protocol
     OTHER,
     FILE,
     HTTP,
+    FTP,
     // Want: S3, OCI
-    // FTP,
-    // RSYNC,
 };
 
 enum class DownloadState

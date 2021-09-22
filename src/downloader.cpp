@@ -288,21 +288,11 @@ Downloader::select_suitable_mirror(Target* target)
                 continue;
             }
 
-            // TODO no clue why this is...
-            // if (mirrors_iterated == 0 && mirror->protocol == Protocol::FTP
-            // && target->target->is_zchunk)
-            // {
-            //     continue
-            // }
-
-            // if (mirror->protocol == Protocol::RSYNC)
-            // {
-            //     if (mirrors_iterated == 0)
-            //     {
-            //         pfdebug("Skipping rsync url");
-            //     }
-            //     continue;
-            // }
+            if (mirrors_iterated == 0 && mirror->protocol == Protocol::FTP
+                && target->target->is_zchunk)
+            {
+                continue;
+            }
 
             // if (target->handle && target->handle->offline &&
             // c_mirror->protocol != LR_PROTOCOL_FILE)
