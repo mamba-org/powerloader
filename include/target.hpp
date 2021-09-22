@@ -74,6 +74,12 @@ public:
         return CbReturnCode::OK;
     }
 
+    static int progress_callback(Target* ptr,
+                                 curl_off_t total_to_download,
+                                 curl_off_t now_downloaded,
+                                 curl_off_t total_to_upload,
+                                 curl_off_t now_uploaded);
+
     bool truncate_transfer_file();
     std::shared_ptr<std::ofstream> open_target_file();
 
@@ -90,7 +96,7 @@ public:
     // internal stuff
     std::size_t retries;
 
-    DownloadState state;
+    DownloadState state = DownloadState::WAITING;
 
     // mirror list (or should we have a failure callback)
     Mirror* mirror;

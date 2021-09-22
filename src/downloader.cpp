@@ -16,6 +16,7 @@ extern "C"
 
 namespace fs = std::filesystem;
 
+#include "context.hpp"
 #include "curl.hpp"
 #include "download_target.hpp"
 #include "downloader.hpp"
@@ -294,17 +295,15 @@ Downloader::select_suitable_mirror(Target* target)
                 continue;
             }
 
-            // if (target->handle && target->handle->offline &&
-            // c_mirror->protocol != LR_PROTOCOL_FILE)
-            // {
-            //     if (mirrors_iterated == 0)
-            //     {
-            //         // Skip each url that doesn't have "file://" or "file:" prefix
-            //         g_debug("%s: Skipping mirror %s - Offline mode enabled",
-            //         __func__, mirrorurl);
-            //     }
-            //     continue;
-            // }
+            if (Context::instance().offline && mirror->protocol != Protocol::FILE)
+            {
+                if (mirrors_iterated == 0)
+                {
+                    // Skip each url that doesn't have "file://" or "file:" prefix
+                    pfdebug("Skipping mirror {} - Offline mode enabled", mirror->url);
+                }
+                continue;
+            }
 
             at_least_one_suitable_mirror_found = true;
 
@@ -407,56 +406,53 @@ Downloader::select_next_target(Target** selected_target, std::string* selected_f
         // This condition should never be true for a full_url built
         // from a mirror, because select_suitable_mirror() checks if
         // the URL is local if LRO_OFFLINE is enabled by itself.
-        // if (full_url && target->handle && target->handle->offline &&
-        // !lr_is_local_path(full_url))
-        // {
-        //     // g_debug("%s: Skipping %s because LRO_OFFLINE is specified",
-        //     //         __func__, full_url);
+        if (!full_url.empty() && Context::instance().offline && !starts_with(full_url, "file://"))
+        {
+            pfdebug("Skipping {} because OFFLINE is specified", full_url);
 
-        //     // Mark the target as failed
-        //     target->state = DownloadState::FAILED;
-        //     // lr_downloadtarget_set_error(target->target, LRE_NOURL,
-        //     //                             "Cannot download, offline mode is
-        //     specified and no "
-        //     //                             "local URL is available");
+            // Mark the target as failed
+            target->state = DownloadState::FAILED;
+            //     // lr_downloadtarget_set_error(target->target, LRE_NOURL,
+            //     //                             "Cannot download, offline mode is
+            //     specified and no "
+            //     //                             "local URL is available");
 
-        //     // Call end callback
-        //     LrEndCb end_cb = target->target->endcb;
-        //     if (end_cb)
-        //     {
-        //         int ret = end_cb(target->target->cbdata,
-        //                          LR_TRANSFER_ERROR,
-        //                          "Cannot download: Offline mode is specified "
-        //                          "and no local URL is available");
-        //         if (ret == LR_CB_ERROR)
-        //         {
-        //             target->cb_return_code = LR_CB_ERROR;
-        //             g_debug("%s: Downloading was aborted by LR_CB_ERROR "
-        //                     "from end callback",
-        //                     __func__);
-        //             g_set_error(err, LR_DOWNLOADER_ERROR, LRE_CBINTERRUPTED,
-        //                         "Interrupted by LR_CB_ERROR from end callback");
-        //             return false;
-        //         }
-        //     }
+            //     // Call end callback
+            //     LrEndCb end_cb = target->target->endcb;
+            //     if (end_cb)
+            //     {
+            //         int ret = end_cb(target->target->cbdata,
+            //                          LR_TRANSFER_ERROR,
+            //                          "Cannot download: Offline mode is specified "
+            //                          "and no local URL is available");
+            //         if (ret == LR_CB_ERROR)
+            //         {
+            //             target->cb_return_code = LR_CB_ERROR;
+            //             g_debug("%s: Downloading was aborted by LR_CB_ERROR "
+            //                     "from end callback",
+            //                     __func__);
+            //             g_set_error(err, LR_DOWNLOADER_ERROR, LRE_CBINTERRUPTED,
+            //                         "Interrupted by LR_CB_ERROR from end callback");
+            //             return false;
+            //         }
+            //     }
 
-        //     if (dd->failfast)
-        //     {
-        //         // Fail immediately
-        //         g_set_error(err, LR_DOWNLOADER_ERROR, LRE_NOURL,
-        //                     "Cannot download %s: Offline mode is specified "
-        //                     "and no local URL is available",
-        //                     target->target->path);
-        //         return false;
-        //     }
-        // }
+            //     if (dd->failfast)
+            //     {
+            //         // Fail immediately
+            //         g_set_error(err, LR_DOWNLOADER_ERROR, LRE_NOURL,
+            //                     "Cannot download %s: Offline mode is specified "
+            //                     "and no local URL is available",
+            //                     target->target->path);
+            //         return false;
+            //     }
+        }
 
         // A waiting target found
-        std::cout << "FULL URL " << full_url << std::endl;
+        pfdebug("DEBUG: Download URL is {}", full_url);
         if (mirror || !full_url.empty())
         {
             // Note: mirror is NULL if base_url is used
-            pfdebug("Selected mirror {}", (ptrdiff_t) mirror);
             target->mirror = mirror;
 
             *selected_target = target;
@@ -474,18 +470,16 @@ bool
 Downloader::prepare_next_transfer(bool* candidate_found)
 {
     Target* target;
-    // _cleanup_free_ char *full_url = NULL;
     Protocol protocol = Protocol::OTHER;
     bool ret;
 
     *candidate_found = false;
     std::string full_url;
     ret = select_next_target(&target, &full_url);
-    // std::cout << "Got the next target " << ret << std::endl;
+
     if (!ret)  // Error
         return false;
 
-    // std::cout << "We got a target? " << target << std::endl;
     if (!target)  // Nothing to do
         return true;
 
@@ -506,8 +500,6 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     //     handle->onetimeflag = NULL;
     //     handle->onetimeflag_apply = FALSE;
     // }
-
-    std::cout << "Downloading: " << full_url << std::endl;
 
     // protocol = lr_detect_protocol(full_url);
     protocol = Protocol::HTTP;
@@ -540,10 +532,6 @@ Downloader::prepare_next_transfer(bool* candidate_found)
 
     // Set URL
     h.url(full_url);
-
-    // ~~Set error buffer~~ (DONE inside handle)
-    // target->errorbuffer[0] = '\0';
-    // target->setopt(CURLOPT_ERRORBUFFER, target->errorbuffer);
 
     // Prepare FILE
     target->open_target_file();
@@ -645,13 +633,12 @@ Downloader::prepare_next_transfer(bool* candidate_found)
 
     // Prepare progress callback
     // target->cb_return_code = LR_CB_OK;
-    // if (target->target->progresscb)
-    // {
-    //     c_rc = curl_easy_setopt(h, CURLOPT_PROGRESSFUNCTION, lr_progresscb) ||
-    //            curl_easy_setopt(h, CURLOPT_NOPROGRESS, 0) ||
-    //            curl_easy_setopt(h, CURLOPT_PROGRESSDATA, target);
-    //     assert(c_rc == CURLE_OK);
-    // }
+    if (target->target->progress_callback)
+    {
+        h.setopt(CURLOPT_XFERINFOFUNCTION, &Target::progress_callback);
+        h.setopt(CURLOPT_NOPROGRESS, 0);
+        h.setopt(CURLOPT_XFERINFODATA, target);
+    }
 
     // Prepare header callback
     if (target->target->expected_size > 0)
@@ -663,23 +650,14 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     // Prepare write callback
     h.setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
     h.setopt(CURLOPT_WRITEDATA, target);
-    h.setopt(CURLOPT_VERBOSE, 1L);
 
     // Set extra HTTP headers
     if (target->mirror)
     {
         h.add_headers(target->mirror->get_auth_headers(target->target->path));
     }
-    // if (target->handle && target->handle->httpheader)
-    // {
-    //     // Fill in headers specified by user in LrHandle via LRO_HTTPHEADER
-    //     for (int x = 0; target->handle->httpheader[x]; x++)
-    //     {
-    //         headers = curl_slist_append(headers,
-    //         target->handle->httpheader[x]); if (!headers)
-    //             lr_out_of_memory();
-    //     }
-    // }
+
+    h.add_headers(Context::instance().additional_httpheaders);
 
     if (target->target->no_cache)
     {
@@ -689,21 +667,17 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     }
 
     // Add the new handle to the curl multi handle
-    std::cout << "adding multihandle." << std::endl;
     CURL* handle = h;
-    std::cout << "C Handle = " << handle;
     CURLMcode cm_rc = curl_multi_add_handle(multi_handle, handle);
-    std::cout << "CURL Returns " << cm_rc << " " << curl_multi_strerror(cm_rc);
     assert(cm_rc == CURLM_OK);
 
     // Set the state of transfer as running
+    std::cout << "Target is running now" << std::endl;
     target->state = DownloadState::RUNNING;
-    pfdebug("Target: RUNNING.");
-    pfdebug("Mirror: {}", (std::ptrdiff_t) target->mirror);
+
     // Increase running transfers counter for mirror
     if (target->mirror)
     {
-        pfdebug("Mirror dings");
         target->mirror->increase_running_transfers();
     }
 

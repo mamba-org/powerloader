@@ -1,18 +1,9 @@
 #include "target.hpp"
 
-// CURL *Target::handle() const
-// {
-//     return curl_handle;
-// }
-
 void
 Target::reset()
 {
-    // if (curl_handle)
-    // {
-    //     curl_easy_cleanup(curl_handle);
-    //     curl_handle = nullptr;
-    // }
+    // curl_handle.reset();
     if (this->f != nullptr)
     {
         fclose(this->f);
@@ -63,10 +54,8 @@ Target::open_target_file()
         // Use supplied filename
         // int open_flags = O_CREAT | O_TRUNC | O_RDWR;
         std::ios::openmode open_flags;
-        std::cout << "RESUME: " << this->resume << " vs " << target->is_zchunk << std::endl;
         if (this->resume || target->is_zchunk)
         {
-            std::cout << "Open with ate" << std::endl;
             open_flags = std::ios::app | std::ios::binary | std::ios::ate;
         }
         else
@@ -268,9 +257,6 @@ Target::write_callback(char* buffer, std::size_t size, std::size_t nitems, Targe
 
     std::size_t cur_written_expected = nitems, cur_written;
 
-    // for (int i = 0; i < size * nitems; ++i) std::cout << buffer[i];
-    // std::cout << std::endl;
-
 #ifdef WITH_ZCHUNK
     if (self->target->is_zchunk && !self->range_fail && self->mirror
         && self->mirror->protocol == Protocol::HTTP)
@@ -291,10 +277,8 @@ Target::write_callback(char* buffer, std::size_t size, std::size_t nitems, Targe
         return all;
     }
 
-    /* Deal with situation when user wants only specific byte range of the
-     * target file, and write only the range.
-     */
-
+    // Deal with situation when user wants only specific byte range of the
+    // target file, and write only the range.
     std::size_t cur_range_start = self->writecb_received;
     std::size_t cur_range_end = cur_range_start + all;
 
@@ -329,42 +313,29 @@ Target::write_callback(char* buffer, std::size_t size, std::size_t nitems, Targe
     size = 1;
     nitems = all;
 
-    if (cur_range_start >= range_start)
-    {
-        // Write the current curl passed range from the start
-        ;
-    }
-    else
+    if (cur_range_start < range_start)
     {
         // Find the right starting offset
-        assert(range_start >= cur_range_start);
+        assert(range_start > cur_range_start);
         std::size_t offset = range_start - cur_range_start;
         buffer += offset;
-        // Corret the length appropriately
+        // Correct the length appropriately
         nitems = all - offset;
     }
 
     if (range_end != 0)
     {
         // End range is specified
-
-        if (cur_range_end <= range_end)
-        {
-            // Write the current curl passed range to the end
-            ;
-        }
-        else
+        if (cur_range_end > range_end)
         {
             // Find the length of the new sequence
-            assert(cur_range_end >= range_end);
             std::size_t offset = cur_range_end - range_end;
-            // Corret the length appropriately
+            // Correct the length appropriately
             nitems -= (offset - 1);
         }
     }
 
     assert(nitems > 0);
-    // fwrite(ptr, size, nitems, target->f);
     self->target->fd->write(buffer, size * nitems);
 
     // TOOD check failbit!
@@ -376,10 +347,48 @@ Target::write_callback(char* buffer, std::size_t size, std::size_t nitems, Targe
 
     return cur_written_expected;
 
-    // // std::cout << "Write callback wuiuiui ... " << std::endl;
     // // if (!this->fd) throw std::runtime_error("No ofstream open!");
     // std::size_t numbytes = size * nitems;
     // // static_cast<DownloadTarget *>(self)->fd->write(buffer, numbytes);
     // self->target->fd->write(buffer, numbytes);
     // return numbytes;
+}
+
+// Progress callback for CURL handles.
+// progress callback set by the user of powerdownloader.
+int
+Target::progress_callback(Target* target,
+                          curl_off_t total_to_download,
+                          curl_off_t now_downloaded,
+                          curl_off_t total_to_upload,
+                          curl_off_t now_uploaded)
+{
+    int ret = 0;
+
+    assert(target);
+    assert(target->target);
+
+    if (target->state != DownloadState::RUNNING)
+    {
+        return ret;
+    }
+
+    if (!target->target->progress_callback)
+    {
+        return ret;
+    }
+
+#ifdef WITH_ZCHUNK
+    // if (target->target->is_zchunk)
+    // {
+    //     total_to_download = target->target->total_to_download;
+    //     now_downloaded = now_downloaded + target->target->downloaded;
+    // }
+#endif /* WITH_ZCHUNK */
+
+    ret = target->target->progress_callback(total_to_download, now_downloaded);
+
+    // target->cb_return_code = ret;
+
+    return ret;
 }

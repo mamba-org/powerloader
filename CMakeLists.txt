@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(include)
 
 add_library(libpowerloader
+    src/context.cpp
     src/downloader.cpp
     src/fastest_mirror.cpp
     src/mirror.cpp

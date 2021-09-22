@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "utils.hpp"
+#include "context.hpp"
 
 class curl_error : public std::runtime_error
 {
@@ -70,6 +71,10 @@ get_handle()
         goto err;
     if (curl_easy_setopt(h, CURLOPT_FILETIME, 0) != CURLE_OK)
         goto err;
+
+    if (Context::instance().verbosity > 0)
+        if (curl_easy_setopt(h, CURLOPT_VERBOSE, 1) != CURLE_OK)
+            goto err;
 
     return h;
 

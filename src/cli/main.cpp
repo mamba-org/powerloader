@@ -16,6 +16,16 @@ enum KindOf
 };
 
 int
+progress_callback(curl_off_t total, curl_off_t done)
+{
+    if (total == 0 || done == 0)
+        return 0;
+    std::cout << fmt::format("{:.2f}\% of {}", double(done) / double(total) * 100, total)
+              << std::endl;
+    return 0;
+}
+
+int
 handle_upload(const std::vector<std::string>& files, const std::vector<std::string>& mirrors)
 {
     std::string mirror_url = mirrors[0];
@@ -112,7 +122,6 @@ handle_download(const std::vector<std::string>& urls,
             }
             std::cout << "Downloading " << url << " to " << dst << std::endl;
             targets.emplace_back(url, "", dst);
-            targets.back().resume = resume;
         }
         else
         {
@@ -133,10 +142,9 @@ handle_download(const std::vector<std::string>& urls,
 
             std::cout << "Downloading " << path << " from " << mirror << " to " << dst << std::endl;
             targets.emplace_back(path, mirror, dst);
-            targets.back().resume = resume;
-
-            // DownloadTarget dlauth(path, mirror, dst);
         }
+        targets.back().resume = resume;
+        targets.back().progress_callback = progress_callback;
     }
 
     Downloader dl;

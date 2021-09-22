@@ -18,6 +18,7 @@ extern "C"
 
 namespace fs = std::filesystem;
 
+#include "context.hpp"
 #include "curl.hpp"
 #include "download_target.hpp"
 #include "enums.hpp"

@@ -19,7 +19,6 @@ oci_upload(OCIMirror& mirror,
     std::string preupload_url = mirror.get_preupload_url(reference);
     auto response = CURLHandle(preupload_url)
                         .setopt(CURLOPT_CUSTOMREQUEST, "POST")
-                        // .setopt(CURLOPT_VERBOSE, 1L)
                         .add_headers(mirror.get_auth_headers(reference))
                         .perform();
 
@@ -45,9 +44,7 @@ oci_upload(OCIMirror& mirror,
     std::istringstream manifest_stream(manifest);
 
     CURLHandle mhandle(manifest_url);
-    mhandle
-        // .setopt(CURLOPT_VERBOSE, 1L)
-        .add_headers(mirror.get_auth_headers(reference))
+    mhandle.add_headers(mirror.get_auth_headers(reference))
         .add_header("Content-Type: application/vnd.oci.image.manifest.v1+json")
         .upload(manifest_stream);
 

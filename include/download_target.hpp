@@ -37,6 +37,8 @@ public:
 
     Mirror* used_mirror;
 
+    std::function<int(curl_off_t, curl_off_t)> progress_callback;
+
     EndCb endcb = nullptr;
     void* cbdata = nullptr;
 
