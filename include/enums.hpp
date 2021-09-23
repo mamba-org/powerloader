@@ -5,74 +5,74 @@
 
 enum class Protocol
 {
-    OTHER,
-    FILE,
-    HTTP,
-    FTP,
+    kOTHER,
+    kFILE,
+    kHTTP,
+    kFTP,
     // Want: S3, OCI
 };
 
 enum class DownloadState
 {
     // The target is waiting to be processed.
-    WAITING,
+    kWAITING,
     // The target (or mirror) is running preparation requests (e.g. for auth)
-    PREPARATION,
+    kPREPARATION,
     // The transfer is running.
-    RUNNING,
+    kRUNNING,
     // The transfer is successfully finished.
-    FINISHED,
+    kFINISHED,
     // The transfer is finished without success.
-    FAILED,
+    kFAILED,
 };
 
 enum class HeaderCbState
 {
     // Default state
-    DEFAULT,
+    kDEFAULT,
     // HTTP headers with OK state
-    HTTP_STATE_OK,
+    kHTTP_STATE_OK,
     // Download was interrupted (e.g. Content-Length doesn't match
     // expected size etc.)
-    INTERRUPTED,
+    kINTERRUPTED,
     // All headers which we were looking for are already found
-    DONE
+    kDONE
 };
 
 /** Enum with zchunk file status */
 enum class ZckState
 {
     // The zchunk file is waiting to check whether the header is available locally.
-    HEADER_CK,
+    kHEADER_CK,
     // The zchunk file is waiting to download the header
-    HEADER,
+    kHEADER,
     // The zchunk file is waiting to check what chunks are available locally
-    BODY_CK,
+    kBODY_CK,
     // The zchunk file is waiting for its body to be downloaded.
-    BODY,
+    kBODY,
     // The zchunk file is finished being downloaded.
-    FINISHED
+    kFINISHED
 };
 
 enum class CbReturnCode
 {
-    OK = 0,
-    ABORT,
-    ERROR
+    kOK = 0,
+    kABORT,
+    kERROR
 };
 
 enum class TransferStatus
 {
-    SUCCESSFUL,
-    ALREADYEXISTS,
-    ERROR,
+    kSUCCESSFUL,
+    kALREADYEXISTS,
+    kERROR,
 };
 
 enum class ChecksumType
 {
-    SHA1,
-    SHA256,
-    MD5
+    kSHA1,
+    kSHA256,
+    kMD5
 };
 
 struct Checksum

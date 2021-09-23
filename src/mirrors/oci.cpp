@@ -45,7 +45,7 @@ OCIMirror::need_preparation(Target* target)
 
     if (std::none_of(target->target->checksums.begin(),
                      target->target->checksums.end(),
-                     [](auto& ck) { return ck.type == ChecksumType::SHA256; }))
+                     [](auto& ck) { return ck.type == ChecksumType::kSHA256; }))
         return true;
 
     return false;
@@ -155,7 +155,7 @@ OCIMirror::format_url(Target* target)
 
     for (auto& ck : target->target->checksums)
     {
-        if (ck.type == ChecksumType::SHA256)
+        if (ck.type == ChecksumType::kSHA256)
             checksum = &ck.checksum;
     }
 

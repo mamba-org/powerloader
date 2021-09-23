@@ -32,7 +32,7 @@ public:
                                       Target* self);
 
     inline Target(DownloadTarget* dl_target)
-        : state(DownloadState::WAITING)
+        : state(DownloadState::kWAITING)
         , target(dl_target)
         , original_offset(-1)
         , resume(dl_target->resume)
@@ -40,7 +40,7 @@ public:
     }
 
     inline Target(DownloadTarget* dl_target, const std::vector<Mirror*>& mirrors)
-        : state(DownloadState::WAITING)
+        : state(DownloadState::kWAITING)
         , target(dl_target)
         , original_offset(-1)
         , resume(dl_target->resume)
@@ -64,14 +64,14 @@ public:
             std::string message = "";
             CbReturnCode rc = end_cb(status, message, cb_data);
 
-            if (rc == CbReturnCode::ERROR)
+            if (rc == CbReturnCode::kERROR)
             {
-                cb_return_code = CbReturnCode::ERROR;
+                cb_return_code = CbReturnCode::kERROR;
                 pfdebug("End-Callback returned an error");
             }
             return rc;
         }
-        return CbReturnCode::OK;
+        return CbReturnCode::kOK;
     }
 
     static int progress_callback(Target* ptr,
@@ -96,7 +96,7 @@ public:
     // internal stuff
     std::size_t retries;
 
-    DownloadState state = DownloadState::WAITING;
+    DownloadState state = DownloadState::kWAITING;
 
     // mirror list (or should we have a failure callback)
     Mirror* mirror;

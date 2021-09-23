@@ -94,7 +94,7 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
                     target->target->byterange_start,
                     target->target->byterange_end);
         }
-        else if (target->headercb_state == HeaderCbState::INTERRUPTED)
+        else if (target->headercb_state == HeaderCbState::kINTERRUPTED)
         {
             // Download was interrupted by header callback
             throw download_error("Interrupted by header callback "
@@ -228,7 +228,7 @@ Downloader::select_suitable_mirror(Target* target)
         {
             if (mirrors_iterated == 0)
             {
-                if (mirror->protocol != Protocol::FILE)
+                if (mirror->protocol != Protocol::kFILE)
                 {
                     reiterate = true;
                 }
@@ -247,7 +247,7 @@ Downloader::select_suitable_mirror(Target* target)
                             mirror->url);
                 }
             }
-            else if (mirror->protocol == Protocol::FILE)
+            else if (mirror->protocol == Protocol::kFILE)
             {
                 // retry of local paths have no reason
                 continue;
@@ -260,14 +260,14 @@ Downloader::select_suitable_mirror(Target* target)
                 continue;
             }
 
-            if (mirrors_iterated == 0 && mirror->protocol == Protocol::FTP
+            if (mirrors_iterated == 0 && mirror->protocol == Protocol::kFTP
                 && target->target->is_zchunk)
             {
                 continue;
             }
 
             // Skip each url that doesn't have "file://" or "file:" prefix
-            if (Context::instance().offline && mirror->protocol != Protocol::FILE)
+            if (Context::instance().offline && mirror->protocol != Protocol::kFILE)
             {
                 if (mirrors_iterated == 0)
                     pfdebug("Skipping mirror {} - Offline mode enabled", mirror->url);
@@ -316,7 +316,7 @@ Downloader::select_next_target()
         std::string full_url;
 
         // Pick only waiting targets
-        if (target->state != DownloadState::WAITING)
+        if (target->state != DownloadState::kWAITING)
             continue;
 
         // Determine if path is a complete URL
@@ -368,7 +368,7 @@ Downloader::select_next_target()
             pfdebug("Skipping {} because OFFLINE is specified", full_url);
 
             // Mark the target as failed
-            target->state = DownloadState::FAILED;
+            target->state = DownloadState::kFAILED;
             //     // lr_downloadtarget_set_error(target->target, LRE_NOURL,
             //     //                             "Cannot download, offline mode is
             //     specified and no "
@@ -418,7 +418,7 @@ Downloader::select_next_target()
 bool
 Downloader::prepare_next_transfer(bool* candidate_found)
 {
-    Protocol protocol = Protocol::OTHER;
+    Protocol protocol = Protocol::kOTHER;
     bool ret;
 
     *candidate_found = false;
@@ -452,7 +452,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     // }
 
     // protocol = lr_detect_protocol(full_url);
-    protocol = Protocol::HTTP;
+    protocol = Protocol::kHTTP;
 
     // Prepare CURL easy handle
     target->curl_handle.reset(new CURLHandle());
@@ -461,7 +461,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     if (target->mirror && target->mirror->need_preparation(target))
     {
         target->mirror->prepare(target->target->path, h);
-        target->state = DownloadState::PREPARATION;
+        target->state = DownloadState::kPREPARATION;
 
         CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
 
@@ -573,7 +573,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     }
 
     // Prepare progress callback
-    target->cb_return_code = CbReturnCode::OK;
+    target->cb_return_code = CbReturnCode::kOK;
     if (target->target->progress_callback)
     {
         h.setopt(CURLOPT_XFERINFOFUNCTION, &Target::progress_callback);
@@ -614,7 +614,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
 
     // Set the state of transfer as running
     std::cout << "Target is running now" << std::endl;
-    target->state = DownloadState::RUNNING;
+    target->state = DownloadState::kRUNNING;
 
     // Increase running transfers counter for mirror
     if (target->mirror)
@@ -623,7 +623,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     }
 
     // Set the state of header callback for this transfer
-    target->headercb_state = HeaderCbState::DEFAULT;
+    target->headercb_state = HeaderCbState::kDEFAULT;
     target->headercb_interrupt_reason.clear();
 
     // Set protocol of the target
@@ -870,7 +870,7 @@ Downloader::check_msgs(bool failfast)
                     {
                         pfdebug("Ignore error - Try another mirror");
                     }
-                    current_target->state = DownloadState::WAITING;
+                    current_target->state = DownloadState::kWAITING;
                     retry = true;
 
                     // range fail
@@ -882,7 +882,7 @@ Downloader::check_msgs(bool failfast)
 // Truncate file - remove downloaded garbage (error html page etc.)
 #ifdef WITH_ZCHUNK
                     if (!current_target->target->is_zchunk
-                        || current_target->zck_state == ZckState::HEADER)
+                        || current_target->zck_state == ZckState::kHEADER)
                     {
 #endif
                         if (!current_target->truncate_transfer_file())
@@ -897,10 +897,10 @@ Downloader::check_msgs(bool failfast)
             {
                 // No more mirrors to try or base_url used or fatal error
                 std::cout << fmt::format("No more retries (tried: {})", num_of_tried_mirrors);
-                current_target->state = DownloadState::FAILED;
+                current_target->state = DownloadState::kFAILED;
 
                 // Call end callback
-                CbReturnCode rc = current_target->call_endcallback(TransferStatus::ERROR);
+                CbReturnCode rc = current_target->call_endcallback(TransferStatus::kERROR);
                 // LrEndCb end_cb = target->target->endcb;
                 // if (end_cb)
                 // {
@@ -966,13 +966,13 @@ Downloader::check_msgs(bool failfast)
             else
             {
 #endif /* WITH_ZCHUNK */
-                if (current_target->state == DownloadState::RUNNING)
+                if (current_target->state == DownloadState::kRUNNING)
                 {
-                    current_target->state = DownloadState::FINISHED;
+                    current_target->state = DownloadState::kFINISHED;
                 }
-                else if (current_target->state == DownloadState::PREPARATION)
+                else if (current_target->state == DownloadState::kPREPARATION)
                 {
-                    current_target->state = DownloadState::WAITING;
+                    current_target->state = DownloadState::kWAITING;
                 }
 
                 // TODO current hack because of the memory management here ...
@@ -991,7 +991,7 @@ Downloader::check_msgs(bool failfast)
                                                                : current_target->target->cbdata;
                 if (end_cb)
                 {
-                    CbReturnCode rc = end_cb(TransferStatus::SUCCESSFUL, "", cb_data);
+                    CbReturnCode rc = end_cb(TransferStatus::kSUCCESSFUL, "", cb_data);
                     // if (rc == LR_CB_ERROR)
                     // {
                     //     target->cb_return_code = LR_CB_ERROR;

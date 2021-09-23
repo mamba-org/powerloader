@@ -104,7 +104,7 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
     Target* target = self;
     HeaderCbState state = self->headercb_state;
 
-    if (state == HeaderCbState::DONE || state == HeaderCbState::INTERRUPTED)
+    if (state == HeaderCbState::kDONE || state == HeaderCbState::kINTERRUPTED)
     {
         // Nothing to do
         return ret;
@@ -118,15 +118,15 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
 
     std::string_view header(buffer, size * nitems);
 
-    if (state == HeaderCbState::DEFAULT)
+    if (state == HeaderCbState::kDEFAULT)
     {
-        if (target->protocol == Protocol::HTTP && starts_with(header, "HTTP/"))
+        if (target->protocol == Protocol::kHTTP && starts_with(header, "HTTP/"))
         {
             if (contains(header, "200")
                 || contains(header, "206") && !contains(header, "connection established"))
             {
                 // pfdebug("Header state OK! {}", header);
-                target->headercb_state = HeaderCbState::HTTP_STATE_OK;
+                target->headercb_state = HeaderCbState::kHTTP_STATE_OK;
             }
             else
             {
@@ -172,7 +172,7 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
         // }
     }
 
-    if (state == HeaderCbState::HTTP_STATE_OK)
+    if (state == HeaderCbState::kHTTP_STATE_OK)
     {
         auto colon_idx = header.find(':');
         if (colon_idx != std::string_view::npos)
@@ -215,7 +215,7 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
                     pfdebug("Content length from server not matching {} vs {}",
                             content_length,
                             expected);
-                    target->headercb_state = HeaderCbState::INTERRUPTED;
+                    target->headercb_state = HeaderCbState::kINTERRUPTED;
                     // target->headercb_interrupt_reason = fmt::format(
                     //     "Server reports Content-Length: {} but expected size is: {}",
                     //     content_length, expected);
@@ -226,7 +226,7 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
                 else
                 {
                     // TODO what when we also want ETag etc.?
-                    target->headercb_state = HeaderCbState::DONE;
+                    target->headercb_state = HeaderCbState::kDONE;
                 }
             }
         }
@@ -368,7 +368,7 @@ Target::progress_callback(Target* target,
     assert(target);
     assert(target->target);
 
-    if (target->state != DownloadState::RUNNING)
+    if (target->state != DownloadState::kRUNNING)
     {
         return ret;
     }
