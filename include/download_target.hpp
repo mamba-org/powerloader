@@ -6,10 +6,12 @@
 #include "url.hpp"
 #include "mirror.hpp"
 
+#ifdef WITH_ZCHUNK
 extern "C"
 {
 #include <zck.h>
 }
+#endif
 
 class DownloadTarget
 {

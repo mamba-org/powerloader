@@ -8,8 +8,10 @@
 
 extern "C"
 {
-#include <fcntl.h>
-#include <unistd.h>
+    #include <fcntl.h>
+#ifndef _WIN32
+    #include <unistd.h>
+#endif
 }
 
 #include <fmt/core.h>

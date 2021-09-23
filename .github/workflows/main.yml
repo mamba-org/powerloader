@@ -59,7 +59,7 @@ jobs:
           echo %PATH%
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+          cmake .. -DCMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library ^
                    -DENABLE_TESTS=ON ^
                    -DWITH_ZCHUNK=OFF ^
                    -G "Ninja"
