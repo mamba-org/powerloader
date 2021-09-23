@@ -96,5 +96,5 @@ public:
     int max_connection_per_host = -1;
     std::size_t max_parallel_connections = 5;
 
-    std::map<std::string, std::vector<Mirror*>> mirror_map;
+    std::map<std::string, std::shared_ptr<std::vector<Mirror*>>> mirror_map;
 };

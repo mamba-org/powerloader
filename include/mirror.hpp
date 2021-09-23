@@ -47,6 +47,7 @@ struct Mirror
     bool authenticated = false;
 
     std::chrono::steady_clock::time_point next_allowed_retry;
+    std::chrono::steady_clock::duration next_wait_duration;
 
     // Maximum number of allowed parallel connections to this mirror. -1 means no
     // limit. Dynamically adjusted(decreased) if no fatal(temporary) error will
@@ -64,6 +65,18 @@ struct Mirror
     // Maximum ranges supported in a single request.  This will be automatically
     // adjusted when mirrors respond with 200 to a range request
     int max_ranges = 0;
+
+    std::chrono::system_clock::time_point next_retry;
+    std::chrono::system_clock::duration retry_wait_seconds = std::chrono::seconds(1);
+    std::size_t retry_backoff_factor = 2;
+    std::size_t retry_counter = 0;
+
+
+    inline bool need_wait_for_retry()
+    {
+        std::cout << "Need to wait ... until " << retry_wait_seconds.count() << std::endl;
+        return retry_counter != 0 && next_retry > std::chrono::system_clock::now();
+    }
 
     inline bool has_running_transfers()
     {
@@ -96,7 +109,39 @@ struct Mirror
     inline void update_statistics(bool transfer_success)
     {
         running_transfers--;
-        transfer_success ? successful_transfers++ : failed_transfers++;
+        if (transfer_success)
+        {
+            successful_transfers++;
+        }
+        else
+        {
+            failed_transfers++;
+            if (failed_transfers == 1 || next_retry < std::chrono::system_clock::now())
+            {
+                retry_counter++;
+                retry_wait_seconds = retry_wait_seconds * retry_backoff_factor;
+                next_retry = std::chrono::system_clock::now() + retry_wait_seconds;
+            }
+        }
+    }
+
+    // Return mirror rank or -1.0 if the rank cannot be determined
+    // (e.g. when is too early)
+    // Rank is currently just success rate for the mirror
+    inline double rank()
+    {
+        double rank = -1.0;
+
+        int successful = successful_transfers;
+        int failed = failed_transfers;
+        int finished_transfers = successful + failed;
+
+        if (finished_transfers < 3)
+            return rank;  // Do not judge too early
+
+        rank = successful / (double) finished_transfers;
+
+        return rank;
     }
 
     virtual bool prepare(Target* target);
@@ -113,3 +158,9 @@ struct Mirror
     // virtual void add_extra_headers(Target* target) { return; };
     virtual std::string format_url(Target* target);
 };
+
+bool
+sort_mirrors(std::shared_ptr<std::vector<Mirror*>>& mirrors,
+             Mirror* mirror,
+             bool success,
+             bool serious);

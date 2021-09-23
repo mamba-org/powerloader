@@ -46,6 +46,7 @@ Downloader::add(DownloadTarget* dl_target)
     if (!dl_target)
         return;
 
+
     if (mirror_map.find(dl_target->base_url) != mirror_map.end())
     {
         m_targets.emplace_back(new Target(dl_target, mirror_map[dl_target->base_url]));
@@ -224,7 +225,7 @@ Downloader::select_suitable_mirror(Target* target)
     //  number of allowed failures equal to dd->allowed_mirror_failures.
     do
     {
-        for (auto* mirror : target->mirrors)
+        for (auto* mirror : *(target->mirrors))
         {
             if (mirrors_iterated == 0)
             {
@@ -323,7 +324,7 @@ Downloader::select_next_target()
         bool complete_url_in_path = target->target->has_complete_url();
 
         // Sanity check
-        if (target->target->base_url.empty() && target->mirrors.empty() && !complete_url_in_path)
+        if (target->target->base_url.empty() && target->mirrors->empty() && !complete_url_in_path)
         {
             // Used relative path with empty internal mirrorlist and no basepath specified!
             return cpp::fail(XError{
@@ -432,6 +433,11 @@ Downloader::prepare_next_transfer(bool* candidate_found)
 
     if (!target)  // Nothing to do
         return true;
+
+    if (target->mirror && target->mirror->need_wait_for_retry())
+    {
+        std::this_thread::sleep_until(target->mirror->next_retry);
+    }
 
     *candidate_found = true;
 
@@ -778,9 +784,8 @@ Downloader::check_msgs(bool failfast)
             bool success = transfer_err == false;
             // TODO
             current_target->mirror->update_statistics(success);
-            // if (dd->adaptivemirrorsorting)
-            //     sort_mirrors(target->lrmirrors, target->mirror, success,
-            //     serious_error);
+            if (Context::instance().adaptive_mirror_sorting)
+                sort_mirrors(current_target->mirrors, current_target->mirror, success, serious_err);
         }
 
         // There was an error during transfer

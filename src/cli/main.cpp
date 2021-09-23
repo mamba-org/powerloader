@@ -200,6 +200,7 @@ main(int argc, char** argv)
             for (const auto& [k, v] :
                  config["mirrors"].as<std::map<std::string, std::vector<std::string>>>())
             {
+                ctx.mirror_map[k] = std::make_shared<std::vector<Mirror*>>();
                 for (auto& m : v)
                 {
                     std::cout << fmt::format("Adding mirror {} for {}", k, m) << std::endl;
@@ -229,7 +230,7 @@ main(int argc, char** argv)
                         ctx.mirrors.emplace_back(new Mirror(m));
                     }
 
-                    ctx.mirror_map[k].push_back(ctx.mirrors.back().get());
+                    ctx.mirror_map[k]->push_back(ctx.mirrors.back().get());
                 }
             }
         }

@@ -39,7 +39,7 @@ public:
     {
     }
 
-    inline Target(DownloadTarget* dl_target, const std::vector<Mirror*>& mirrors)
+    inline Target(DownloadTarget* dl_target, const std::shared_ptr<std::vector<Mirror*>>& mirrors)
         : state(DownloadState::kWAITING)
         , target(dl_target)
         , original_offset(-1)
@@ -100,7 +100,7 @@ public:
 
     // mirror list (or should we have a failure callback)
     Mirror* mirror;
-    std::vector<Mirror*> mirrors;
+    std::shared_ptr<std::vector<Mirror*>> mirrors;
     std::set<Mirror*> tried_mirrors;
     Mirror* used_mirror;
 

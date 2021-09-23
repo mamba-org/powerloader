@@ -49,7 +49,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          micromamba shell init
+          micromamba shell init -p C:\Users\runneradmin\micromamba
       - name: build powerloader
         if: runner.os == 'Windows'
         shell: cmd
