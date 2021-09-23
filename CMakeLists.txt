@@ -35,6 +35,10 @@ if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp)
 endif()
 
+if (MSVC)
+    add_definitions(-DNOMINMAX)
+endif()
+
 add_library(libpowerloader
     ${LIBPOWERLOADER_SRCS}
 )

@@ -52,7 +52,7 @@ namespace powerloader
                 // break;
             }
 
-            detail::InternalMirror im{u, handle, -1};
+            detail::InternalMirror im{ u, handle, -1 };
             check_mirrors.push_back(im);
         }
         fastestmirror_perform(check_mirrors, 1000000);
@@ -240,9 +240,11 @@ namespace powerloader
         }
 
         // sort
-        std::sort(mirrors.begin(), mirrors.end(), [](detail::InternalMirror& m1, detail::InternalMirror& m2) {
-            return m1.plain_connect_time < m2.plain_connect_time;
-        });
+        std::sort(mirrors.begin(),
+                  mirrors.end(),
+                  [](detail::InternalMirror& m1, detail::InternalMirror& m2) {
+                      return m1.plain_connect_time < m2.plain_connect_time;
+                  });
         return true;
     }
 }

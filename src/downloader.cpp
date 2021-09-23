@@ -8,9 +8,9 @@
 
 extern "C"
 {
-    #include <fcntl.h>
+#include <fcntl.h>
 #ifndef _WIN32
-    #include <unistd.h>
+#include <unistd.h>
 #endif
 }
 
