@@ -55,6 +55,8 @@ jobs:
         shell: cmd
         run: |
           call C:\Users\runneradmin\micromamba\condabin\micromamba.bat activate powerloader
+          echo %CONDA_PREFIX%
+          echo %PATH%
           mkdir build
           cd build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
