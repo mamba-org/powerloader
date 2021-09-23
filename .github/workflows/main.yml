@@ -49,6 +49,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
+          micromamba activate powerloader
           mkdir build
           cd build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
