@@ -1,12 +1,11 @@
 #include <CLI/CLI.hpp>
-
+#include <yaml-cpp/yaml.h>
 #include "mirror.hpp"
 #include "mirrors/oci.hpp"
 #include "mirrors/s3.hpp"
 #include "url.hpp"
 #include "utils.hpp"
 #include "downloader.hpp"
-
 
 enum KindOf
 {
@@ -100,7 +99,6 @@ handle_download(const std::vector<std::string>& urls,
     // inferred from `path`)
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2]
     std::vector<DownloadTarget> targets;
-    std::map<std::string, std::vector<Mirror*>> mirror_map;
 
     for (auto& x : urls)
     {
@@ -148,7 +146,7 @@ handle_download(const std::vector<std::string>& urls,
     }
 
     Downloader dl;
-    dl.mirror_map = mirror_map;
+    dl.mirror_map = Context::instance().mirror_map;
 
     for (auto& t : targets)
     {
@@ -167,27 +165,83 @@ main(int argc, char** argv)
     CLI::App app;
 
     bool resume = false;
-    std::vector<std::string> upload_files, download_files;
+    std::vector<std::string> du_files;
     std::vector<std::string> mirrors;
+    std::string file;
+    bool verbose = false;
 
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
-    s_dl->add_option("files", download_files, "Files to download");
+    s_dl->add_option("files", du_files, "Files to download");
     s_dl->add_option("-m", mirrors, "Mirrors from where to download");
     s_dl->add_option("-r,--resume", resume, "Try to resume");
+    s_dl->add_option("-f", file, "File from which to read upload / download files");
 
     CLI::App* s_ul = app.add_subcommand("upload", "Upload a file");
-    s_ul->add_option("files", upload_files, "Files to upload");
+    s_ul->add_option("files", du_files, "Files to upload");
     s_ul->add_option("-m", mirrors, "Mirror to upload to");
+    s_ul->add_option("-f", file, "File from which to read upload / download files");
+
+    app.add_option("-v", verbose, "Enable verbose output");
 
     CLI11_PARSE(app, argc, argv);
 
+    if (verbose)
+        Context::instance().set_verbosity(1);
+
+    std::vector<Mirror> mlist;
+    if (!file.empty())
+    {
+        YAML::Node config = YAML::LoadFile(file);
+
+        auto& ctx = Context::instance();
+        du_files = config["targets"].as<std::vector<std::string>>();
+        if (config["mirrors"])
+        {
+            for (const auto& [k, v] :
+                 config["mirrors"].as<std::map<std::string, std::vector<std::string>>>())
+            {
+                for (auto& m : v)
+                {
+                    std::cout << fmt::format("Adding mirror {} for {}", k, m) << std::endl;
+
+                    if (starts_with(m, "oci://"))
+                    {
+                        try
+                        {
+                            std::string GH_SECRET = get_env("GHA_PAT");
+                            std::string GH_USER = get_env("GHA_USER");
+                            ctx.mirrors.emplace_back(new OCIMirror(m, "pull", GH_USER, GH_SECRET));
+                        }
+                        catch (...)
+                        {
+                            ctx.mirrors.emplace_back(new OCIMirror(m, "pull", "", ""));
+                        }
+                    }
+                    else if (starts_with(m, "s3://"))
+                    {
+                        std::string aws_ackey = get_env("AWS_ACCESS_KEY");
+                        std::string aws_sekey = get_env("AWS_SECRET_KEY");
+                        std::string aws_region = get_env("AWS_DEFAULT_REGION");
+                        ctx.mirrors.emplace_back(new S3Mirror(m, aws_region, aws_ackey, aws_sekey));
+                    }
+                    else
+                    {
+                        ctx.mirrors.emplace_back(new Mirror(m));
+                    }
+
+                    ctx.mirror_map[k].push_back(ctx.mirrors.back().get());
+                }
+            }
+        }
+    }
+
     if (app.got_subcommand("upload"))
     {
-        return handle_upload(upload_files, mirrors);
+        return handle_upload(du_files, mirrors);
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(download_files, mirrors, resume);
+        return handle_download(du_files, mirrors, resume);
     }
 
     return 0;

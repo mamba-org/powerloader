@@ -9,8 +9,10 @@ dependencies:
   - openssl
   - nlohmann_json
   - cli11
-  - zchunk
+  # Not available on Windows
+  - sel(unix): zchunk
   - fmt
   - gtest
   # necessary for gtest cmake to work properly
   - gmock
+  - yaml-cpp

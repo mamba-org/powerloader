@@ -25,6 +25,7 @@ namespace fs = std::filesystem;
 #include "target.hpp"
 #include "utils.hpp"
 #include "zck.hpp"
+#include "result.hpp"
 
 Downloader::Downloader()
 {
@@ -83,7 +84,6 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
     if (msg->data.result != CURLE_OK)
     {
         // There was an error that is reported by CURLcode
-
         if (msg->data.result == CURLE_WRITE_ERROR && target->writecb_required_range_written)
         {
             // Download was interrupted by writecb because
@@ -99,9 +99,6 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
             // Download was interrupted by header callback
             throw download_error("Interrupted by header callback "
                                  + target->headercb_interrupt_reason);
-            // g_set_error(transfer_err, LR_DOWNLOADER_ERROR, LRE_CURL,
-            //             "Interrupted by header callback: %s",
-            //             target->headercb_interrupt_reason);
         }
         // #ifdef WITH_ZCHUNK
         //             else if (target->range_fail)
@@ -189,36 +186,12 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
     {
         char* effective_ip = NULL;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIMARY_IP, &effective_ip);
-        // Check status codes for some protocols
-        if (effective_url && starts_with(effective_url, "http"))
-        {
-            // Check HTTP(S) code
-            if (code / 100 != 2)
-            {
-                throw download_error(fmt::format(
-                    "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
-            }
-        }
-        else if (effective_url)
-        {
-            // Check FTP
-            if (code / 100 != 2)
-            {
-                throw download_error(fmt::format(
-                    "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
-            }
-        }
-        else
+
+        // Check HTTP(S) code / or FTP
+        if (code / 100 != 2)
         {
             throw download_error(
                 fmt::format("Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
-
-            // Other protocols
-            // g_set_error(transfer_err,
-            //             LR_DOWNLOADER_ERROR,
-            //             LRE_BADSTATUS,
-            //             "Status code: %ld for %s (IP: %s)", code, effective_url,
-            //             effective_ip);
         }
     }
     return true;
@@ -238,10 +211,8 @@ Downloader::select_suitable_mirror(Target* target)
     bool at_least_one_suitable_mirror_found = false;
 
     assert(target);
-    Mirror* selected_mirror = nullptr;
 
-    // mirrors_iterated is used to allow to use mirrors multiple times for a
-    // target
+    // mirrors_iterated is used to allow to use mirrors multiple times for a target
     std::size_t mirrors_iterated = 0;
 
     // retry local paths have no reason
@@ -295,13 +266,11 @@ Downloader::select_suitable_mirror(Target* target)
                 continue;
             }
 
+            // Skip each url that doesn't have "file://" or "file:" prefix
             if (Context::instance().offline && mirror->protocol != Protocol::FILE)
             {
                 if (mirrors_iterated == 0)
-                {
-                    // Skip each url that doesn't have "file://" or "file:" prefix
                     pfdebug("Skipping mirror {} - Offline mode enabled", mirror->url);
-                }
                 continue;
             }
 
@@ -323,47 +292,42 @@ Downloader::select_suitable_mirror(Target* target)
             }
 
             // This mirror looks suitable - use it
-            selected_mirror = mirror;
             return mirror;
         }
     } while (reiterate && target->tried_mirrors.size() < allowed_mirror_failures
              && ++mirrors_iterated < allowed_mirror_failures);
 
-    throw std::runtime_error("No suitable mirror found");
-    // return selected_mirror;
+    throw std::runtime_error(
+        fmt::format("No suitable mirror found for {}", target->target->base_url));
 }
 
-/* Select next target */
-bool
-Downloader::select_next_target(Target** selected_target, std::string* selected_full_url)
+// Select next target
+cpp::result<std::pair<Target*, std::string>, XError>
+Downloader::select_next_target()
 {
     // assert(selected_target);
     // assert(selected_full_url);
 
-    *selected_target = nullptr;
-
+    Target* selected_target = nullptr;
     Mirror* mirror = nullptr;
     for (auto* target : m_targets)
     {
         Mirror* mirror = nullptr;
         std::string full_url;
-        int complete_url_in_path = 0;
 
         // Pick only waiting targets
         if (target->state != DownloadState::WAITING)
             continue;
 
         // Determine if path is a complete URL
-        complete_url_in_path = target->target->path.find("://") != std::string::npos;
-        // complete_url_in_path = strstr(target->target->path, "://") ? 1 : 0;
+        bool complete_url_in_path = target->target->has_complete_url();
 
         // Sanity check
         if (target->target->base_url.empty() && target->mirrors.empty() && !complete_url_in_path)
         {
-            // Used relative path with empty internal mirrorlist
-            // and no basepath specified!
-            throw std::runtime_error("Empty mirrorlist and no basepath specified");
-            return false;
+            // Used relative path with empty internal mirrorlist and no basepath specified!
+            return cpp::fail(XError{
+                XError::FATAL, "Empty mirrorlist and no basepath specified in DownloadTarget" });
         }
 
         // g_debug("Selecting mirror for: %s", target->target->path);
@@ -371,13 +335,7 @@ Downloader::select_next_target(Target** selected_target, std::string* selected_f
         // Prepare full target URL
         if (complete_url_in_path)
         {
-            // Path is a complete URL (do not use mirror nor base URL)
-            full_url = target->target->path;
-        }
-        else if (!target->target->base_url.empty())
-        {
-            // Base URL is specified
-            full_url = fmt::format("{}/{}", target->target->base_url, target->target->path);
+            return std::make_pair(target, target->target->complete_url);
         }
         else
         {
@@ -386,8 +344,7 @@ Downloader::select_next_target(Target** selected_target, std::string* selected_f
 
             if (!mirror)
             {
-                std::cout << "No mirror found " << std::endl;
-                return false;
+                return cpp::fail(XError{ XError::FATAL, "No mirror found" });
             }
 
             if (mirror && !mirror->need_preparation(target))
@@ -437,48 +394,41 @@ Downloader::select_next_target(Target** selected_target, std::string* selected_f
             //         }
             //     }
 
-            //     if (dd->failfast)
-            //     {
-            //         // Fail immediately
-            //         g_set_error(err, LR_DOWNLOADER_ERROR, LRE_NOURL,
-            //                     "Cannot download %s: Offline mode is specified "
-            //                     "and no local URL is available",
-            //                     target->target->path);
-            //         return false;
-            //     }
+            if (failfast)
+            {
+                throw fatal_download_error(fmt::format(
+                    "Cannot download {}: Offline mode is specified and no local URL is available",
+                    target->target->path));
+            }
         }
 
         // A waiting target found
-        pfdebug("DEBUG: Download URL is {}", full_url);
         if (mirror || !full_url.empty())
         {
             // Note: mirror is NULL if base_url is used
             target->mirror = mirror;
-
-            *selected_target = target;
-            *selected_full_url = full_url;
-
-            return true;
+            return std::make_pair(target, full_url);
         }
     }
 
     // No suitable target found
-    return true;
+    return std::make_pair(nullptr, std::string(""));
 }
 
 bool
 Downloader::prepare_next_transfer(bool* candidate_found)
 {
-    Target* target;
     Protocol protocol = Protocol::OTHER;
     bool ret;
 
     *candidate_found = false;
-    std::string full_url;
-    ret = select_next_target(&target, &full_url);
+    auto next_target = select_next_target();
 
-    if (!ret)  // Error
+    // Error
+    if (next_target.has_error())
         return false;
+
+    auto [target, full_url] = next_target.value();
 
     if (!target)  // Nothing to do
         return true;
@@ -505,17 +455,8 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     protocol = Protocol::HTTP;
 
     // Prepare CURL easy handle
-    CURLcode c_rc;
-    // if (false && target->handle)
-    // {
-    //     h = curl_easy_duphandle(target->handle->handle());
-    // }
-    // else
-    // {
-    // h = get_handle();
     target->curl_handle.reset(new CURLHandle());
     CURLHandle& h = *(target->curl_handle);
-    // }
 
     if (target->mirror && target->mirror->need_preparation(target))
     {
@@ -632,7 +573,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     }
 
     // Prepare progress callback
-    // target->cb_return_code = LR_CB_OK;
+    target->cb_return_code = CbReturnCode::OK;
     if (target->target->progress_callback)
     {
         h.setopt(CURLOPT_XFERINFOFUNCTION, &Target::progress_callback);
@@ -704,8 +645,6 @@ Downloader::prepare_next_transfers()
     std::size_t length = m_running_transfers.size();
     std::size_t free_slots = max_parallel_connections - length;
 
-    // assert(!err || *err == NULL);
-
     while (free_slots > 0)
     {
         bool candidate_found;
@@ -716,10 +655,9 @@ Downloader::prepare_next_transfers()
         free_slots--;
     }
 
-    // TODO
     // Set maximal speed for each target
-    // if (!set_max_speeds_to_transfers(dd, err))
-    //     return false;
+    if (!set_max_speeds_to_transfers())
+        return false;
 
     return true;
 }
@@ -1225,4 +1163,69 @@ Downloader::download()
     //         break;
     //     }
     // }
+}
+
+bool
+Downloader::set_max_speeds_to_transfers()
+{
+    // assert(!err || *err == NULL);
+
+    // Nothing to do
+    if (m_running_transfers.empty())
+        return true;
+
+    // Compute number of running downloads from repos with limited speed
+    // GHashTable *num_running_downloads_per_repo = g_hash_table_new(NULL, NULL);
+    // for (GSList *elem = dd->running_transfers; elem; elem = g_slist_next(elem)) {
+    //     const LrTarget *ltarget = elem->data;
+
+    //     if (!ltarget->handle || !ltarget->handle->maxspeed) // Skip repos with unlimited speed or
+    //     without handle
+    //         continue;
+
+    //     guint num_running_downloads_from_repo =
+    //         GPOINTER_TO_UINT(g_hash_table_lookup(num_running_downloads_per_repo,
+    //         ltarget->handle));
+    //     if (num_running_downloads_from_repo)
+    //         ++num_running_downloads_from_repo;
+    //     else
+    //         num_running_downloads_from_repo = 1;
+    //     g_hash_table_insert(num_running_downloads_per_repo, ltarget->handle,
+    //                         GUINT_TO_POINTER(num_running_downloads_from_repo));
+    // }
+
+    // // Set max speed to transfers
+    // GHashTableIter iter;
+    // gpointer key, value;
+    // g_hash_table_iter_init(&iter, num_running_downloads_per_repo);
+    // while (g_hash_table_iter_next(&iter, &key, &value)) {
+    //     const LrHandle *repo = key;
+    //     const guint num_running_downloads_from_repo = GPOINTER_TO_UINT(value);
+
+    //     // Calculate a max speed (rounded up) per target (for repo)
+    //     const gint64 single_target_speed =
+    //         (repo->maxspeed + (num_running_downloads_from_repo - 1)) /
+    //         num_running_downloads_from_repo;
+
+    //     for (GSList *elem = dd->running_transfers; elem; elem = g_slist_next(elem)) {
+    //         LrTarget *ltarget = elem->data;
+    //         if (ltarget->handle == repo) {
+    //             CURL *curl_handle = ltarget->curl_handle;
+    //             CURLcode code = curl_easy_setopt(curl_handle,
+    //                                              CURLOPT_MAX_RECV_SPEED_LARGE,
+    //                                              (curl_off_t)single_target_speed);
+    //             if (code != CURLE_OK) {
+    //                 g_set_error(err, LR_DOWNLOADER_ERROR, LRE_CURLSETOPT,
+    //                             "Cannot set CURLOPT_MAX_RECV_SPEED_LARGE option: %s",
+    //                             curl_easy_strerror(code));
+    //                 g_hash_table_destroy(num_running_downloads_per_repo);
+    //                 return FALSE;
+    //             }
+    //         }
+    //     }
+    // }
+
+    // g_hash_table_destroy(num_running_downloads_per_repo);
+
+    return true;
 }

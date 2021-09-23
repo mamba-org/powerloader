@@ -13,18 +13,7 @@
 #include "nlohmann/json.hpp"
 #include <fmt/core.h>
 
-extern "C"
-{
-#include <openssl/buffer.h>
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
-}
-
 class Target;
-
-struct InternalMirror
-{
-};
 
 enum class MirrorState
 {

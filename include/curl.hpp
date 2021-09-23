@@ -11,7 +11,6 @@
 #include <nlohmann/json.hpp>
 
 #include "utils.hpp"
-#include "context.hpp"
 
 class curl_error : public std::runtime_error
 {
@@ -40,48 +39,8 @@ template <class T>
 std::size_t
 read_callback(char* ptr, std::size_t size, std::size_t nmemb, T* stream);
 
-inline CURL*
-get_handle()
-{
-    CURL* h;
-
-    // lr_global_init();
-
-    h = curl_easy_init();
-    if (!h)
-        return NULL;
-
-    if (curl_easy_setopt(h, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_MAXREDIRS, 6) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_CONNECTTIMEOUT, LRO_CONNECTTIMEOUT_DEFAULT) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_LOW_SPEED_TIME, LRO_LOWSPEEDTIME_DEFAULT) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_LOW_SPEED_LIMIT, LRO_LOWSPEEDLIMIT_DEFAULT) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_SSL_VERIFYHOST, 2) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_SSL_VERIFYPEER, 1) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_SSL_VERIFYSTATUS, 0) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_FTP_USE_EPSV, LRO_FTPUSEEPSV_DEFAULT) != CURLE_OK)
-        goto err;
-    if (curl_easy_setopt(h, CURLOPT_FILETIME, 0) != CURLE_OK)
-        goto err;
-
-    if (Context::instance().verbosity > 0)
-        if (curl_easy_setopt(h, CURLOPT_VERBOSE, 1) != CURLE_OK)
-            goto err;
-
-    return h;
-
-err:
-    curl_easy_cleanup(h);
-    return NULL;
-}
+CURL*
+get_handle();
 
 struct Response
 {

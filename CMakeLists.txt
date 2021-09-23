@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 find_package(CURL REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(CLI11 REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -44,7 +45,12 @@ if (WITH_ZCHUNK)
     target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
 endif()
 
-target_link_libraries(libpowerloader ${CURL_LIBRARIES} fmt zck ${OPENSSL_LIBRARIES})
+target_link_libraries(libpowerloader
+                      ${CURL_LIBRARIES}
+                      fmt
+                      zck
+                      ${OPENSSL_LIBRARIES}
+                      ${YAML_CPP_LIBRARIES})
 target_link_libraries(powerloader libpowerloader CLI11::CLI11)
 
 option(ENABLE_TESTS "Enable tests" ON)

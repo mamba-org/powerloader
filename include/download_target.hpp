@@ -3,6 +3,7 @@
 #include <string>
 
 #include "enums.hpp"
+#include "url.hpp"
 #include "mirror.hpp"
 
 extern "C"
@@ -21,12 +22,26 @@ public:
         , base_url(base_url)
         , is_zchunk(ends_with(path, ".zck"))
     {
+        if (path.find("://") != std::string::npos)
+        {
+            complete_url = path;
+        }
+        else if (base_url.find("://") != std::string::npos)
+        {
+            complete_url = mamba::join_url(base_url, path);
+        }
+    }
+
+    bool has_complete_url()
+    {
+        return !complete_url.empty();
     }
 
     bool is_zchunk = false;
     bool resume = true;
     bool no_cache = false;
 
+    std::string complete_url;
     std::string fn, path, base_url;
     std::shared_ptr<std::ofstream> fd;
 

@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     name: test
     steps:
@@ -28,10 +28,14 @@ jobs:
         shell: bash -l {0}
         run: |
           mkdir build; cd build
+          export USE_ZCHUNK=ON
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            USE_ZCHUNK=OFF
+          fi
           cmake .. \
             -GNinja \
             -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-            -DWITH_ZCHUNK=ON \
+            -DWITH_ZCHUNK=$USE_ZCHUNK \
             -DENABLE_TESTS=ON
           ninja
       - name: run powerloader tests

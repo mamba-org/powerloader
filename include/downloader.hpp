@@ -26,6 +26,18 @@ namespace fs = std::filesystem;
 #include "target.hpp"
 #include "utils.hpp"
 #include "zck.hpp"
+#include "result.hpp"
+
+struct XError
+{
+    enum
+    {
+        INFO,
+        SERIOUS,
+        FATAL
+    } level;
+    std::string reason;
+};
 
 class Downloader
 {
@@ -53,8 +65,7 @@ public:
 
     Mirror* select_suitable_mirror(Target* target);
 
-    /* Select next target */
-    bool select_next_target(Target** selected_target, std::string* selected_full_url);
+    cpp::result<std::pair<Target*, std::string>, XError> select_next_target();
 
     bool prepare_next_transfer(bool* candidate_found);
 
@@ -71,7 +82,7 @@ public:
      */
     bool can_retry_download(int num_of_tried_mirrors, const std::string& url);
     bool check_msgs(bool failfast);
-
+    bool set_max_speeds_to_transfers();
     void download();
 
     bool failfast = false;

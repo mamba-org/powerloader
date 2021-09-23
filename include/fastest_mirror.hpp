@@ -1,5 +1,9 @@
+#pragma once
+
 #include <string>
 #include <vector>
 
-void
-fastest_mirror(const std::vector<std::string>& urls);
+namespace powerloader
+{
+    void fastest_mirror(const std::vector<std::string>& urls);
+}

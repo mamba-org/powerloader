@@ -2,6 +2,14 @@
 #include "mirror.hpp"
 #include "target.hpp"
 
+extern "C"
+{
+#include <openssl/buffer.h>
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
+}
+
+
 std::string
 get_yyyymmdd(const std::chrono::system_clock::time_point& t)
 {
