@@ -25,6 +25,7 @@ jobs:
         with:
           environment-file: environment.yml
       - name: build powerloader
+        if: runner.os != 'Windows'
         shell: bash -l {0}
         run: |
           mkdir build; cd build
@@ -39,7 +40,20 @@ jobs:
             -DENABLE_TESTS=ON
           ninja
       - name: run powerloader tests
+        if: runner.os != 'Windows'
         shell: bash -l {0}
         run: |
           cd build
+          ninja test
+      - name: build powerloader
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DENABLE_TESTS=ON ^
+                   -DWITH_ZCHUNK=OFF ^
+                   -G "Ninja"
+          ninja
           ninja test
