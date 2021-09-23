@@ -54,7 +54,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          micromamba activate powerloader
+          call C:\Users\runneradmin\micromamba\condabin\micromamba.bat activate powerloader
           mkdir build
           cd build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
