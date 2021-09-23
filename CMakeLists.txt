@@ -9,13 +9,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 include_directories(include)
 
-add_library(libpowerloader
+set(LIBPOWERLOADER_SRCS
     src/context.cpp
     src/downloader.cpp
     src/fastest_mirror.cpp
     src/mirror.cpp
     src/target.cpp
-    src/zck.cpp
     src/curl.cpp
     src/url.cpp
     src/mirrors/oci.cpp
@@ -24,12 +23,21 @@ add_library(libpowerloader
     src/uploader/oci_upload.cpp
 )
 
+
 add_executable(powerloader src/cli/main.cpp)
 
 set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
 
 option(WITH_ZCHUNK "Enable zchunk" ON)
 option(DEV "Enable dev" OFF)
+
+if (WITH_ZCHUNK)
+    list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp)
+endif()
+
+add_library(libpowerloader
+    ${LIBPOWERLOADER_SRCS}
+)
 
 target_include_directories(powerloader PUBLIC
     include

@@ -25,7 +25,9 @@ namespace fs = std::filesystem;
 #include "mirror.hpp"
 #include "target.hpp"
 #include "utils.hpp"
+#ifdef WITH_ZCHUNK
 #include "zck.hpp"
+#endif
 #include "result.hpp"
 
 struct XError
