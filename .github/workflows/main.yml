@@ -45,6 +45,11 @@ jobs:
         run: |
           cd build
           ninja test
+      - name: fixup micromamba
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          micromamba shell init
       - name: build powerloader
         if: runner.os == 'Windows'
         shell: cmd
