@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <string_view>
+#include <cctype>
 
 namespace fs = std::filesystem;
 
