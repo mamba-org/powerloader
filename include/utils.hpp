@@ -4,10 +4,13 @@
 #include <algorithm>
 #include <fmt/core.h>
 #include <fstream>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string_view>
+
+namespace fs = std::filesystem;
 
 extern "C"
 {
@@ -152,7 +155,7 @@ contains(const std::string_view& str, const std::string_view& sub_str)
 }
 
 inline std::string
-sha256sum(const std::string& path)
+sha256sum(const fs::path& path)
 {
     std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
 
@@ -270,4 +273,28 @@ rsplit(const std::string_view& input, const std::string_view& sep, std::size_t m
     std::reverse(result.begin(), result.end());
 
     return result;
+}
+
+template <class S>
+inline void
+replace_all_impl(S& data, const S& search, const S& replace)
+{
+    std::size_t pos = data.find(search);
+    while (pos != std::string::npos)
+    {
+        data.replace(pos, search.size(), replace);
+        pos = data.find(search, pos + replace.size());
+    }
+}
+
+inline void
+replace_all(std::string& data, const std::string& search, const std::string& replace)
+{
+    replace_all_impl<std::string>(data, search, replace);
+}
+
+inline void
+replace_all(std::wstring& data, const std::wstring& search, const std::wstring& replace)
+{
+    replace_all_impl<std::wstring>(data, search, replace);
 }

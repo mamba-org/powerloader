@@ -107,6 +107,18 @@ public:
         return *this;
     }
 
+    CURLHandle& accept_encoding()
+    {
+        setopt(CURLOPT_ACCEPT_ENCODING, nullptr);
+        return *this;
+    }
+
+    CURLHandle& user_agent(const std::string& user_agent)
+    {
+        add_header(fmt::format("User-Agent: {} {}", user_agent, curl_version()));
+        return *this;
+    }
+
     // CURLHandle& exists_only(bool use_get = false)
     // {
     //     setopt(CURLOPT_FAILONERROR, 1L);
