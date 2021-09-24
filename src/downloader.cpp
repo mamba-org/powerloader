@@ -14,7 +14,7 @@ extern "C"
 #endif
 }
 
-#include <fmt/core.h>
+#include <spdlog/fmt/fmt.h>
 
 namespace fs = std::filesystem;
 
@@ -94,9 +94,9 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
             // user want only specified byte range of the
             // target and the range was already downloaded
             spdlog::info("Transfer was interrupted by writecb() because the required "
-                    "range ({} - {}) was downloaded.",
-                    target->target->byterange_start,
-                    target->target->byterange_end);
+                         "range ({} - {}) was downloaded.",
+                         target->target->byterange_start,
+                         target->target->byterange_end);
         }
         else if (target->headercb_state == HeaderCbState::kINTERRUPTED)
         {
@@ -247,8 +247,8 @@ Downloader::select_suitable_mirror(Target* target)
                 {
                     // Skip bad mirrors
                     spdlog::info("Skipping bad mirror ({} failures and no success): {}",
-                            mirror->failed_transfers,
-                            mirror->url);
+                                 mirror->failed_transfers,
+                                 mirror->url);
                 }
             }
             else if (mirror->protocol == Protocol::kFILE)

@@ -1,5 +1,7 @@
-#include "mirrors/oci.hpp"
 #include <filesystem>
+#include <spdlog/fmt/fmt.h>
+
+#include "mirrors/oci.hpp"
 
 Response
 oci_upload(OCIMirror& mirror,

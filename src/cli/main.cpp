@@ -1,6 +1,6 @@
 #include <CLI/CLI.hpp>
 #include <spdlog/spdlog.h>
-#include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
 #include <yaml-cpp/yaml.h>
 #include "mirror.hpp"
 #include "mirrors/oci.hpp"
@@ -29,10 +29,12 @@ progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
 {
     if (total == 0 || done == 0)
         return 0;
-    if (global_progress.total_done.size() != 0) std::cout << "\x1b[1A\r";
+    if (global_progress.total_done.size() != 0)
+        std::cout << "\x1b[1A\r";
     if (global_progress.total_done.find(t) == global_progress.total_done.end())
     {
-        if (!total) return 0;
+        if (!total)
+            return 0;
         global_progress.total_done[t] = done;
         global_progress.total += total;
     }
@@ -45,14 +47,18 @@ progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
     for (auto& [k, v] : global_progress.total_done)
         total_done += v;
     total_done /= global_progress.total;
-    
+
     std::size_t bar_width = 50;
     std::cout << "[";
     int pos = bar_width * total_done;
-    for (int i = 0; i < bar_width; ++i) {
-        if (i < pos) std::cout << "=";
-        else if (i == pos) std::cout << ">";
-        else std::cout << " ";
+    for (int i = 0; i < bar_width; ++i)
+    {
+        if (i < pos)
+            std::cout << "=";
+        else if (i == pos)
+            std::cout << ">";
+        else
+            std::cout << " ";
     }
     std::cout << "] " << int(total_done * 100.0) << " %\n";
     std::cout.flush();
@@ -180,7 +186,8 @@ handle_download(const std::vector<std::string>& urls,
         targets.back()->resume = resume;
 
         using namespace std::placeholders;
-        targets.back()->progress_callback = std::bind(&progress_callback, targets.back().get(), _1, _2);
+        targets.back()->progress_callback
+            = std::bind(&progress_callback, targets.back().get(), _1, _2);
     }
 
     Downloader dl;
@@ -273,7 +280,7 @@ main(int argc, char** argv)
             }
         }
     }
-    spdlog::set_level(spdlog::level::warn); 
+    spdlog::set_level(spdlog::level::warn);
     if (app.got_subcommand("upload"))
     {
         return handle_upload(du_files, mirrors);

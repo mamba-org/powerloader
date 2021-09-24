@@ -212,8 +212,8 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
                 if (content_length > 0 && content_length != expected)
                 {
                     spdlog::info("Content length from server not matching {} vs {}",
-                            content_length,
-                            expected);
+                                 content_length,
+                                 expected);
                     target->headercb_state = HeaderCbState::kINTERRUPTED;
                     // target->headercb_interrupt_reason = fmt::format(
                     //     "Server reports Content-Length: {} but expected size is: {}",

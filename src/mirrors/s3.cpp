@@ -1,6 +1,4 @@
-#include "mirrors/s3.hpp"
-#include "mirror.hpp"
-#include "target.hpp"
+#include <spdlog/fmt/fmt.h>
 
 extern "C"
 {
@@ -9,6 +7,9 @@ extern "C"
 #include <openssl/sha.h>
 }
 
+#include "mirrors/s3.hpp"
+#include "mirror.hpp"
+#include "target.hpp"
 
 std::string
 get_yyyymmdd(const std::chrono::system_clock::time_point& t)

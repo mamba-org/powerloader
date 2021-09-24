@@ -1,5 +1,6 @@
 #pragma once
 
+#include <spdlog/fmt/fmt.h>
 #include "mirror.hpp"
 
 struct OCIMirror : public Mirror

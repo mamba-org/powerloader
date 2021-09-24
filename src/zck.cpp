@@ -1,3 +1,5 @@
+#include <spdlog/fmt/fmt.h>
+
 #include "zck.hpp"
 #include "target.hpp"
 

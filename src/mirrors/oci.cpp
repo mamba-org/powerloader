@@ -1,3 +1,5 @@
+#include <spdlog/fmt/fmt.h>
+
 #include "mirrors/oci.hpp"
 #include "target.hpp"
 

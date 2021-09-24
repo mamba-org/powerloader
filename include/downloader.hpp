@@ -16,8 +16,6 @@ extern "C"
 #include <fcntl.h>
 }
 
-#include <fmt/core.h>
-
 namespace fs = std::filesystem;
 
 #include "context.hpp"

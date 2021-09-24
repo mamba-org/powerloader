@@ -1,3 +1,5 @@
+#include <spdlog/fmt/fmt.h>
+
 #include "mirror.hpp"
 #include "target.hpp"
 

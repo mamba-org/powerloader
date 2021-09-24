@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include <fmt/core.h>
+#include <spdlog/fmt/fmt.h>
 #include <nlohmann/json.hpp>
 
 #include "utils.hpp"

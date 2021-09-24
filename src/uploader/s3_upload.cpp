@@ -1,5 +1,7 @@
-#include "mirrors/s3.hpp"
 #include <filesystem>
+#include <spdlog/fmt/fmt.h>
+
+#include "mirrors/s3.hpp"
 
 Response
 s3_upload(S3Mirror& mirror, const std::string& path, const fs::path& file)

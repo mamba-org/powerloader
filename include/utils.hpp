@@ -2,7 +2,6 @@
 
 #include <array>
 #include <algorithm>
-#include <fmt/core.h>
 #include <fstream>
 #include <filesystem>
 #include <iomanip>
