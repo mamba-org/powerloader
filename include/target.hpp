@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <spdlog/spdlog.h>
 #include <fmt/core.h>
 #include <fstream>
 #include <set>
@@ -67,7 +68,7 @@ public:
             if (rc == CbReturnCode::kERROR)
             {
                 cb_return_code = CbReturnCode::kERROR;
-                pfdebug("End-Callback returned an error");
+                spdlog::info("End-Callback returned an error");
             }
             return rc;
         }

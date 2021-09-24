@@ -25,7 +25,8 @@ oci_upload(OCIMirror& mirror,
     std::string temp_upload_location = response.header["location"];
     std::string upload_url
         = fmt::format("{}{}?digest={}", mirror.url, temp_upload_location, digest);
-    std::cout << "Upload url: " << upload_url << std::endl;
+
+    spdlog::info("Upload url: {}", upload_url);
 
     CURLHandle chandle(upload_url);
 

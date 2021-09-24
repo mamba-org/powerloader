@@ -27,8 +27,6 @@ init_zck_read(const char* checksum, ChecksumType checksum_type, ptrdiff_t zck_he
     {
         throw zchunk_error("Unable to initialize zchunk file for reading");
     }
-    std::cout << "Strlen: " << strlen(checksum) << std::endl;
-    std::cout << "Hash setting to " << checksum << std::endl;
     zck_hash ct = zck_hash_from_checksum(checksum_type);
     if (ct == ZCK_HASH_UNKNOWN)
     {
@@ -51,7 +49,7 @@ init_zck_read(const char* checksum, ChecksumType checksum_type, ptrdiff_t zck_he
         // free(zck);
         // return NULL;
     }
-    std::cout << "Successful init zck read" << std::endl;
+    spdlog::info("Successful init zck read");
     return zck;
 }
 
@@ -63,8 +61,6 @@ zck_init_read_base(const char* checksum,
 {
     lseek(fd, 0, SEEK_SET);
     zckCtx* zck = init_zck_read(checksum, checksum_type, zck_header_size, fd);
-
-    std::cout << "Reading base " << checksum << " " << zck_header_size << std::endl;
 
     if (zck == nullptr)
         return nullptr;
@@ -114,16 +110,15 @@ zck_init_read(DownloadTarget* target, int fd)
     bool found = false;
     for (auto& chksum : target->checksums)
     {
-        pfdebug("Checking checksum: {}: {}", chksum.type, "lll");
+        spdlog::info("Checking checksum: {}: {}", chksum.type, "lll");
         try
         {
-            std::cout << "CHKSZ: " << chksum.checksum.size() << std::endl;
             zck = zck_init_read_base(
                 chksum.checksum.data(), chksum.type, target->zck_header_size, fd);
         }
         catch (const std::exception& e)
         {
-            pfdebug("Didnt find matching header...");
+            spdlog::info("Didnt find matching header...");
             continue;
         }
         found = true;
@@ -141,8 +136,6 @@ zck_valid_header(DownloadTarget* target, int fd)
 {
     for (auto& chksum : target->checksums)
     {
-        std::cout << "CHKSZ: " << chksum.checksum.size() << std::endl;
-
         if (zck_valid_header_base(chksum.checksum.data(), chksum.type, target->zck_header_size, fd))
         {
             return true;
@@ -162,7 +155,7 @@ zck_clear_header(Target* target)
     lseek(fd, 0, SEEK_END);
     if (ftruncate(fd, 0) < 0)
     {
-        std::cout << "TRUNCATE went wrong!!!" << std::endl;
+        spdlog::error("Truncation went wrong!");
         // g_set_error(err, LR_DOWNLOADER_ERROR, LRE_IO,
         //             "Unable to truncate %s", target->target->path);
         return false;
@@ -216,7 +209,7 @@ find_local_zck_header(Target* target)
     // if (target->target->handle->cachedir)
     if (true)
     {
-        pfdebug("Cache directory: {}", CACHEDIR);
+        spdlog::info("Cache directory: {}", CACHEDIR);
         auto filelist = get_recursive_files(CACHEDIR, ".zck");
 
         fs::path destdir = CACHEDIR;
@@ -232,8 +225,8 @@ find_local_zck_header(Target* target)
             int chk_fd = open(file.c_str(), O_RDONLY);
             if (chk_fd < 0)
             {
-                // pfdebug("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
-                pfdebug("WARNING: Unable to open {}", file.string());
+                // spdlog::info("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
+                spdlog::info("WARNING: Unable to open {}", file.string());
                 continue;
             }
             bool valid_header = false;
@@ -243,12 +236,12 @@ find_local_zck_header(Target* target)
             }
             catch (zchunk_error& e)
             {
-                std::cout << "No valid header " << e.what() << std::endl;
+                spdlog::info("zck: no valid header {}", e.what());
             };
 
             if (valid_header)
             {
-                pfdebug("zchunk: Found file with same header at ", file.string());
+                spdlog::info("zchunk: Found file with same header at ", file.string());
                 if (lr_copy_content(chk_fd, fd) == 0
                     && ftruncate(fd, lseek(chk_fd, 0, SEEK_END)) >= 0 && lseek(fd, 0, SEEK_SET) == 0
                     && (zck = zck_init_read(target->target, chk_fd)))
@@ -258,7 +251,7 @@ find_local_zck_header(Target* target)
                 }
                 else
                 {
-                    pfdebug("Error copying file");
+                    spdlog::info("Error copying file");
                     // g_clear_error(&tmp_err);
                 }
             }
@@ -267,7 +260,7 @@ find_local_zck_header(Target* target)
     }
     else
     {
-        pfdebug("No cache directory set.");
+        spdlog::info("No cache directory set.");
     }
 
     if (found)
@@ -299,9 +292,9 @@ prep_zck_header(Target* target)
     }
     catch (const zchunk_error& e)
     {
-        std::cout << "No valid header " << e.what() << std::endl;
+        spdlog::info("zck: no valid header {}", e.what());
     }
-    std::cout << "Got valid header?! " << valid_header << std::endl;
+
     if (valid_header)
     {
         try
@@ -310,7 +303,7 @@ prep_zck_header(Target* target)
         }
         catch (const zchunk_error& e)
         {
-            pfdebug("Error reading validated header {}", e.what());
+            spdlog::info("Error reading validated header {}", e.what());
         }
         if (zck)
         {
@@ -369,7 +362,7 @@ find_local_zck_chunks(Target* target)
     // if (target->target->handle->cachedir)
     if (true)
     {
-        pfdebug("Cache directory: {}", CACHEDIR);
+        spdlog::info("Cache directory: {}", CACHEDIR);
         auto filelist = get_recursive_files(CACHEDIR, ".zck");
         bool found = false;
 
@@ -386,8 +379,8 @@ find_local_zck_chunks(Target* target)
             int chk_fd = open(file.c_str(), O_RDONLY);
             if (chk_fd < 0)
             {
-                // pfdebug("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
-                pfdebug("WARNING: Unable to open {}", file.string());
+                // spdlog::info("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
+                spdlog::info("WARNING: Unable to open {}", file.string());
                 continue;
             }
 
@@ -400,7 +393,7 @@ find_local_zck_chunks(Target* target)
 
             if (!zck_copy_chunks(zck_src, zck))
             {
-                pfdebug("Error copying chunks: {}", zck_get_error(zck));
+                spdlog::info("Error copying chunks: {}", zck_get_error(zck));
                 // g_warning("Error copying chunks from %s to %s: %s", cf, uf,
                 // zck_get_error(zck));
                 zck_free(&zck_src);
@@ -443,7 +436,7 @@ prepare_zck_body(Target* target)
 
     lseek(fd, 0, SEEK_SET);
 
-    pfdebug("Chunks that still need to be downloaded: {}", zck_missing_chunks(zck));
+    spdlog::info("Chunks that still need to be downloaded: {}", zck_missing_chunks(zck));
 
     zck_dl_reset(target->target->zck_dl);
     zckRange* range = zck_get_missing_range(zck, target->mirror ? target->mirror->max_ranges : -1);
@@ -511,7 +504,7 @@ check_zck(Target* target)
     if (!zck)
     {
         target->zck_state = ZckState::HEADER_CK;
-        pfdebug("Unable to read zchunk header: {}", target->target->path);
+        spdlog::info("Unable to read zchunk header: {}", target->target->path);
         if (!find_local_zck_header(target))
             return false;
     }
@@ -533,7 +526,7 @@ check_zck(Target* target)
 
     if (target->zck_state == ZckState::BODY_CK)
     {
-        pfdebug("Checking zchunk data checksum: {}", target->target->path);
+        spdlog::info("Checking zchunk data checksum: {}", target->target->path);
         // Check whether file has been fully downloaded
         int cks_good = zck_find_valid_chunks(zck);
         if (!cks_good)
@@ -545,14 +538,14 @@ check_zck(Target* target)
         if (cks_good == 1)
         {
             // All checksums good
-            pfdebug("zchunk: File is complete");
+            spdlog::info("zchunk: File is complete");
             if (target->target->zck_dl)
                 zck_dl_free(&(target->target->zck_dl));
             target->zck_state = ZckState::FINISHED;
             return true;
         }
 
-        pfdebug("Downloading rest of zchunk body: {}", target->target->path);
+        spdlog::info("Downloading rest of zchunk body: {}", target->target->path);
 
         // Download the remaining checksums
         zck_reset_failed_chunks(zck);

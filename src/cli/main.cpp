@@ -1,4 +1,6 @@
 #include <CLI/CLI.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 #include "mirror.hpp"
 #include "mirrors/oci.hpp"
@@ -14,13 +16,47 @@ enum KindOf
     S3
 };
 
+struct
+{
+    std::size_t done;
+    std::size_t total;
+
+    std::map<DownloadTarget*, curl_off_t> total_done;
+} global_progress;
+
 int
-progress_callback(curl_off_t total, curl_off_t done)
+progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
 {
     if (total == 0 || done == 0)
         return 0;
-    std::cout << fmt::format("{:.2f}\% of {}", double(done) / double(total) * 100, total)
-              << std::endl;
+    if (global_progress.total_done.size() != 0) std::cout << "\x1b[1A\r";
+    if (global_progress.total_done.find(t) == global_progress.total_done.end())
+    {
+        if (!total) return 0;
+        global_progress.total_done[t] = done;
+        global_progress.total += total;
+    }
+    else
+    {
+        global_progress.total_done[t] = done;
+    }
+
+    double total_done = 0;
+    for (auto& [k, v] : global_progress.total_done)
+        total_done += v;
+    total_done /= global_progress.total;
+    
+    std::size_t bar_width = 50;
+    std::cout << "[";
+    int pos = bar_width * total_done;
+    for (int i = 0; i < bar_width; ++i) {
+        if (i < pos) std::cout << "=";
+        else if (i == pos) std::cout << ">";
+        else std::cout << " ";
+    }
+    std::cout << "] " << int(total_done * 100.0) << " %\n";
+    std::cout.flush();
+
     return 0;
 }
 
@@ -29,7 +65,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
 {
     std::string mirror_url = mirrors[0];
     if (mirrors.size() > 1)
-        std::cout << "Warning: only uploading to first mirror\n";
+        spdlog::warn("Only uploading to first mirror");
 
     KindOf kof = KindOf::HTTP;
     std::unique_ptr<Mirror> mptr;
@@ -44,7 +80,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
     if (kof != KindOf::HTTP)
         url.set_scheme("https");
 
-    std::cout << "URL: " << url.url() << std::endl;
+    spdlog::info("URL: {}", url.url());
 
     for (auto& f : files)
     {
@@ -56,7 +92,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
         {
             if (elems.size() != 3)
             {
-                std::cout << "For OCI upload we need file:destname:tag" << std::endl;
+                spdlog::error("For OCI upload we need file:destname:tag");
                 return 1;
             }
             std::string GH_SECRET = get_env("GHA_PAT");
@@ -69,7 +105,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
         {
             if (elems.size() != 2)
             {
-                std::cout << "For S3 upload we need file:destpath" << std::endl;
+                spdlog::error("For S3 upload we need file:destpath");
                 return 1;
             }
 
@@ -98,7 +134,7 @@ handle_download(const std::vector<std::string>& urls,
     // conda-forge:linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2] (last part optional, can be
     // inferred from `path`)
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2]
-    std::vector<DownloadTarget> targets;
+    std::vector<std::unique_ptr<DownloadTarget>> targets;
 
     for (auto& x : urls)
     {
@@ -119,7 +155,7 @@ handle_download(const std::vector<std::string>& urls,
                 dst = parts[1];
             }
             std::cout << "Downloading " << url << " to " << dst << std::endl;
-            targets.emplace_back(url, "", dst);
+            targets.emplace_back(new DownloadTarget(url, "", dst));
         }
         else
         {
@@ -138,11 +174,13 @@ handle_download(const std::vector<std::string>& urls,
                 dst = parts[2];
             }
 
-            std::cout << "Downloading " << path << " from " << mirror << " to " << dst << std::endl;
-            targets.emplace_back(path, mirror, dst);
+            spdlog::info("Downloading {} from {} to {}", path, mirror, dst);
+            targets.emplace_back(new DownloadTarget(path, mirror, dst));
         }
-        targets.back().resume = resume;
-        targets.back().progress_callback = progress_callback;
+        targets.back()->resume = resume;
+
+        using namespace std::placeholders;
+        targets.back()->progress_callback = std::bind(&progress_callback, targets.back().get(), _1, _2);
     }
 
     Downloader dl;
@@ -150,7 +188,7 @@ handle_download(const std::vector<std::string>& urls,
 
     for (auto& t : targets)
     {
-        dl.add(&t);
+        dl.add(t.get());
     }
 
     dl.download();
@@ -235,7 +273,7 @@ main(int argc, char** argv)
             }
         }
     }
-
+    spdlog::set_level(spdlog::level::warn); 
     if (app.got_subcommand("upload"))
     {
         return handle_upload(du_files, mirrors);

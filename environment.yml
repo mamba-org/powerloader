@@ -11,7 +11,7 @@ dependencies:
   - cli11
   # Not available on Windows
   - sel(unix): zchunk
-  - fmt
+  - spdlog
   - gtest
   # necessary for gtest cmake to work properly
   - gmock

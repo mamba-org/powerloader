@@ -96,18 +96,6 @@ sha256(const std::string& str) noexcept
     return hex_string(hash, SHA256_DIGEST_LENGTH);
 }
 
-// template <class Arg1, class Args...>
-// inline void print(const char *message_template, const Arg1 &message_arg1,
-// const Args &...message_args)
-// {
-//     printf(message_template, message_arg1, message_args...);
-// }
-
-#define p_print(...) printf(__VA_ARGS__)
-#define p_debug(...) printf(__VA_ARGS__)
-
-#define pfdebug(...) std::cout << fmt::format(__VA_ARGS__) << std::endl
-
 class download_error : public std::runtime_error
 {
 public:

@@ -53,15 +53,11 @@ sort_mirrors(std::shared_ptr<std::vector<Mirror*>>& mirrors_ptr,
 {
     assert(mirror);
 
-    pfdebug("MIRROR SORTING\n\n\n");
-
     std::vector<Mirror*>& mirrors = *mirrors_ptr;
     if (mirrors.size() == 1)
         return true;
 
     auto it = std::find(mirrors.begin(), mirrors.end(), mirror);
-
-    std::cout << "Dist " << std::distance(mirrors.begin(), it) << std::endl;
 
     // no penalization, mirror is already last
     if (!success && (it + 1) == mirrors.end())
@@ -81,7 +77,7 @@ sort_mirrors(std::shared_ptr<std::vector<Mirror*>>& mirrors_ptr,
         // TODO should we really _swap_ here or rather move that one mirror down and shuffle all
         // others?!
         std::iter_swap(it, mirrors.end() - 1);
-        pfdebug("Mirror {} was moved to the end", mirror->url);
+        spdlog::info("Mirror {} was moved to the end", mirror->url);
         return true;
     }
 
@@ -94,15 +90,11 @@ sort_mirrors(std::shared_ptr<std::vector<Mirror*>>& mirrors_ptr,
     if (!success)
     {
         // Penalize
-        std::cout << "Is end " << (it + 1 == mirrors.end()) << std::endl;
-
-        std::cout << "Dist " << std::distance(mirrors.begin(), it + 1) << std::endl;
-
         double rank_next = (*(it + 1))->rank();
         if (rank_next < 0.0 || rank_next > rank_cur)
         {
             std::iter_swap(it, it + 1);
-            pfdebug("Mirror {} was penalized", mirror->url);
+            spdlog::info("Mirror {} was penalized", mirror->url);
         }
     }
     else
@@ -112,7 +104,7 @@ sort_mirrors(std::shared_ptr<std::vector<Mirror*>>& mirrors_ptr,
         if (rank_prev < rank_cur)
         {
             std::iter_swap(it, it - 1);
-            pfdebug("Mirror {} was awarded", mirror->url);
+            spdlog::info("Mirror {} was awarded", mirror->url);
         }
     }
 

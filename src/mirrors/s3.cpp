@@ -78,8 +78,6 @@ S3CanonicalRequest::canonical_request()
        << get_signed_headers() << "\n"
        << hashed_payload;
 
-    std::cout << ss.str() << std::endl;
-
     return ss.str();
 }
 

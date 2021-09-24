@@ -85,7 +85,6 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
 
     curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
 
-    pfdebug("Got transfer status --> result: {}", msg->data.result);
     if (msg->data.result != CURLE_OK)
     {
         // There was an error that is reported by CURLcode
@@ -94,7 +93,7 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
             // Download was interrupted by writecb because
             // user want only specified byte range of the
             // target and the range was already downloaded
-            pfdebug("Transfer was interrupted by writecb() because the required "
+            spdlog::info("Transfer was interrupted by writecb() because the required "
                     "range ({} - {}) was downloaded.",
                     target->target->byterange_start,
                     target->target->byterange_end);
@@ -154,7 +153,7 @@ Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
                                             curl_easy_strerror(msg->data.result),
                                             effective_url,
                                             target->errorbuffer);
-            std::cout << "ERROR: " << error << std::endl;
+            spdlog::error(error);
             switch (msg->data.result)
             {
                 case CURLE_ABORTED_BY_CALLBACK:
@@ -247,7 +246,7 @@ Downloader::select_suitable_mirror(Target* target)
                     && mirror->failed_transfers >= allowed_mirror_failures)
                 {
                     // Skip bad mirrors
-                    pfdebug("Skipping bad mirror ({} failures and no success): {}",
+                    spdlog::info("Skipping bad mirror ({} failures and no success): {}",
                             mirror->failed_transfers,
                             mirror->url);
                 }
@@ -275,7 +274,7 @@ Downloader::select_suitable_mirror(Target* target)
             if (Context::instance().offline && mirror->protocol != Protocol::kFILE)
             {
                 if (mirrors_iterated == 0)
-                    pfdebug("Skipping mirror {} - Offline mode enabled", mirror->url);
+                    spdlog::info("Skipping mirror {} - Offline mode enabled", mirror->url);
                 continue;
             }
 
@@ -359,7 +358,7 @@ Downloader::select_next_target()
             else
             {
                 // No free mirror
-                pfdebug("Currently there is no free mirror for {}", target->target->path);
+                spdlog::info("Currently there is no free mirror for {}", target->target->path);
             }
         }
 
@@ -370,7 +369,7 @@ Downloader::select_next_target()
         // the URL is local if LRO_OFFLINE is enabled by itself.
         if (!full_url.empty() && Context::instance().offline && !starts_with(full_url, "file://"))
         {
-            pfdebug("Skipping {} because OFFLINE is specified", full_url);
+            spdlog::info("Skipping {} because OFFLINE is specified", full_url);
 
             // Mark the target as failed
             target->state = DownloadState::kFAILED;
@@ -493,13 +492,13 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     // If file is zchunk, prep it
     if (target->target->is_zchunk)
     {
-        std::cout << "opening " << target->target->path << std::endl;
+        spdlog::info("opening {}", target->target->path);
         // TODO we need to open with a+ ... is there a better way?
         //      compare again with librepo
         target->f = fopen(target->target->path.c_str(), "a+");
         if (!check_zck(target))
         {
-            pfdebug("Could not initialize zchunk!");
+            spdlog::info("Could not initialize zchunk!");
             // g_set_error(err, LR_DOWNLOADER_ERROR, LRE_ZCK,
             //             "Unable to initialize zchunk file %s: %s",
             //             target->target->path,
@@ -511,7 +510,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
         // If zchunk is finished, we're done, so move to next target
         if (target->zck_state == ZckState::FINISHED)
         {
-            pfdebug("Target already fully downloaded: {}", target->target->path);
+            spdlog::info("Target already fully downloaded: {}", target->target->path);
             target->state = DownloadState::FINISHED;
             target->reset();
             target->headercb_interrupt_reason.clear();
@@ -541,7 +540,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     if (target->resume && target->resume_count >= LR_DOWNLOADER_MAXIMAL_RESUME_COUNT)
     {
         target->resume = false;
-        pfdebug("Download resume ignored, maximal number of attempts has been reached");
+        spdlog::info("Download resume ignored, maximal number of attempts has been reached");
     }
 
     // Resume - set offset to resume incomplete download
@@ -565,7 +564,7 @@ Downloader::prepare_next_transfer(bool* candidate_found)
         }
 
         curl_off_t used_offset = target->original_offset;
-        pfdebug("Trying to resume from offset {}", used_offset);
+        spdlog::info("Trying to resume from offset {}", used_offset);
         h.setopt(CURLOPT_RESUME_FROM_LARGE, used_offset);
     }
 
@@ -623,7 +622,6 @@ Downloader::prepare_next_transfer(bool* candidate_found)
     assert(cm_rc == CURLM_OK);
 
     // Set the state of transfer as running
-    std::cout << "Target is running now" << std::endl;
     target->state = DownloadState::kRUNNING;
 
     // Increase running transfers counter for mirror
@@ -732,7 +730,7 @@ Downloader::check_msgs(bool failfast)
         // Make the effective url persistent to survive the curl_easy_cleanup()
         std::string effective_url(tmp_effective_url);
 
-        pfdebug("Download finished {}", effective_url.c_str());
+        spdlog::info("Download finished {}", current_target->target->path);
 
         // Check status of finished transfer
         bool transfer_check = false;
@@ -801,7 +799,7 @@ Downloader::check_msgs(bool failfast)
             int num_of_tried_mirrors = current_target->tried_mirrors.size();
             bool retry = false;
 
-            std::cout << fmt::format("Error during transfer");
+            spdlog::error("Error during transfer");
 
             // Call mirrorfailure callback
             // LrMirrorFailureCb mf_cb = target->target->mirrorfailurecb;
@@ -873,11 +871,11 @@ Downloader::check_msgs(bool failfast)
                     // Try another mirror or retry
                     if (!complete_url_or_base_url.empty())
                     {
-                        pfdebug("Ignore error - Retry download");
+                        spdlog::info("Ignore error - Retry download");
                     }
                     else
                     {
-                        pfdebug("Ignore error - Try another mirror");
+                        spdlog::info("Ignore error - Try another mirror");
                     }
                     current_target->state = DownloadState::kWAITING;
                     retry = true;
@@ -905,7 +903,7 @@ Downloader::check_msgs(bool failfast)
             if (!retry)
             {
                 // No more mirrors to try or base_url used or fatal error
-                std::cout << fmt::format("No more retries (tried: {})", num_of_tried_mirrors);
+                spdlog::info("No more retries (tried: {})", num_of_tried_mirrors);
                 current_target->state = DownloadState::kFAILED;
 
                 // Call end callback
@@ -1152,10 +1150,10 @@ Downloader::download()
         }
     }
 
-    std::cout << "All downloads finished!" << std::endl;
+    spdlog::info("All downloads finished!");
     if (is_sig_interrupted())
     {
-        pfdebug("Download interrupted");
+        spdlog::info("Download interrupted");
         curl_multi_cleanup(multi_handle);
         // return false;
         return;

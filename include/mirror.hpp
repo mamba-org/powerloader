@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <spdlog/spdlog.h>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -11,7 +12,6 @@
 #include "utils.hpp"
 
 #include "nlohmann/json.hpp"
-#include <fmt/core.h>
 
 class Target;
 
@@ -74,7 +74,6 @@ struct Mirror
 
     inline bool need_wait_for_retry()
     {
-        std::cout << "Need to wait ... until " << retry_wait_seconds.count() << std::endl;
         return retry_counter != 0 && next_retry > std::chrono::system_clock::now();
     }
 

@@ -14,7 +14,7 @@ Target::reset()
 bool
 Target::truncate_transfer_file()
 {
-    std::cout << "Truncating transfer file " << std::endl;
+    spdlog::info("Truncating transfer file ");
     std::ptrdiff_t offset = 0;
 
     auto p = fs::path(target->fn);
@@ -77,18 +77,17 @@ std::size_t
 zckheadercb(char* buffer, std::size_t size, std::size_t nitems, Target* self)
 {
     assert(self && self->target);
-    std::cout << "HEADER callback ZCHUNK!" << std::endl;
     long code = -1;
     curl_easy_getinfo(self->curl_handle->ptr(), CURLINFO_RESPONSE_CODE, &code);
     if (code == 200)
     {
-        pfdebug("Too many ranges were attempted in one download");
+        spdlog::info("Too many ranges were attempted in one download");
         self->range_fail = 1;
         return 0;
     }
     else
     {
-        std::cout << "NOT 200 code :/" << std::endl;
+        // TODO?
     }
 
     return zck_header_cb(buffer, size, nitems, self->target->zck_dl);
@@ -125,12 +124,12 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
             if (contains(header, "200")
                 || contains(header, "206") && !contains(header, "connection established"))
             {
-                // pfdebug("Header state OK! {}", header);
+                // spdlog::info("Header state OK! {}", header);
                 target->headercb_state = HeaderCbState::kHTTP_STATE_OK;
             }
             else
             {
-                // pfdebug("Header state not OK! {}", header);
+                // spdlog::info("Header state not OK! {}", header);
             }
         }
         // else if (lrtarget->protocol == LR_PROTOCOL_FTP)
@@ -192,27 +191,27 @@ Target::header_callback(char* buffer, std::size_t size, std::size_t nitems, Targ
             std::string lkey = to_lower(key);
             if (lkey == "etag")
             {
-                pfdebug("Etag: {}", value);
+                spdlog::info("Etag: {}", value);
                 // s->etag = value;
             }
             else if (lkey == "cache-control")
             {
                 // s->cache_control = value;
-                pfdebug("cache_control: {}", value);
+                spdlog::info("cache_control: {}", value);
             }
             else if (lkey == "last-modified")
             {
                 // s->mod = value;
-                pfdebug("last-modified: {}", value);
+                spdlog::info("last-modified: {}", value);
             }
             else if (lkey == "content-length")
             {
                 ptrdiff_t expected = target->target->expected_size;
                 ptrdiff_t content_length = std::stoll(std::string(value));
-                pfdebug("Server returned Content-Length: {}", content_length);
+                spdlog::info("Server returned Content-Length: {}", content_length);
                 if (content_length > 0 && content_length != expected)
                 {
-                    pfdebug("Content length from server not matching {} vs {}",
+                    spdlog::info("Content length from server not matching {} vs {}",
                             content_length,
                             expected);
                     target->headercb_state = HeaderCbState::kINTERRUPTED;

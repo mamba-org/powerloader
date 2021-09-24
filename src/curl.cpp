@@ -1,10 +1,11 @@
-#include "curl.hpp"
-#include "utils.hpp"
-#include "context.hpp"
-
 #include <cassert>
 #include <fstream>
 #include <sstream>
+#include <spdlog/spdlog.h>
+
+#include "curl.hpp"
+#include "utils.hpp"
+#include "context.hpp"
 
 template <class T>
 std::size_t
@@ -14,7 +15,7 @@ read_callback(char* ptr, std::size_t size, std::size_t nmemb, T* stream)
     // copy as much data as possible into the 'ptr' buffer, but no more than
     // 'size' * 'nmemb' bytes!
     stream->read(ptr, size * nmemb);
-    pfdebug("Uploading {} bytes of data!", stream->gcount());
+    spdlog::info("Uploading {} bytes of data!", stream->gcount());
     return stream->gcount();
 }
 
@@ -31,11 +32,9 @@ get_handle()
 {
     CURL* h;
 
-    // lr_global_init();
-
     h = curl_easy_init();
     if (!h)
-        return NULL;
+        return nullptr;
 
     if (curl_easy_setopt(h, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK)
         goto err;

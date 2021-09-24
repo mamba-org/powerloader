@@ -60,11 +60,11 @@ if (WITH_ZCHUNK)
     target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
 endif()
 
-find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
 
 target_link_libraries(libpowerloader
                       ${CURL_LIBRARIES}
-                      fmt::fmt
+                      spdlog::spdlog
                       ${ZCK_LIBRARY}
                       ${OPENSSL_LIBRARIES}
                       ${YAML_CPP_LIBRARIES})

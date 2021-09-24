@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 #define LENGTH_OF_MEASUREMENT 2.0  // Number of seconds (float point!)
 #define HALF_OF_SECOND_IN_MICROS 500000
@@ -119,7 +120,7 @@ namespace powerloader
             cm_rc = curl_multi_timeout(multihandle, &curl_timeout);
             if (cm_rc != CURLM_OK)
             {
-                std::cout << "ERRROR IN curl mutli stuff..." << std::endl;
+                spdlog::error("curl multi failed");
                 // g_set_error(err, LR_FASTESTMIRROR_ERROR, LRE_CURLM,
                 //             "curl_multi_timeout() error: %s",
                 //             curl_multi_strerror(cm_rc));
@@ -167,7 +168,7 @@ namespace powerloader
                 {
                     // g_set_error(err, LR_FASTESTMIRROR_ERROR, LRE_SELECT,
                     //             "select() error: %s", g_strerror(errno));
-                    std::cout << "EROOR" << std::endl;
+                    // std::cout << "EROOR" << std::endl;
                     curl_multi_cleanup(multihandle);
                     return false;
                 }
@@ -236,7 +237,7 @@ namespace powerloader
 
         for (auto& el : mirrors)
         {
-            std::cout << el.url << " -> " << el.plain_connect_time << std::endl;
+            spdlog::info("Mirror: {} -> {}", el.url, el.plain_connect_time);
         }
 
         // sort
