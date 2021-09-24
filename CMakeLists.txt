@@ -33,6 +33,7 @@ option(DEV "Enable dev" OFF)
 
 if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp)
+    find_library(ZCK_LIBRARY zck)
 endif()
 
 if (MSVC)
@@ -50,17 +51,19 @@ target_include_directories(powerloader PUBLIC
 if (DEV)
     add_executable(dpowerloader src/main.cpp)
     target_link_libraries(dpowerloader libpowerloader)
-    target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
 endif()
 
 if (WITH_ZCHUNK)
+    target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
     target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
 endif()
 
+find_package(fmt REQUIRED)
+
 target_link_libraries(libpowerloader
                       ${CURL_LIBRARIES}
-                      fmt
-                      zck
+                      fmt::fmt
+                      ${ZCK_LIBRARY}
                       ${OPENSSL_LIBRARIES}
                       ${YAML_CPP_LIBRARIES})
 target_link_libraries(powerloader libpowerloader CLI11::CLI11)
