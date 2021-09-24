@@ -51,10 +51,12 @@ target_include_directories(powerloader PUBLIC
 if (DEV)
     add_executable(dpowerloader src/main.cpp)
     target_link_libraries(dpowerloader libpowerloader)
+    if (WITH_ZCHUNK)
+        target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
+    endif()
 endif()
 
 if (WITH_ZCHUNK)
-    target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
     target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
 endif()
 
