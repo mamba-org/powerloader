@@ -326,8 +326,9 @@ Downloader::select_next_target()
         // Determine if path is a complete URL
         bool complete_url_in_path = target->target->has_complete_url();
 
+        bool have_mirrors = target->mirrors != nullptr && !target->mirrors->empty();
         // Sanity check
-        if (target->target->base_url.empty() && target->mirrors->empty() && !complete_url_in_path)
+        if (target->target->base_url.empty() && !have_mirrors && !complete_url_in_path)
         {
             // Used relative path with empty internal mirrorlist and no basepath specified!
             return cpp::fail(XError{
