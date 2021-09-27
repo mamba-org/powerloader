@@ -99,7 +99,7 @@ public:
     DownloadState state = DownloadState::kWAITING;
 
     // mirror list (or should we have a failure callback)
-    Mirror* mirror;
+    Mirror* mirror = nullptr;
     std::shared_ptr<std::vector<Mirror*>> mirrors;
     std::set<Mirror*> tried_mirrors;
     Mirror* used_mirror;
