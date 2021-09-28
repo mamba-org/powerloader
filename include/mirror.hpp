@@ -1,11 +1,11 @@
 #pragma once
 
 #include <chrono>
-#include <spdlog/spdlog.h>
 #include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
+#include <spdlog/spdlog.h>
 
 #include "curl.hpp"
 #include "enums.hpp"
@@ -33,6 +33,8 @@ struct Mirror
         , preference(0)
         , protocol(Protocol::kHTTP)
     {
+        if (url.back() == '/')
+            this->url = this->url.substr(0, this->url.size() - 1);
     }
 
     // URL of the mirror
@@ -66,11 +68,15 @@ struct Mirror
     // adjusted when mirrors respond with 200 to a range request
     int max_ranges = 0;
 
+    // retry & backoff values
     std::chrono::system_clock::time_point next_retry;
+    // first retry should wait for how many seconds?
     std::chrono::system_clock::duration retry_wait_seconds = std::chrono::seconds(1);
+    // backoff factor for retry
     std::size_t retry_backoff_factor = 2;
+    // count number of retries (this is not the same as failed transfers, as mutiple
+    // transfers can be started at the same time, but should all be retried only once)
     std::size_t retry_counter = 0;
-
 
     inline bool need_wait_for_retry()
     {

@@ -199,6 +199,13 @@ public:
         return *this;
     }
 
+    inline CURLHandle& reset_headers()
+    {
+        curl_slist_free_all(p_headers);
+        p_headers = nullptr;
+        return *this;
+    }
+
     template <class T>
     inline CURLHandle& setopt(CURLoption opt, const T& val)
     {

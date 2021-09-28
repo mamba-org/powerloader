@@ -214,7 +214,7 @@ Downloader::select_suitable_mirror(Target* target)
     // were already tried and the transfer should be marked as failed.
     bool at_least_one_suitable_mirror_found = false;
 
-    assert(target);
+    assert(target && target->mirrors);
 
     // mirrors_iterated is used to allow to use mirrors multiple times for a target
     std::size_t mirrors_iterated = 0;
