@@ -67,6 +67,15 @@ namespace detail
         }
         return location;
     }
+
+    std::string add_param(const std::string& url, const std::string& param, const std::string& value)
+    {
+        if (contains(url, "?"))
+        {
+            return fmt::format("{}&{}={}", url, param, value);
+        }
+        return fmt::format("{}?{}={}", url, param, value);
+    }
 }
 
 
@@ -114,17 +123,7 @@ void upload_chunked(const fs::path& file, OCIMirror& mirror, const std::string& 
         assert(response.http_status == 202);
     }
 
-    std::string upload_url_digest;
-    if (contains(upload_url, "?"))
-    {
-        upload_url_digest = fmt::format("{}&digest={}", upload_url, digest);
-    }
-    else
-    {
-        upload_url_digest = fmt::format("{}?digest={}", upload_url, digest);
-    }
-
-
+    auto upload_url_digest = detail::add_param(upload_url, "digest", digest);
     CURLHandle finalize;
     finalize.url(upload_url_digest);
     finalize.setopt(CURLOPT_CUSTOMREQUEST, "PUT");
@@ -135,7 +134,8 @@ void upload_chunked(const fs::path& file, OCIMirror& mirror, const std::string& 
     std::cout << res.content.str() << std::endl;
 }
 
-auto upload_monolithically(const fs::path& file, OCIMirror& mirror, const std::string& reference, const std::string& digest, std::size_t fsize)
+template <class S>
+auto upload_monolithically(S& stream, OCIMirror& mirror, const std::string& reference, const std::string& digest, std::size_t fsize)
 {
     std::string preupload_url = mirror.get_preupload_url(reference);
     auto response = CURLHandle(preupload_url)
@@ -144,17 +144,17 @@ auto upload_monolithically(const fs::path& file, OCIMirror& mirror, const std::s
                         .perform();
 
     assert(response.http_status == 202);
-    std::string upload_url = detail::format_url(mirror, response.header["location"]) + fmt::format("?digest={}", digest);
+    std::string upload_url = detail::format_url(mirror, response.header["location"]);
+    upload_url = detail::add_param(upload_url, "digest", digest);
 
     spdlog::info("Upload url: {}", upload_url);
 
     CURLHandle chandle(upload_url);
 
-    std::ifstream ufile(file, std::ios::in | std::ios::binary);
     chandle.setopt(CURLOPT_UPLOAD, 1L)
         .add_headers(mirror.get_auth_headers(reference))
         .add_header("Content-Type: application/octet-stream")
-        .upload(ufile);
+        .upload(stream);
 
     auto cres = chandle.perform();
     assert(cres.http_status == 201);
@@ -186,9 +186,14 @@ oci_upload(OCIMirror& mirror,
     else
     {
         std::cout << "Uploading monolithically" << std::endl;
-        upload_monolithically(file, mirror, reference, digest, fsize);
+        std::ifstream ufile(file, std::ios::in | std::ios::binary);
+        upload_monolithically(ufile, mirror, reference, digest, fsize);
     }
     
+    std::istringstream is("");
+    upload_monolithically(is, mirror, reference, EMPTY_SHA, 0);
+
+
     // CURLHandle check_empty_manifest_exists()
 
     // Now we need to upload the manifest for OCI servers
@@ -202,5 +207,7 @@ oci_upload(OCIMirror& mirror,
         .add_header("Content-Type: application/vnd.oci.image.manifest.v1+json")
         .upload(manifest_stream);
 
-    return mhandle.perform();
+    auto response = mhandle.perform();
+    assert(response.http_status == 201);
+    return response;
 }
