@@ -15,7 +15,7 @@ read_callback(char* ptr, std::size_t size, std::size_t nmemb, T* stream)
     // copy as much data as possible into the 'ptr' buffer, but no more than
     // 'size' * 'nmemb' bytes!
     stream->read(ptr, size * nmemb);
-    spdlog::info("Uploading {} bytes of data!", stream->gcount());
+    spdlog::info("M: Uploading {} bytes of data!", stream->gcount());
     return stream->gcount();
 }
 

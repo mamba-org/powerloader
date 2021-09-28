@@ -69,4 +69,5 @@ Response
 oci_upload(OCIMirror& mirror,
            const std::string& reference,
            const std::string& tag,
-           const fs::path& file);
+           const fs::path& file,
+           bool chunked = false);

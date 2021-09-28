@@ -67,8 +67,9 @@ progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
 }
 
 int
-handle_upload(const std::vector<std::string>& files, const std::vector<std::string>& mirrors)
+handle_upload(const std::vector<std::string>& files, const std::vector<std::string>& mirrors, bool chunked)
 {
+    std::cout << "Uploading files " << std::endl;
     std::string mirror_url = mirrors[0];
     if (mirrors.size() > 1)
         spdlog::warn("Only uploading to first mirror");
@@ -84,7 +85,16 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
         kof = KindOf::OCI;
 
     if (kof != KindOf::HTTP)
-        url.set_scheme("https");
+    {
+        if (url.host() == "localhost")
+        {
+            url.set_scheme("http");
+        }
+        else
+        {
+            url.set_scheme("https");
+        }
+    }
 
     spdlog::info("URL: {}", url.url());
 
@@ -103,9 +113,16 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
             }
             std::string GH_SECRET = get_env("GHA_PAT");
             std::string GH_USER = get_env("GHA_USER");
-
-            OCIMirror mirror(url.url(), "push", GH_USER, GH_SECRET);
-            oci_upload(mirror, GH_USER + "/" + dest, elems[2], elems[0]);
+            if (url.host() == "localhost")
+            {
+                OCIMirror mirror(url.url(), "push", "", "");
+                oci_upload(mirror, GH_USER + "/" + dest, elems[2], elems[0], chunked);
+            }
+            else
+            {
+                OCIMirror mirror(url.url(), "push", GH_USER, GH_SECRET);
+                oci_upload(mirror, GH_USER + "/" + dest, elems[2], elems[0], chunked);
+            }
         }
         else if (kof == KindOf::S3)
         {
@@ -208,12 +225,13 @@ int
 main(int argc, char** argv)
 {
     CLI::App app;
-
+    std::cout << "Powerloader ... " << std::endl;
     bool resume = false;
     std::vector<std::string> du_files;
     std::vector<std::string> mirrors;
     std::string file;
-    bool verbose = false;
+    static bool verbose = false;
+    static bool chunked = false;
 
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
     s_dl->add_option("files", du_files, "Files to download");
@@ -225,8 +243,10 @@ main(int argc, char** argv)
     s_ul->add_option("files", du_files, "Files to upload");
     s_ul->add_option("-m", mirrors, "Mirror to upload to");
     s_ul->add_option("-f", file, "File from which to read upload / download files");
+    s_ul->add_flag("-c,--chunked", chunked, "Use chunked (resumable) upload (NOTE: this does not really work yet)");
 
-    app.add_option("-v", verbose, "Enable verbose output");
+    app.add_flag("-v", verbose, "Enable verbose output");
+    s_ul->add_flag("-v", verbose, "Enable verbose output");
 
     CLI11_PARSE(app, argc, argv);
 
@@ -280,10 +300,10 @@ main(int argc, char** argv)
             }
         }
     }
-    spdlog::set_level(spdlog::level::warn);
+    // spdlog::set_level(spdlog::level::warn);
     if (app.got_subcommand("upload"))
     {
-        return handle_upload(du_files, mirrors);
+        return handle_upload(du_files, mirrors, chunked);
     }
     if (app.got_subcommand("download"))
     {

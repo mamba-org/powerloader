@@ -44,19 +44,28 @@ get_handle();
 
 struct Response
 {
-    int status_code;
+    long http_status;
     std::map<std::string, std::string> header;
     mutable std::stringstream content;
 
     curl_off_t avg_speed, downloaded_size;
-    long http_status;
     std::string effective_url;
 
     inline nlohmann::json json() const
     {
-        nlohmann::json j;
-        content >> j;
-        return j;
+        try
+        {
+            nlohmann::json j;
+            content >> j;
+            return j;
+        }
+        catch (const nlohmann::detail::parse_error& err)
+        {
+            std::cout << "Could not parse " << content.str() << std::endl;
+            std::cout << err.what() << std::endl;
+            // exit(1);
+            return nlohmann::json();
+        }
     }
 };
 
@@ -126,7 +135,6 @@ public:
     //         setopt(CURLOPT_NOBODY, 0L);
     //     else
     //         setopt(CURLOPT_NOBODY, 1L);
-
     //     return *this;
     // }
 
