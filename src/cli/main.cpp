@@ -9,6 +9,8 @@
 #include "utils.hpp"
 #include "downloader.hpp"
 
+using namespace powerloader;
+
 enum KindOf
 {
     HTTP,
@@ -76,7 +78,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
     KindOf kof = KindOf::HTTP;
     std::unique_ptr<Mirror> mptr;
 
-    mamba::URLHandler url(mirror_url);
+    URLHandler url(mirror_url);
 
     if (url.scheme() == "s3")
         kof = KindOf::S3;
@@ -150,13 +152,13 @@ handle_download(const std::vector<std::string>& urls,
             std::string url, dst;
             if (starts_with(parts[1], "//"))
             {
-                mamba::URLHandler uh(x);
+                URLHandler uh(x);
                 url = uh.url();
                 dst = rsplit(uh.path(), "/", 1).back();
             }
             else
             {
-                mamba::URLHandler uh(parts[0]);
+                URLHandler uh(parts[0]);
                 url = uh.url();
                 dst = parts[1];
             }

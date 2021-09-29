@@ -13,114 +13,119 @@ namespace fs = std::filesystem;
 #include "mirror.hpp"
 #include "utils.hpp"
 
-class Target
+namespace powerloader
 {
-public:
-    /** Header callback for CURL handles.
-     * It parses HTTP and FTP headers and try to find length of the content
-     * (file size of the target). If the size is different then the expected
-     * size, then the transfer is interrupted.
-     * This callback is used only if the expected size is specified.
-     */
-    static std::size_t header_callback(char* buffer,
-                                       std::size_t size,
-                                       std::size_t nitems,
-                                       Target* self);
-    static std::size_t write_callback(char* buffer,
-                                      std::size_t size,
-                                      std::size_t nitems,
-                                      Target* self);
-
-    inline Target(DownloadTarget* dl_target)
-        : state(DownloadState::kWAITING)
-        , target(dl_target)
-        , original_offset(-1)
-        , resume(dl_target->resume)
+    class Target
     {
-    }
+    public:
+        /** Header callback for CURL handles.
+         * It parses HTTP and FTP headers and try to find length of the content
+         * (file size of the target). If the size is different then the expected
+         * size, then the transfer is interrupted.
+         * This callback is used only if the expected size is specified.
+         */
+        static std::size_t header_callback(char* buffer,
+                                           std::size_t size,
+                                           std::size_t nitems,
+                                           Target* self);
+        static std::size_t write_callback(char* buffer,
+                                          std::size_t size,
+                                          std::size_t nitems,
+                                          Target* self);
 
-    inline Target(DownloadTarget* dl_target, const std::shared_ptr<std::vector<Mirror*>>& mirrors)
-        : state(DownloadState::kWAITING)
-        , target(dl_target)
-        , original_offset(-1)
-        , resume(dl_target->resume)
-        , mirrors(mirrors)
-    {
-    }
-
-    inline ~Target()
-    {
-        reset();
-    }
-
-    inline CbReturnCode call_endcallback(TransferStatus status)
-    {
-        EndCb end_cb = override_endcb ? override_endcb : target->endcb;
-        void* cb_data = override_endcb ? override_endcb_data : target->cbdata;
-
-        if (end_cb)
+        inline Target(DownloadTarget* dl_target)
+            : state(DownloadState::kWAITING)
+            , target(dl_target)
+            , original_offset(-1)
+            , resume(dl_target->resume)
         {
-            // TODO fill in message?!
-            std::string message = "";
-            CbReturnCode rc = end_cb(status, message, cb_data);
-
-            if (rc == CbReturnCode::kERROR)
-            {
-                cb_return_code = CbReturnCode::kERROR;
-                spdlog::info("End-Callback returned an error");
-            }
-            return rc;
         }
-        return CbReturnCode::kOK;
-    }
 
-    static int progress_callback(Target* ptr,
-                                 curl_off_t total_to_download,
-                                 curl_off_t now_downloaded,
-                                 curl_off_t total_to_upload,
-                                 curl_off_t now_uploaded);
+        inline Target(DownloadTarget* dl_target,
+                      const std::shared_ptr<std::vector<Mirror*>>& mirrors)
+            : state(DownloadState::kWAITING)
+            , target(dl_target)
+            , original_offset(-1)
+            , resume(dl_target->resume)
+            , mirrors(mirrors)
+        {
+        }
 
-    bool truncate_transfer_file();
-    std::shared_ptr<std::ofstream> open_target_file();
+        inline ~Target()
+        {
+            reset();
+        }
 
-    void reset();
+        inline CbReturnCode call_endcallback(TransferStatus status)
+        {
+            EndCb end_cb = override_endcb ? override_endcb : target->endcb;
+            void* cb_data = override_endcb ? override_endcb_data : target->cbdata;
 
-    DownloadTarget* target;
-    fs::path out_file;
-    std::string url_stub;
+            if (end_cb)
+            {
+                // TODO fill in message?!
+                std::string message = "";
+                CbReturnCode rc = end_cb(status, message, cb_data);
 
-    bool resume = false;
-    std::size_t resume_count = 0;
-    std::ptrdiff_t original_offset;
+                if (rc == CbReturnCode::kERROR)
+                {
+                    cb_return_code = CbReturnCode::kERROR;
+                    spdlog::info("End-Callback returned an error");
+                }
+                return rc;
+            }
+            return CbReturnCode::kOK;
+        }
 
-    // internal stuff
-    std::size_t retries;
+        static int progress_callback(Target* ptr,
+                                     curl_off_t total_to_download,
+                                     curl_off_t now_downloaded,
+                                     curl_off_t total_to_upload,
+                                     curl_off_t now_uploaded);
 
-    DownloadState state = DownloadState::kWAITING;
+        bool truncate_transfer_file();
+        std::shared_ptr<std::ofstream> open_target_file();
 
-    // mirror list (or should we have a failure callback)
-    Mirror* mirror = nullptr;
-    std::shared_ptr<std::vector<Mirror*>> mirrors;
-    std::set<Mirror*> tried_mirrors;
-    Mirror* used_mirror;
+        void reset();
 
-    HeaderCbState headercb_state;
-    std::string headercb_interrupt_reason;
-    std::size_t writecb_received;
-    bool writecb_required_range_written;
+        DownloadTarget* target;
+        fs::path out_file;
+        std::string url_stub;
 
-    char errorbuffer[CURL_ERROR_SIZE];
+        bool resume = false;
+        std::size_t resume_count = 0;
+        std::ptrdiff_t original_offset;
 
-    EndCb override_endcb = nullptr;
-    void* override_endcb_data = nullptr;
+        // internal stuff
+        std::size_t retries;
 
-    CbReturnCode cb_return_code;
+        DownloadState state = DownloadState::kWAITING;
 
-    // CURL *curl_handle = nullptr;
-    std::unique_ptr<CURLHandle> curl_handle;
-    Protocol protocol;
+        // mirror list (or should we have a failure callback)
+        Mirror* mirror = nullptr;
+        std::shared_ptr<std::vector<Mirror*>> mirrors;
+        std::set<Mirror*> tried_mirrors;
+        Mirror* used_mirror;
 
-    bool range_fail = false;
-    ZckState zck_state;
-    FILE* f = nullptr;
-};
+        HeaderCbState headercb_state;
+        std::string headercb_interrupt_reason;
+        std::size_t writecb_received;
+        bool writecb_required_range_written;
+
+        char errorbuffer[CURL_ERROR_SIZE];
+
+        EndCb override_endcb = nullptr;
+        void* override_endcb_data = nullptr;
+
+        CbReturnCode cb_return_code;
+
+        // CURL *curl_handle = nullptr;
+        std::unique_ptr<CURLHandle> curl_handle;
+        Protocol protocol;
+
+        bool range_fail = false;
+        ZckState zck_state;
+        FILE* f = nullptr;
+    };
+
+}

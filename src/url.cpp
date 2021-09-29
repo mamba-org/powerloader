@@ -15,7 +15,7 @@
 
 namespace fs = std::filesystem;
 
-namespace mamba
+namespace powerloader
 {
     bool has_scheme(const std::string& url)
     {
@@ -349,4 +349,5 @@ namespace mamba
             throw std::runtime_error("Could not set " + s + " in url " + m_url);
         }
     }
-}  // namespace mamba
+
+}

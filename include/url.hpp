@@ -38,7 +38,7 @@ extern "C"
 //   CURLUE_NO_FRAGMENT          /* 17 */
 // } CURLUcode;
 
-namespace mamba
+namespace powerloader
 {
     bool has_scheme(const std::string& url);
 
@@ -143,6 +143,6 @@ namespace mamba
         std::string res = s;
         return detail::join_url_impl(res, args...);
     }
-}  // namespace mamba
+}  // namespace powerloader
 
 #endif

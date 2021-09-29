@@ -2,6 +2,8 @@
 
 #include "mirrors/s3.hpp"
 
+using namespace powerloader;
+
 TEST(s3, signdata)
 {
     // S3Mirror::SignData s3mirror_signdata("GET", "");
