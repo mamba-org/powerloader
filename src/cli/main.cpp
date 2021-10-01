@@ -26,6 +26,13 @@ struct
     std::map<DownloadTarget*, curl_off_t> total_done;
 } global_progress;
 
+struct MirrorCredentials
+{
+    URLHandler url;
+    std::string user, password, region;
+};
+
+
 int
 progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
 {
@@ -224,6 +231,86 @@ handle_download(const std::vector<std::string>& urls,
     return 0;
 }
 
+std::map<std::string, std::vector<std::unique_ptr<Mirror>>> parse_mirrors(const YAML::Node& node)
+{
+    assert(node.IsMap());
+    std::map<std::string, std::vector<std::unique_ptr<Mirror>>> res;
+
+    auto get_env_from_str = [](const std::string& s)
+    {
+        if (starts_with(s, "env:"))
+        {
+            return get_env(s.substr(4).c_str());
+        }
+        return s;
+    };
+
+    for (YAML::Node::const_iterator outer = node.begin(); outer != node.end(); ++outer)
+    {
+        std::string mirror_name = outer->first.as<std::string>();
+        res[mirror_name] = std::vector<std::unique_ptr<Mirror>>();
+
+        for (YAML::Node::const_iterator it = outer->begin(); it != outer->end(); ++it)
+        {
+            MirrorCredentials creds;
+            if (it->IsSequence())
+            {
+                creds.url = it->as<std::string>();
+            }
+            else
+            {
+                // expecting a map
+                auto cred = *it;
+                creds.url = URLHandler(cred["url"].as<std::string>());
+                if (cred["password"])
+                {
+                    creds.password = get_env_from_str(cred["password"].as<std::string>());
+                }
+                if (cred["user"])
+                {
+                    creds.user = get_env_from_str(cred["user"].as<std::string>());
+                }
+                if (cred["region"])
+                {
+                    creds.region = get_env_from_str(cred["region"].as<std::string>());
+                }                
+            }
+            auto kof = KindOf::HTTP;
+            if (creds.url.scheme() == "s3")
+            {
+                kof = KindOf::S3;
+
+                if (creds.user.empty()) creds.user = get_env("AWS_ACCESS_KEY");
+                if (creds.password.empty()) creds.password = get_env("AWS_SECRET_KEY");
+                if (creds.region.empty()) creds.region = get_env("AWS_DEFAULT_REGION");
+            }
+            else if (creds.url.scheme() == "oci")
+            {
+                kof = KindOf::OCI;
+                if (creds.user.empty()) creds.user = get_env("GHA_USER");
+                if (creds.password.empty()) creds.password = get_env("GHA_PAT");
+            }
+
+            if (kof != KindOf::HTTP)
+                creds.url.set_scheme("https");
+
+            if (kof == KindOf::S3)
+            {
+                res[mirror_name].emplace_back(new S3Mirror(creds.url.url(), creds.region, creds.user, creds.password));
+            }
+            else if (kof == KindOf::OCI)
+            {
+                res[mirror_name].emplace_back(new OCIMirror(creds.url.url(), "push,pull", creds.user, creds.password));
+            }
+            else if (kof == KindOf::HTTP)
+            {
+                res[mirror_name].emplace_back(new Mirror(creds.url.url()));
+            }
+        }
+    }
+    return res;
+}
+
 
 int
 main(int argc, char** argv)
@@ -248,7 +335,7 @@ main(int argc, char** argv)
     CLI::App* s_ul = app.add_subcommand("upload", "Upload a file");
     s_ul->add_option("files", du_files, "Files to upload");
     s_ul->add_option("-m", mirrors, "Mirror to upload to");
-    s_ul->add_option("-f", file, "File from which to read upload / download files");
+    s_ul->add_option("-f", file, "File from which to read mirrors, upload & download files");
 
     s_ul->add_flag("-v", verbose, "Enable verbose output");
     s_dl->add_flag("-v", verbose, "Enable verbose output");
@@ -267,45 +354,55 @@ main(int argc, char** argv)
         YAML::Node config = YAML::LoadFile(file);
 
         auto& ctx = Context::instance();
+
         du_files = config["targets"].as<std::vector<std::string>>();
         if (config["mirrors"])
         {
-            for (const auto& [k, v] :
-                 config["mirrors"].as<std::map<std::string, std::vector<std::string>>>())
-            {
-                ctx.mirror_map[k] = std::make_shared<std::vector<Mirror*>>();
-                for (auto& m : v)
-                {
-                    std::cout << fmt::format("Adding mirror {} for {}", k, m) << std::endl;
+            // ctx.mirror_map = parse_mirrors(config["mirrors"]);
+            // for(auto it = config["mirrors"].begin(); it != config["mirrors"].end(); ++it)
+            // {
 
-                    if (starts_with(m, "oci://"))
-                    {
-                        try
-                        {
-                            std::string GH_SECRET = get_env("GHA_PAT");
-                            std::string GH_USER = get_env("GHA_USER");
-                            ctx.mirrors.emplace_back(new OCIMirror(m, "pull", GH_USER, GH_SECRET));
-                        }
-                        catch (...)
-                        {
-                            ctx.mirrors.emplace_back(new OCIMirror(m, "pull", "", ""));
-                        }
-                    }
-                    else if (starts_with(m, "s3://"))
-                    {
-                        std::string aws_ackey = get_env("AWS_ACCESS_KEY");
-                        std::string aws_sekey = get_env("AWS_SECRET_KEY");
-                        std::string aws_region = get_env("AWS_DEFAULT_REGION");
-                        ctx.mirrors.emplace_back(new S3Mirror(m, aws_region, aws_ackey, aws_sekey));
-                    }
-                    else
-                    {
-                        ctx.mirrors.emplace_back(new Mirror(m));
-                    }
+            //    std::string key = it->first.as<std::string>();       // <- key
+            //    cTypeList.push_back(it->second.as<CharacterType>()); // <- value
+            // }
 
-                    ctx.mirror_map[k]->push_back(ctx.mirrors.back().get());
-                }
-            }
+        //     for (const auto& [k, v] :
+        //          config["mirrors"].as<std::map<std::string, std::vector<std::string>>>())
+        //     {
+        //         ctx.mirror_map[k] = std::make_shared<std::vector<Mirror*>>();
+        //         for (auto& m : v)
+        //         {
+        //             std::cout << fmt::format("Adding mirror {} for {}", k, m) << std::endl;
+
+        //             if (starts_with(m, "oci://"))
+        //             {
+        //                 try
+        //                 {
+
+        //                     std::string GH_SECRET = get_env("GHA_PAT");
+        //                     std::string GH_USER = get_env("GHA_USER");
+        //                     ctx.mirrors.emplace_back(new OCIMirror(m, "pull", GH_USER, GH_SECRET));
+        //                 }
+        //                 catch (...)
+        //                 {
+        //                     ctx.mirrors.emplace_back(new OCIMirror(m, "pull", "", ""));
+        //                 }
+        //             }
+        //             else if (starts_with(m, "s3://"))
+        //             {
+        //                 std::string aws_ackey = get_env("AWS_ACCESS_KEY");
+        //                 std::string aws_sekey = get_env("AWS_SECRET_KEY");
+        //                 std::string aws_region = get_env("AWS_DEFAULT_REGION");
+        //                 ctx.mirrors.emplace_back(new S3Mirror(m, aws_region, aws_ackey, aws_sekey));
+        //             }
+        //             else
+        //             {
+        //                 ctx.mirrors.emplace_back(new Mirror(m));
+        //             }
+
+        //             ctx.mirror_map[k]->push_back(ctx.mirrors.back().get());
+        //         }
+        //     }
         }
     }
     spdlog::set_level(spdlog::level::warn);
