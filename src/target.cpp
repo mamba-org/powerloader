@@ -111,7 +111,7 @@ namespace powerloader
 
 #ifdef WITH_ZCHUNK
         if (target->target->is_zchunk && !target->range_fail && target->mirror
-            && target->mirror->protocol == Protocol::HTTP)
+            && target->mirror->protocol == Protocol::kHTTP)
             return zckheadercb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
 
@@ -259,7 +259,7 @@ namespace powerloader
 
 #ifdef WITH_ZCHUNK
         if (self->target->is_zchunk && !self->range_fail && self->mirror
-            && self->mirror->protocol == Protocol::HTTP)
+            && self->mirror->protocol == Protocol::kHTTP)
             return zckwritecb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
 

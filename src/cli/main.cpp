@@ -75,7 +75,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
     if (mirrors.size() > 1)
         spdlog::warn("Only uploading to first mirror");
 
-    KindOf kof = KindOf::HTTP;
+    KindOf kof = KindOf::kHTTP;
     std::unique_ptr<Mirror> mptr;
 
     URLHandler url(mirror_url);
@@ -85,7 +85,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
     else if (url.scheme() == "oci")
         kof = KindOf::OCI;
 
-    if (kof != KindOf::HTTP)
+    if (kof != KindOf::kHTTP)
         url.set_scheme("https");
 
     spdlog::info("URL: {}", url.url());
