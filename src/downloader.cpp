@@ -508,10 +508,10 @@ namespace powerloader
             }
 
             // If zchunk is finished, we're done, so move to next target
-            if (target->zck_state == ZckState::FINISHED)
+            if (target->zck_state == ZckState::kFINISHED)
             {
                 spdlog::info("Target already fully downloaded: {}", target->target->path);
-                target->state = DownloadState::FINISHED;
+                target->state = DownloadState::kFINISHED;
                 target->reset();
                 target->headercb_interrupt_reason.clear();
                 // lr_downloadtarget_set_error(target->target, LRE_OK, NULL);
@@ -951,11 +951,11 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
                 // No error encountered, transfer finished successfully
                 if (current_target->target->is_zchunk
-                    && current_target->zck_state != ZckState::FINISHED)
+                    && current_target->zck_state != ZckState::kFINISHED)
                 {
                     // If we haven't finished downloading zchunk file, setup next
                     // download
-                    current_target->state = DownloadState::WAITING;
+                    current_target->state = DownloadState::kWAITING;
                     current_target->original_offset = -1;
                     // target->target->rcode = LRE_UNFINISHED;
                     // target->target->err = "Not finished";
@@ -1162,8 +1162,8 @@ namespace powerloader
         // finished = true;
         // for (auto& t : m_targets)
         // {
-        //     if (t.state == DownloadState::WAITING || t.state ==
-        //     DownloadState::RUNNING)
+        //     if (t.state == DownloadState::kWAITING || t.state ==
+        //     DownloadState::kRUNNING)
         //     {
         //         finished = false;
         //         break;

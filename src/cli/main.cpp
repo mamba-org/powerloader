@@ -13,9 +13,9 @@ using namespace powerloader;
 
 enum KindOf
 {
-    HTTP,
-    OCI,
-    S3
+    kHTTP,
+    kOCI,
+    kS3
 };
 
 struct
@@ -75,17 +75,17 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
     if (mirrors.size() > 1)
         spdlog::warn("Only uploading to first mirror");
 
-    KindOf kof = KindOf::HTTP;
+    KindOf kof = KindOf::kHTTP;
     std::unique_ptr<Mirror> mptr;
 
     URLHandler url(mirror_url);
 
     if (url.scheme() == "s3")
-        kof = KindOf::S3;
+        kof = KindOf::kS3;
     else if (url.scheme() == "oci")
-        kof = KindOf::OCI;
+        kof = KindOf::kOCI;
 
-    if (kof != KindOf::HTTP)
+    if (kof != KindOf::kHTTP)
         url.set_scheme("https");
 
     spdlog::info("URL: {}", url.url());
@@ -96,7 +96,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
         fs::path fpath = elems[0];
         std::string dest = elems[1];
 
-        if (kof == KindOf::OCI)
+        if (kof == KindOf::kOCI)
         {
             if (elems.size() != 3)
             {
@@ -109,7 +109,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
             OCIMirror mirror(url.url(), "push", GH_USER, GH_SECRET);
             oci_upload(mirror, GH_USER + "/" + dest, elems[2], elems[0]);
         }
-        else if (kof == KindOf::S3)
+        else if (kof == KindOf::kS3)
         {
             if (elems.size() != 2)
             {
