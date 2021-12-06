@@ -16,4 +16,4 @@ dependencies:
   # necessary for gtest cmake to work properly
   - gmock
   - yaml-cpp
-  - pytest
+
