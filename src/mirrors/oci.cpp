@@ -99,10 +99,10 @@ namespace powerloader
                 {
                     cbdata->token = j["token"].get<std::string>();
                     return 0;
-                    // return CbReturnCode::OK;
+                    // return CbReturnCode::kOK;
                 }
                 return 1;
-                // return CbReturnCode::ERROR;
+                // return CbReturnCode::kERROR;
             };
 
             handle.set_end_callback(end_callback);
