@@ -12,9 +12,9 @@ namespace powerloader
     {
         switch (checksum_type)
         {
-            case ChecksumType::SHA1:
+            case ChecksumType::kSHA1:
                 return ZCK_HASH_SHA1;
-            case ChecksumType::SHA256:
+            case ChecksumType::kSHA256:
                 return ZCK_HASH_SHA256;
             default:
                 return ZCK_HASH_UNKNOWN;
@@ -273,7 +273,7 @@ namespace powerloader
                 throw zchunk_error(fmt::format("Unable to setup zchunk download context for {}",
                                                target->target->path));
             }
-            target->zck_state = ZckState::BODY_CK;
+            target->zck_state = ZckState::kBODY_CK;
             return true;
         }
         target->zck_state = ZckState::HEADER;
@@ -311,7 +311,7 @@ namespace powerloader
                 {
                     throw zchunk_error("Unable to setup zchunk download context");
                 }
-                target->zck_state = ZckState::BODY_CK;
+                target->zck_state = ZckState::kBODY_CK;
                 return true;
             }
         }
@@ -409,7 +409,7 @@ namespace powerloader
             if (zck_get_chunk_valid(idx) != 1)
                 target->target->total_to_download
                     += zck_get_chunk_comp_size(idx) + 92; /* Estimate of multipart overhead */
-        target->zck_state = ZckState::BODY;
+        target->zck_state = ZckState::kBODY;
 
         return true;
     }
@@ -428,7 +428,7 @@ namespace powerloader
         zck_reset_failed_chunks(zck);
         if (zck_missing_chunks(zck) == 0)
         {
-            target->zck_state = ZckState::FINISHED;
+            target->zck_state = ZckState::kFINISHED;
             return true;
         }
 
@@ -453,7 +453,7 @@ namespace powerloader
 
         target->target->range = zck_get_range_char(zck, range);
         target->target->expected_size = 1;
-        target->zck_state = ZckState::BODY;
+        target->zck_state = ZckState::kBODY;
 
         return true;
     }
@@ -465,9 +465,9 @@ namespace powerloader
         assert(target->target);
 
         if (target->mirror
-            && (target->mirror->max_ranges == 0 || target->mirror->protocol != Protocol::HTTP))
+            && (target->mirror->max_ranges == 0 || target->mirror->protocol != Protocol::kHTTP))
         {
-            target->zck_state = ZckState::BODY;
+            target->zck_state = ZckState::kBODY;
             target->target->expected_size = target->target->orig_size;
             target->target->range.clear();
             return true;
@@ -484,7 +484,7 @@ namespace powerloader
             {
                 throw zchunk_error(zck_get_error(nullptr));
             }
-            target->zck_state = ZckState::HEADER_CK;
+            target->zck_state = ZckState::kHEADER_CK;
         }
 
         std::cout << "ZCK DL: " << target->target->zck_dl << std::endl;
@@ -493,7 +493,7 @@ namespace powerloader
         target->range_fail = false;
 
         /* If we've finished, then there's no point in checking any further */
-        if (target->zck_state == ZckState::FINISHED)
+        if (target->zck_state == ZckState::kFINISHED)
             return true;
 
         zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
@@ -501,7 +501,7 @@ namespace powerloader
 
         if (!zck)
         {
-            target->zck_state = ZckState::HEADER_CK;
+            target->zck_state = ZckState::kHEADER_CK;
             spdlog::info("Unable to read zchunk header: {}", target->target->path);
             if (!find_local_zck_header(target))
                 return false;
@@ -522,7 +522,7 @@ namespace powerloader
         }
         zck = zck_dl_get_zck(target->target->zck_dl);
 
-        if (target->zck_state == ZckState::BODY_CK)
+        if (target->zck_state == ZckState::kBODY_CK)
         {
             spdlog::info("Checking zchunk data checksum: {}", target->target->path);
             // Check whether file has been fully downloaded
@@ -540,7 +540,7 @@ namespace powerloader
                 spdlog::info("zchunk: File is complete");
                 if (target->target->zck_dl)
                     zck_dl_free(&(target->target->zck_dl));
-                target->zck_state = ZckState::FINISHED;
+                target->zck_state = ZckState::kFINISHED;
                 return true;
             }
 
@@ -563,7 +563,7 @@ namespace powerloader
             {  // All checksums good
                 if (target->target->zck_dl)
                     zck_dl_free(&(target->target->zck_dl));
-                target->zck_state = ZckState::FINISHED;
+                target->zck_state = ZckState::kFINISHED;
                 return true;
             }
         }
