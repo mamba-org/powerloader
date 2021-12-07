@@ -17,3 +17,4 @@ dependencies:
   - gmock
   - yaml-cpp
   - pytest
+  - pytest-xprocess
