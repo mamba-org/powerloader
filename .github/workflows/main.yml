@@ -70,4 +70,5 @@ jobs:
         shell: bash -l -eo pipefail {0}
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/powerloader
-          pytest powerloader/tests/
+          # pytest powerloader/tests
+          pytest ./test/*.py

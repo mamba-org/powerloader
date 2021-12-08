@@ -7,10 +7,7 @@ import pytest
 
 @pytest.fixture
 def get_proj_root(cwd=os.getcwd()):
-    if os.getenv("TEST_ROOT"):
-        proj_root = os.getenv("TEST_ROOT")
-    else:
-        proj_root = cwd
+    proj_root = cwd
     if not Path(proj_root).exists():
         print("POWERLOADER NOT FOUND!")
     return proj_root
