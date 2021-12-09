@@ -3,7 +3,7 @@ from xprocess import ProcessStarter
 from pathlib import Path
 import subprocess
 import platform
-import os as os
+import os
 import hashlib
 import time
 
@@ -37,27 +37,37 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     return file_map
 
 
-# @pytest.fixture
-# def mock_server(xprocess):
-#     port = 5777
-#     curdir = pathlib.Path(__file__).parent
+@pytest.fixture
+def mock_server(xprocess):
+    port = 5555
+    curdir = pathlib.Path(__file__).parent
 
-#     class Starter(ProcessStarter):
-#         # startup pattern
-#         pattern = "Server started!"
+    class Starter(ProcessStarter):
+        pattern = "Server started!"
+        terminate_on_interrupt = True
+        args = [sys.executable, "-u", curdir / 'server.py', '-p', str(port)]
 
-#         terminate_on_interrupt = True
+        def startup_check(self):
+            s = socket.socket()
+            address = 'localhost'
+            error = False
+            try:
+                s.connect((address, port))
+            except Exception as e:
+                print("something's wrong with %s:%d. Exception is %s" % (address, port, e))
+                error = True
+            finally:
+                s.close()
 
-#         # command to start process
-#         args = ['python', str(curdir / 'server.py'), '-p', str(port)]
+            return (not error)
 
-#     # ensure process is running and return its logfile
-#     logfile = xprocess.ensure("mock_server", Starter)
+    # ensure process is running and return its logfile
+    logfile = xprocess.ensure("mock_server", Starter)
 
-#     yield f"http://localhost:{port}" # True
+    yield f"http://localhost:{port}" # True
 
-#     # clean up whole process tree afterwards
-#     xprocess.getinfo("mock_server").terminate()
+    # clean up whole process tree afterwards
+    xprocess.getinfo("mock_server").terminate()
 
 
 def remove_file(file_path):
@@ -73,18 +83,14 @@ def calculate_sha256(file):
         readable_hash = hashlib.sha256(b).hexdigest();
         return readable_hash
 
-@pytest.fixture
-def server_address():
-    return "http://localhost:5555"
-
-def test_working_download(file, powerloader_binary, server_address):
+def test_working_download(file, powerloader_binary, mock_server):
     remove_file(file["path"])
     remove_file(file["pdpart_path"])
 
     # Slow because of the download
     out = subprocess.check_output([powerloader_binary,
                                    "download",
-                                   f"{server_address}/static/packages/{file['name']}"])
+                                   f"{mock_server}/static/packages/{file['name']}"])
 
 
     fixed = False
