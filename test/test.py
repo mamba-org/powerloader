@@ -92,23 +92,9 @@ def test_working_download(file, powerloader_binary, mock_server):
                                    "download",
                                    f"{mock_server}/static/packages/{file['name']}"])
 
-
-    fixed = False
-    if fixed:
-        assert not Path(file["pdpart_path"]).exists()
-        assert Path(file["path"]).exists()
-        assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
-
-    else:
-        assert Path(file["pdpart_path"]).exists()
-        assert not Path(file["path"]).exists()
-        assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2.pdpart") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2.pdpart") == 185929
-
+    assert not Path(file["pdpart_path"]).exists()
+    assert Path(file["path"]).exists()
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
 
     remove_file(file["path"])
-    remove_file(file["pdpart_path"])
-
-    assert not Path(file["pdpart_path"]).exists()
-    assert not Path(file["path"]).exists()

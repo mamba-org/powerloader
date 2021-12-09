@@ -56,28 +56,7 @@ namespace powerloader
             reset();
         }
 
-        inline CbReturnCode call_endcallback(TransferStatus status)
-        {
-            EndCb end_cb = override_endcb ? override_endcb : target->endcb;
-            void* cb_data = override_endcb ? override_endcb_data : target->cbdata;
-
-            if (end_cb)
-            {
-                // TODO fill in message?!
-                std::string message = "";
-                CbReturnCode rc = end_cb(status, message, cb_data);
-
-                if (rc == CbReturnCode::kERROR)
-                {
-                    cb_return_code = CbReturnCode::kERROR;
-                    spdlog::info("End-Callback returned an error");
-                }
-                return rc;
-            }
-            return CbReturnCode::kOK;
-        }
-
-        void finalize_success();
+        CbReturnCode call_endcallback(TransferStatus status);
 
         static int progress_callback(Target* ptr,
                                      curl_off_t total_to_download,
