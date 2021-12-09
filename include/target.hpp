@@ -77,6 +77,8 @@ namespace powerloader
             return CbReturnCode::kOK;
         }
 
+        void finalize_success();
+
         static int progress_callback(Target* ptr,
                                      curl_off_t total_to_download,
                                      curl_off_t now_downloaded,

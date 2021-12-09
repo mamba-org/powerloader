@@ -148,20 +148,22 @@ handle_download(const std::vector<std::string>& urls,
     {
         if (contains(x, "://"))
         {
-            std::vector<std::string> parts = rsplit(x, ":", 1);
+            URLHandler uh(x);
             std::string url, dst;
-            if (starts_with(parts[1], "//"))
-            {
-                URLHandler uh(x);
-                url = uh.url();
-                dst = rsplit(uh.path(), "/", 1).back();
-            }
-            else
-            {
-                URLHandler uh(parts[0]);
-                url = uh.url();
-                dst = parts[1];
-            }
+            url = uh.url();
+            dst = rsplit(uh.path(), "/", 1).back();
+
+            // Doesn't work with ports for now! Needs fixing
+            // std::vector<std::string> parts = rsplit(x, ":", 1);
+            // if (starts_with(parts[1], "//"))
+            // {
+            // }
+            // else
+            // {
+            //     URLHandler uh(parts[0]);
+            //     url = uh.url();
+            //     dst = parts[1];
+            // }
             std::cout << "Downloading " << url << " to " << dst << std::endl;
             targets.emplace_back(new DownloadTarget(url, "", dst));
         }
