@@ -12,9 +12,40 @@ namespace powerloader
         }
     }
 
-    void Target::finalize_success()
+    CbReturnCode Target::call_endcallback(TransferStatus status)
     {
-        // fs::rename(target->fn + PARTEXT, target->fn);
+        EndCb end_cb = override_endcb ? override_endcb : target->endcb;
+        void* cb_data = override_endcb ? override_endcb_data : target->cbdata;
+        CbReturnCode rc = CbReturnCode::kOK;
+        if (end_cb)
+        {
+            // TODO fill in message?!
+            std::string message = "";
+            rc = end_cb(status, message, cb_data);
+
+            if (rc == CbReturnCode::kERROR)
+            {
+                cb_return_code = CbReturnCode::kERROR;
+                spdlog::error("End-Callback returned an error");
+            }
+        }
+
+        if (status == TransferStatus::kSUCCESSFUL)
+        {
+            reset();
+            fs::rename(target->fn + PARTEXT, target->fn);
+        }
+        else if (status == TransferStatus::kALREADYEXISTS)
+        {
+            // TODO not emitted currently
+        }
+        else if (status == TransferStatus::kERROR)
+        {
+            // TODO remove or can we continue?
+            // fs::remove(target->fn + PARTEXT);
+        }
+
+        return rc;
     }
 
     bool Target::truncate_transfer_file()

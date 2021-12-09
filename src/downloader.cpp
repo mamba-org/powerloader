@@ -198,7 +198,7 @@ namespace powerloader
                     "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
             }
         }
-        target->finalize_success();
+
         return true;
     }
 
@@ -992,25 +992,17 @@ namespace powerloader
 
                     // Call end callback
                     current_target->curl_handle->finalize_transfer();
-                    EndCb end_cb = current_target->override_endcb ? current_target->override_endcb
-                                                                  : current_target->target->endcb;
-                    void* cb_data = current_target->override_endcb
-                                        ? current_target->override_endcb_data
-                                        : current_target->target->cbdata;
-                    if (end_cb)
-                    {
-                        CbReturnCode rc = end_cb(TransferStatus::kSUCCESSFUL, "", cb_data);
-                        // if (rc == LR_CB_ERROR)
-                        // {
-                        //     target->cb_return_code = LR_CB_ERROR;
-                        //     g_debug("%s: Downloading was aborted by LR_CB_ERROR "
-                        //             "from end callback",
-                        //             __func__);
-                        //     g_set_error(&fail_fast_err, LR_DOWNLOADER_ERROR,
-                        //                 LRE_CBINTERRUPTED,
-                        //                 "Interrupted by LR_CB_ERROR from end callback");
-                        // }
-                    }
+                    CbReturnCode rc = current_target->call_endcallback(TransferStatus::kSUCCESSFUL);
+                    // if (rc == LR_CB_ERROR)
+                    // {
+                    //     target->cb_return_code = LR_CB_ERROR;
+                    //     g_debug("%s: Downloading was aborted by LR_CB_ERROR "
+                    //             "from end callback",
+                    //             __func__);
+                    //     g_set_error(&fail_fast_err, LR_DOWNLOADER_ERROR,
+                    //                 LRE_CBINTERRUPTED,
+                    //                 "Interrupted by LR_CB_ERROR from end callback");
+                    // }
 
                     // TODO?
                     // if (target->mirror)
