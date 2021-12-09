@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parser = OptionParser("%prog [options]")
     parser.add_option(
         "-p", "--port",
-        default=5000,
+        default=5555,
         type="int",
     )
     parser.add_option(

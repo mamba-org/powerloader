@@ -198,6 +198,7 @@ namespace powerloader
                     "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
             }
         }
+        target->finalize_success();
         return true;
     }
 

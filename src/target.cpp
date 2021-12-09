@@ -12,6 +12,11 @@ namespace powerloader
         }
     }
 
+    void Target::finalize_success()
+    {
+        // fs::rename(target->fn + PARTEXT, target->fn);
+    }
+
     bool Target::truncate_transfer_file()
     {
         spdlog::info("Truncating transfer file ");

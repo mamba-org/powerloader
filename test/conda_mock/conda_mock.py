@@ -7,7 +7,7 @@ from .config import AUTH_USER, AUTH_PASS
 
 
 def file_path(path):
-    return(os.path.join(os.path.dirname(os.path.abspath(__file__)), path))
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
 
 def conda_mock_handler(port):
@@ -49,6 +49,7 @@ def conda_mock_handler(port):
                 return self.return_bad_request()
             path = path[path.find("static/"):]
             try:
+                print("Returning ", file_path(path))
                 with open(file_path(path), 'rb') as f:
                     data = f.read()
                     if harm_keyword is not None and harm_keyword in os.path.basename(file_path(path)):
