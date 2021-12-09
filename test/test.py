@@ -83,6 +83,13 @@ def calculate_sha256(file):
         readable_hash = hashlib.sha256(b).hexdigest();
         return readable_hash
 
+def check_file(file):
+    assert not Path(file["pdpart_path"]).exists()
+    assert Path(file["path"]).exists()
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+
+
 def test_working_download(file, powerloader_binary, mock_server):
     remove_file(file["path"])
     remove_file(file["pdpart_path"])
@@ -92,9 +99,15 @@ def test_working_download(file, powerloader_binary, mock_server):
                                    "download",
                                    f"{mock_server}/static/packages/{file['name']}"])
 
-    assert not Path(file["pdpart_path"]).exists()
-    assert Path(file["path"]).exists()
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+    # check_file(file)
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2.pdpart") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+
+    # Slow because of the download
+    out = subprocess.check_output([powerloader_binary,
+                                   "download",
+                                   f"{server_address}/conda/harm_checksum/static/packages/{file['name']}"])
+
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2.pdpart") != "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
 
     remove_file(file["path"])
+    remove_file(file["pdpart_path"])
