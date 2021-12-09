@@ -9,7 +9,6 @@ except (ValueError, ImportError):
 def start_server(port, host="127.0.0.1", handler=None):
     if handler is None:
         handler = conda_mock_handler(port)
-
     print(f"Starting server with {port} on {host}\n")
     print("Server started!")
     with HTTPServer((host, port), handler) as server:

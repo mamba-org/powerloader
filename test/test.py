@@ -39,7 +39,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
 
 @pytest.fixture
 def mock_server(xprocess):
-    port = 5555
+    port = 4444
     curdir = pathlib.Path(__file__).parent
 
     class Starter(ProcessStarter):
@@ -100,14 +100,13 @@ def test_working_download(file, powerloader_binary, mock_server):
                                    f"{mock_server}/static/packages/{file['name']}"])
 
     # check_file(file)
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2.pdpart") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
 
     # Slow because of the download
     out = subprocess.check_output([powerloader_binary,
                                    "download",
-                                   f"{server_address}/conda/harm_checksum/static/packages/{file['name']}"])
-
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2.pdpart") != "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+                                   f"{mock_server}/static/harm_checksum/packages/{file['name']}"])
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") != "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
 
     remove_file(file["path"])
     remove_file(file["pdpart_path"])
