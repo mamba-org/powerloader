@@ -136,7 +136,8 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
 int
 handle_download(const std::vector<std::string>& urls,
                 const std::vector<std::string>& mirrors,
-                bool resume)
+                bool resume,
+                const std::string& outfile)
 {
     // the format for URLs is:
     // conda-forge:linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2] (last part optional, can be
@@ -144,45 +145,45 @@ handle_download(const std::vector<std::string>& urls,
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2]
     std::vector<std::unique_ptr<DownloadTarget>> targets;
 
+    auto& ctx = Context::instance();
+
     for (auto& x : urls)
     {
         if (contains(x, "://"))
         {
+            // even when we get a regular URL like `http://test.com/download.tar.gz`
+            // we want to create a "mirror" for `http://test.com` to make sure we correctly
+            // retry and wait on mirror failures
             URLHandler uh(x);
-            std::string url, dst;
-            url = uh.url();
-            dst = rsplit(uh.path(), "/", 1).back();
+            std::string url = uh.url();
+            std::string host = uh.host();
+            std::string path = uh.path();
+            std::string mirror_url = url.substr(0, url.size() - path.size());
+            std::string dst = outfile.empty() ? rsplit(uh.path(), "/", 1).back() : outfile;
 
-            // Doesn't work with ports for now! Needs fixing
-            // std::vector<std::string> parts = rsplit(x, ":", 1);
-            // if (starts_with(parts[1], "//"))
-            // {
-            // }
-            // else
-            // {
-            //     URLHandler uh(parts[0]);
-            //     url = uh.url();
-            //     dst = parts[1];
-            // }
-            std::cout << "Downloading " << url << " to " << dst << std::endl;
-            targets.emplace_back(new DownloadTarget(url, "", dst));
+            if (ctx.mirror_map.find(host) == ctx.mirror_map.end())
+            {
+                ctx.mirror_map[host] = std::make_shared<std::vector<Mirror*>>();
+            }
+
+            ctx.mirrors.emplace_back(new Mirror(mirror_url));
+            ctx.mirror_map[host]->push_back(ctx.mirrors.back().get());
+            targets.emplace_back(new DownloadTarget(path.substr(1, std::string::npos), host, dst));
         }
         else
         {
             std::vector<std::string> parts = split(x, ":");
-            std::string path, mirror, dst;
+            std::string path, mirror;
             if (parts.size() == 2)
             {
                 mirror = parts[0];
                 path = parts[1];
-                dst = rsplit(parts[1], "/", 1).back();
             }
-            else if (parts.size() == 3)
+            else
             {
-                mirror = parts[0];
-                path = parts[1];
-                dst = parts[2];
+                throw std::runtime_error("Not the correct number of : in the url");
             }
+            std::string dst = outfile.empty() ? rsplit(path, "/", 1).back() : outfile;
 
             spdlog::info("Downloading {} from {} to {}", path, mirror, dst);
             targets.emplace_back(new DownloadTarget(path, mirror, dst));
@@ -195,7 +196,7 @@ handle_download(const std::vector<std::string>& urls,
     }
 
     Downloader dl;
-    dl.mirror_map = Context::instance().mirror_map;
+    dl.mirror_map = ctx.mirror_map;
 
     for (auto& t : targets)
     {
@@ -216,7 +217,7 @@ main(int argc, char** argv)
     bool resume = false;
     std::vector<std::string> du_files;
     std::vector<std::string> mirrors;
-    std::string file;
+    std::string file, outfile;
     bool verbose = false;
 
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
@@ -224,13 +225,15 @@ main(int argc, char** argv)
     s_dl->add_option("-m", mirrors, "Mirrors from where to download");
     s_dl->add_option("-r,--resume", resume, "Try to resume");
     s_dl->add_option("-f", file, "File from which to read upload / download files");
+    s_dl->add_option("-o", outfile, "Output file");
 
     CLI::App* s_ul = app.add_subcommand("upload", "Upload a file");
     s_ul->add_option("files", du_files, "Files to upload");
     s_ul->add_option("-m", mirrors, "Mirror to upload to");
     s_ul->add_option("-f", file, "File from which to read upload / download files");
 
-    app.add_option("-v", verbose, "Enable verbose output");
+    s_ul->add_flag("-v", verbose, "Enable verbose output");
+    s_dl->add_flag("-v", verbose, "Enable verbose output");
 
     CLI11_PARSE(app, argc, argv);
 
@@ -291,7 +294,7 @@ main(int argc, char** argv)
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(du_files, mirrors, resume);
+        return handle_download(du_files, mirrors, resume, outfile);
     }
 
     return 0;

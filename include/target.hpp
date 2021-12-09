@@ -86,7 +86,7 @@ namespace powerloader
         Mirror* mirror = nullptr;
         std::shared_ptr<std::vector<Mirror*>> mirrors;
         std::set<Mirror*> tried_mirrors;
-        Mirror* used_mirror;
+        Mirror* used_mirror = nullptr;
 
         HeaderCbState headercb_state;
         std::string headercb_interrupt_reason;
