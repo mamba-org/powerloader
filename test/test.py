@@ -101,6 +101,7 @@ def test_working_download(file, powerloader_binary, mock_server):
 
     # check_file(file)
     assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    remove_file(file["path"])
 
     # Slow because of the download
     out = subprocess.check_output([powerloader_binary,

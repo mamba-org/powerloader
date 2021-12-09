@@ -159,7 +159,6 @@ handle_download(const std::vector<std::string>& urls,
             std::string host = uh.host();
             std::string path = uh.path();
             std::string mirror_url = url.substr(0, url.size() - path.size());
-
             std::string dst = outfile.empty() ? rsplit(uh.path(), "/", 1).back() : outfile;
 
             if (ctx.mirror_map.find(host) == ctx.mirror_map.end())
@@ -169,7 +168,7 @@ handle_download(const std::vector<std::string>& urls,
 
             ctx.mirrors.emplace_back(new Mirror(mirror_url));
             ctx.mirror_map[host]->push_back(ctx.mirrors.back().get());
-            targets.emplace_back(new DownloadTarget(uh.path(), host, dst));
+            targets.emplace_back(new DownloadTarget(path.substr(1, std::string::npos), host, dst));
         }
         else
         {
