@@ -144,14 +144,27 @@ handle_download(const std::vector<std::string>& urls,
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2]
     std::vector<std::unique_ptr<DownloadTarget>> targets;
 
+    auto& ctx = Context::instance();
+
     for (auto& x : urls)
     {
         if (contains(x, "://"))
         {
+            // even when we get a regular URL like `http://test.com/download.tar.gz`
+            // we want to create a "mirror" for `http://test.com` to make sure we correctly
+            // retry and wait on mirror failures
             URLHandler uh(x);
             std::string url, dst;
+            std::string host = uh.host();
             url = uh.url();
             dst = rsplit(uh.path(), "/", 1).back();
+
+            if (ctx.mirror_map.find(host) == ctx.mirror_map.end())
+            {
+                ctx.mirror_map[host] = std::make_shared<std::vector<Mirror*>>();
+            }
+            ctx.mirrors.emplace_back(new Mirror(url));
+            ctx.mirror_map[host]->push_back(ctx.mirrors.back().get());
 
             // Doesn't work with ports for now! Needs fixing
             // std::vector<std::string> parts = rsplit(x, ":", 1);
@@ -164,8 +177,7 @@ handle_download(const std::vector<std::string>& urls,
             //     url = uh.url();
             //     dst = parts[1];
             // }
-            std::cout << "Downloading " << url << " to " << dst << std::endl;
-            targets.emplace_back(new DownloadTarget(url, "", dst));
+            targets.emplace_back(new DownloadTarget(uh.path(), host, dst));
         }
         else
         {
@@ -195,7 +207,7 @@ handle_download(const std::vector<std::string>& urls,
     }
 
     Downloader dl;
-    dl.mirror_map = Context::instance().mirror_map;
+    dl.mirror_map = ctx.mirror_map;
 
     for (auto& t : targets)
     {
@@ -230,7 +242,8 @@ main(int argc, char** argv)
     s_ul->add_option("-m", mirrors, "Mirror to upload to");
     s_ul->add_option("-f", file, "File from which to read upload / download files");
 
-    app.add_option("-v", verbose, "Enable verbose output");
+    s_ul->add_flag("-v", verbose, "Enable verbose output");
+    s_dl->add_flag("-v", verbose, "Enable verbose output");
 
     CLI11_PARSE(app, argc, argv);
 

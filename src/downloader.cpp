@@ -355,6 +355,7 @@ namespace powerloader
                 if (mirror && !mirror->need_preparation(target))
                 {
                     full_url = mirror->format_url(target);
+                    target->mirror = mirror;
                 }
                 else
                 {
@@ -877,6 +878,7 @@ namespace powerloader
                             spdlog::info("Ignore error - Try another mirror");
                         }
                         current_target->state = DownloadState::kWAITING;
+                        current_target->retries++;
                         retry = true;
 
                         // range fail
@@ -902,7 +904,6 @@ namespace powerloader
                 if (!retry)
                 {
                     // No more mirrors to try or base_url used or fatal error
-                    spdlog::info("No more retries (tried: {})", num_of_tried_mirrors);
                     current_target->state = DownloadState::kFAILED;
 
                     // Call end callback
