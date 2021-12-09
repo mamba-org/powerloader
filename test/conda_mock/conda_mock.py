@@ -5,7 +5,6 @@ import sys
 
 from .config import AUTH_USER, AUTH_PASS
 
-
 def file_path(path):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
@@ -43,14 +42,21 @@ def conda_mock_handler(port):
                 return keyword, path
             return path
 
+        def serve_harm_checksum(self):
+            """Append two newlines to content of a file (from the static dir) with
+            specified keyword in the filename. If the filename doesn't contain
+            the keyword, content of the file is returnen unchanged."""
+            keyword, path = self.parse_path('', keyword_expected=True)
+            self.serve_file(path, harm_keyword=keyword)
+
         def serve_file(self, path, harm_keyword=None):
             if "static/" not in path:
                 # Support changing only files from static directory
                 return self.return_bad_request()
+
             path = path[path.find("static/"):]
             try:
-                print("Returning ", file_path(path))
-                with open(file_path(path), 'rb') as f:
+                with open(file_path(path.replace("static/harm_checksum", "static")), 'rb') as f:
                     data = f.read()
                     if harm_keyword is not None and harm_keyword in os.path.basename(file_path(path)):
                         data += b"\n\n"
@@ -68,6 +74,8 @@ def conda_mock_handler(port):
             Add specific hooks if needed
             :return:
             """
+            if self.path.startswith('/static/harm_checksum/'):
+                return self.serve_harm_checksum()
             return self.serve_static()
 
     return CondaMockHandler

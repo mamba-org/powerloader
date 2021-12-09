@@ -39,7 +39,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
 
 @pytest.fixture
 def mock_server(xprocess):
-    port = 5555
+    port = 4444
     curdir = pathlib.Path(__file__).parent
 
     class Starter(ProcessStarter):
@@ -83,6 +83,13 @@ def calculate_sha256(file):
         readable_hash = hashlib.sha256(b).hexdigest();
         return readable_hash
 
+def check_file(file):
+    assert not Path(file["pdpart_path"]).exists()
+    assert Path(file["path"]).exists()
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+
+
 def test_working_download(file, powerloader_binary, mock_server):
     remove_file(file["path"])
     remove_file(file["pdpart_path"])
@@ -92,9 +99,14 @@ def test_working_download(file, powerloader_binary, mock_server):
                                    "download",
                                    f"{mock_server}/static/packages/{file['name']}"])
 
-    assert not Path(file["pdpart_path"]).exists()
-    assert Path(file["path"]).exists()
+    # check_file(file)
     assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+
+    # Slow because of the download
+    out = subprocess.check_output([powerloader_binary,
+                                   "download",
+                                   f"{mock_server}/static/harm_checksum/packages/{file['name']}"])
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") != "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
 
     remove_file(file["path"])
+    remove_file(file["pdpart_path"])
