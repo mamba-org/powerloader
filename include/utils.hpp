@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 
 extern "C"
 {
-#include <openssl/sha.h>
+#include <openssl/evp.h>
 }
 
 namespace powerloader
@@ -77,12 +77,16 @@ namespace powerloader
 
     inline std::string sha256(const std::string& str) noexcept
     {
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256, str.c_str(), str.size());
-        SHA256_Final(hash, &sha256);
-        return hex_string(hash, SHA256_DIGEST_LENGTH);
+        unsigned char hash[32];
+
+        EVP_MD_CTX* mdctx;
+        mdctx = EVP_MD_CTX_create();
+        EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
+        EVP_DigestUpdate(mdctx, str.c_str(), str.size());
+        EVP_DigestFinal_ex(mdctx, hash, nullptr);
+        EVP_MD_CTX_destroy(mdctx);
+
+        return hex_string(hash, 32);
     }
 
     class download_error : public std::runtime_error
@@ -130,13 +134,12 @@ namespace powerloader
 
     inline std::string sha256sum(const fs::path& path)
     {
-        std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
-
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
+        unsigned char hash[32];
+        EVP_MD_CTX* mdctx;
+        mdctx = EVP_MD_CTX_create();
+        EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
 
         std::ifstream infile(path, std::ios::binary);
-
         constexpr std::size_t BUFSIZE = 32768;
         std::vector<char> buffer(BUFSIZE);
 
@@ -146,12 +149,13 @@ namespace powerloader
             size_t count = infile.gcount();
             if (!count)
                 break;
-            SHA256_Update(&sha256, buffer.data(), count);
+            EVP_DigestUpdate(mdctx, buffer.data(), count);
         }
 
-        SHA256_Final(hash.data(), &sha256);
+        EVP_DigestFinal_ex(mdctx, hash, nullptr);
+        EVP_MD_CTX_destroy(mdctx);
 
-        return hex_string(hash);
+        return hex_string(hash, 32);
     }
 
     inline std::pair<std::string, std::string> parse_header(const std::string_view& header)

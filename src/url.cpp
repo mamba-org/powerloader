@@ -9,7 +9,6 @@
 #include "url.hpp"
 #include "utils.hpp"
 
-#include "openssl/md5.h"
 #include <iostream>
 #include <regex>
 
@@ -109,13 +108,16 @@ namespace powerloader
 
     std::string cache_name_from_url(const std::string& url)
     {
-        std::vector<unsigned char> hash(MD5_DIGEST_LENGTH);
-        MD5_CTX md5;
-        MD5_Init(&md5);
-        MD5_Update(&md5, url.c_str(), url.size());
-        MD5_Final(hash.data(), &md5);
+        unsigned char hash[16];
 
-        std::string hex_digest = hex_string(hash);
+        EVP_MD_CTX* mdctx;
+        mdctx = EVP_MD_CTX_create();
+        EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
+        EVP_DigestUpdate(mdctx, url.c_str(), url.size());
+        EVP_DigestFinal_ex(mdctx, hash, nullptr);
+        EVP_MD_CTX_destroy(mdctx);
+
+        std::string hex_digest = hex_string(hash, 16);
         return hex_digest.substr(0u, 8u);
     }
 
