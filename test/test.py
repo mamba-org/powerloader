@@ -49,16 +49,8 @@ def mock_server(xprocess):
         # command to start process
         args = ['python3', curdir / 'server.py', '-p', str(port)]
 
-        # checks if our server is ready with a ping
-        def startup_check(self):
-            return True
-            # sock = socket.socket()
-            # sock.connect(("beta.mamba.mock", port))
-            # sock.sendall(b"ping\n")
-            # return sock.recv(1) == "pong!"
-
     # ensure process is running and return its logfile
-    logfile = xprocess.ensure("myserver", Starter)
+    logfile = xprocess.ensure("mock_server", Starter)
     print(logfile)
     yield f"http://localhost:{port}" # True
 
@@ -81,7 +73,6 @@ def calculate_sha256(file):
 
 
 def test_working_download(file, mock_server, powerloader_binary):
-
     remove_file(file["path"])
     remove_file(file["pdpart_path"])
 
