@@ -180,13 +180,11 @@ handle_download(const std::vector<std::string>& urls,
                 mirror = parts[0];
                 path = parts[1];
             }
-            else if (parts.size() == 3)
+            else
             {
-                mirror = parts[0];
-                path = parts[1];
+                throw std::runtime_error("Not the correct number of : in the url");
             }
-
-            std::string dst = outfile.empty() ? rsplit(uh.path(), "/", 1).back() : outfile;
+            std::string dst = outfile.empty() ? rsplit(path, "/", 1).back() : outfile;
 
             spdlog::info("Downloading {} from {} to {}", path, mirror, dst);
             targets.emplace_back(new DownloadTarget(path, mirror, dst));
