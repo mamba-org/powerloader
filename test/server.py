@@ -1,15 +1,10 @@
-
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import HTTPServer
 from optparse import OptionParser
-import socketserver
-import time
-import sys
 
 try:
     from conda_mock.conda_mock import conda_mock_handler
 except (ValueError, ImportError):
     from .conda_mock.conda_mock import conda_mock_handler
-
 
 def start_server(port, host="127.0.0.1", handler=None):
     if handler is None:

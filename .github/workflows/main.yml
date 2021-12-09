@@ -73,9 +73,4 @@ jobs:
           wget https://beta.mamba.pm/get/conda-forge/osx-arm64/xtensor-0.24.0-hc021e02_0.tar.bz2 \
               -O ./test/conda_mock/static/packages/xtensor-0.24.0-hc021e02_0.tar.bz2
 
-          python test/server.py -p 5555 &
-          SERVER_PID=$!
-
           pytest ./test/*.py
-
-          kill $SERVER_PID
