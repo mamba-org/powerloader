@@ -149,7 +149,7 @@ namespace powerloader
             size_t count = infile.gcount();
             if (!count)
                 break;
-            EVP_DigestUpdate(mdctx, buffer.data(), count)
+            EVP_DigestUpdate(mdctx, buffer.data(), count);
         }
 
         EVP_DigestFinal_ex(mdctx, hash, nullptr);
