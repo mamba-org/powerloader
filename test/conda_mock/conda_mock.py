@@ -8,6 +8,7 @@ from .config import AUTH_USER, AUTH_PASS
 def file_path(path):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
+failure_count = 0
 
 def conda_mock_handler(port):
 
@@ -20,6 +21,20 @@ def conda_mock_handler(port):
 
         def return_not_found(self):
             self.send_response(404)
+            self.end_headers()
+
+        def return_temporary_not_found(self):
+            global failure_count
+            failure_count += 1
+            if failure_count < 3:
+                self.return_not_found()
+            else:
+                self.serve_static()
+
+        def reset_failure_count(self):
+            global failure_count
+            failure_count = 0
+            self.send_response(200)
             self.end_headers()
 
         def return_ok_with_message(self, message, content_type='text/html'):
@@ -56,7 +71,7 @@ def conda_mock_handler(port):
 
             path = path[path.find("static/"):]
             try:
-                with open(file_path(path.replace("static/harm_checksum", "static")), 'rb') as f:
+                with open(file_path(path), 'rb') as f:
                     data = f.read()
                     if harm_keyword is not None and harm_keyword in os.path.basename(file_path(path)):
                         data += b"\n\n"
@@ -74,8 +89,16 @@ def conda_mock_handler(port):
             Add specific hooks if needed
             :return:
             """
-            if self.path.startswith('/static/harm_checksum/'):
+
+            if self.path.startswith('/temporarily_broken/static/'):
+                return self.return_temporary_not_found()
+
+            if self.path.startswith('/reset_failure_count'):
+                return self.reset_failure_count()
+
+            if self.path.startswith('/harm_checksum/static/'):
                 return self.serve_harm_checksum()
+
             return self.serve_static()
 
     return CondaMockHandler
