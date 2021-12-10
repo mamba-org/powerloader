@@ -7,6 +7,8 @@ import os
 import hashlib
 import time
 
+perform_slow_tests = False
+
 @pytest.fixture
 def get_proj_root(cwd=os.getcwd()):
     proj_root = cwd
@@ -34,6 +36,8 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["pdpart_path"] = file_map["path"] + ".pdpart"
     file_map["server"] = file_map["location"] + "server.py"
     file_map["url"] = "https://beta.mamba.pm/get/conda-forge/osx-arm64/" + file_map["name"]
+    file_map["checksum"] = "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    file_map["size"] = 185929
     return file_map
 
 
@@ -89,41 +93,69 @@ def remove_all(file):
     remove_file(file["pdpart_path"])
 
 
+# Download the expected file
 def test_working_download(file, powerloader_binary, mock_server):
     remove_all(file)
-
-    # Download the expected file
     out = subprocess.check_output([powerloader_binary,
                                    "download",
                                    f"{mock_server}/static/packages/{file['name']}"])
 
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
     assert not Path(file["pdpart_path"]).exists()
     assert Path(file["path"]).exists()
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
+
+
+# Download from a path that works on the third try
+def test_broken_for_three_tries(file, powerloader_binary, mock_server):
+    if perform_slow_tests:
+        remove_all(file)
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server}/broken_counts/static/packages/{file['name']}"])
+        assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
+        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
+    else: pass
+
+
+# Download from a path that works after some time.
+# Warning: this test may take (very) long if "time_thresh" is too small in the server.
+def test_broken_temporarily(file, powerloader_binary, mock_server):
+    if perform_slow_tests:
+        remove_all(file)
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server}/broken_temporary/static/packages/{file['name']}"])
+        assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
+        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
+    else: pass
+
+
+def test_working_download_broken_checksum(file, powerloader_binary, mock_server):
     remove_all(file)
 
-    # Download a broken file
-    out = subprocess.check_output([powerloader_binary,
-                                   "download",
-                                   f"{mock_server}/harm_checksum/static/packages/{file['name']}"])
-    assert Path(file["path"]).exists()
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") != "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") != 185929
+    try:
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server}/static/packages/{file['name']}",
+                                       "--sha",
+                                       "\"broken_checksum\""])
+    except subprocess.CalledProcessError as e: print(e)
+
+    assert not Path(file["pdpart_path"]).exists()
+    assert not Path(file["path"]).exists()
+
+# Download a broken file
+def test_broken_download_good_checksum(file, powerloader_binary, mock_server):
     remove_all(file)
 
-    # Download from a path that works on the third try
-    out = subprocess.check_output([powerloader_binary,
-                                   "download",
-                                   f"{mock_server}/broken_counts/static/packages/{file['name']}"])
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
-    remove_all(file)
+    try:
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server}/harm_checksum/static/packages/{file['name']}",
+                                       "--sha",
+                                       "\"broken_checksum\""])
+    except subprocess.CalledProcessError as e: print(e)
 
-    # Download from a path that works after some time
-    out = subprocess.check_output([powerloader_binary,
-                                   "download",
-                                   f"{mock_server}/broken_temporary/static/packages/{file['name']}"])
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
-    remove_all(file)
+    assert not Path(file["pdpart_path"]).exists()
+    assert not Path(file["path"]).exists()
