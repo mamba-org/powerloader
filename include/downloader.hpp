@@ -87,7 +87,7 @@ namespace powerloader
         bool can_retry_download(int num_of_tried_mirrors, const std::string& url);
         bool check_msgs(bool failfast);
         bool set_max_speeds_to_transfers();
-        void download();
+        bool download();
 
         bool failfast = false;
         CURLM* multi_handle;
