@@ -41,6 +41,11 @@ def conda_mock_handler(port):
             else:
                 return self.return_not_found()
 
+        def return_half_pause_and_proceed(self):
+            # TODO: Add range request functionality
+            pass
+
+
         def reset_failure_count(self):
             global failure_count
             failure_count = 0
@@ -52,6 +57,7 @@ def conda_mock_handler(port):
                 message = bytes(message, 'utf8')
             self.send_response(200)
             self.send_header('Content-type', content_type)
+            self.send_header('Accept-Ranges', 'bytes')
             self.send_header('Content-Length', str(len(message)))
             self.end_headers()
             self.wfile.write(message)
@@ -105,6 +111,9 @@ def conda_mock_handler(port):
 
             if self.path.startswith('/broken_temporary/static/'):
                 return self.return_not_found_temporary()
+
+            if self.path.startswith('/interrupted_temporarily/static/'):
+                return self.return_half_pause_and_proceed()
 
             if self.path.startswith('/reset_broken_count'):
                 return self.reset_failure_count()

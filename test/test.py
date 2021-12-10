@@ -90,6 +90,7 @@ def remove_all(file):
 
 
 def test_working_download(file, powerloader_binary, mock_server):
+    slow_tests = False
     remove_all(file)
 
     # Download the expected file
@@ -112,18 +113,29 @@ def test_working_download(file, powerloader_binary, mock_server):
     assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") != 185929
     remove_all(file)
 
-    # Download from a path that works on the third try
-    out = subprocess.check_output([powerloader_binary,
-                                   "download",
-                                   f"{mock_server}/broken_counts/static/packages/{file['name']}"])
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
-    remove_all(file)
+    if slow_tests:
+        # Download from a path that works on the third try
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server}/broken_counts/static/packages/{file['name']}"])
+        assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+        remove_all(file)
 
-    # Download from a path that works after some time
+        # Download from a path that works after some time -- test may run slowly
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server}/broken_temporary/static/packages/{file['name']}"])
+        assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+        remove_all(file)
+
+    """
+    # Download gets interrupted for some time
     out = subprocess.check_output([powerloader_binary,
                                    "download",
-                                   f"{mock_server}/broken_temporary/static/packages/{file['name']}"])
+                                   f"{mock_server}/interrupted_temporarily/static/packages/{file['name']}"])
     assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
     assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
     remove_all(file)
+    """
