@@ -33,7 +33,7 @@ namespace powerloader
         if (status == TransferStatus::kSUCCESSFUL)
         {
             reset();
-            fs::rename(target->fn + PARTEXT, target->fn);
+            fs::rename(temp_file, target->fn);
         }
         else if (status == TransferStatus::kALREADYEXISTS)
         {
@@ -42,7 +42,7 @@ namespace powerloader
         else if (status == TransferStatus::kERROR)
         {
             // TODO remove or can we continue?
-            // fs::remove(target->fn + PARTEXT);
+            // fs::remove(temp_file);
         }
 
         return rc;
@@ -98,7 +98,8 @@ namespace powerloader
                 open_flags = std::ios::out | std::ios::trunc | std::ios::binary;
             }
 
-            target->fd.reset(new std::ofstream(target->fn + PARTEXT, open_flags));
+            temp_file = target->fn + PARTEXT;
+            target->fd.reset(new std::ofstream(temp_file, open_flags));
             // TODO set permissions using fs::permissions?!
             // fd = open(target->fn, open_flags, 0666);
         }
@@ -247,13 +248,10 @@ namespace powerloader
                     spdlog::info("Server returned Content-Length: {}", content_length);
                     if (content_length > 0 && content_length != expected)
                     {
-                        spdlog::info("Content length from server not matching {} vs {}",
-                                     content_length,
-                                     expected);
                         target->headercb_state = HeaderCbState::kINTERRUPTED;
-                        // target->headercb_interrupt_reason = fmt::format(
-                        //     "Server reports Content-Length: {} but expected size is: {}",
-                        //     content_length, expected);
+                        target->headercb_interrupt_reason = fmt::format(
+                            "Server reports Content-Length: {} but expected size is: {}",
+                            content_length, expected);
 
                         // Return error value
                         ret++;
@@ -428,11 +426,19 @@ namespace powerloader
         return ret;
     }
 
+    bool Target::check_filesize()
+    {
+        if (target->expected_size > 0)
+        {
+            return fs::file_size(temp_file) == target->expected_size;
+        }
+        return true;
+    }
+
     bool Target::check_checksums()
     {
         if (target->checksums.empty())
         {
-            spdlog::warn("Could not check checksums. None available.");
             return true;
         }
 
@@ -443,9 +449,35 @@ namespace powerloader
             }
             return nullptr;
         };
-        if (findchecksum(ChecksumType::kSHA256))
+        Checksum* cs;
+        if ((cs = findchecksum(ChecksumType::kSHA256)))
         {
-            spdlog::warn("Checking SHA256");
+            spdlog::info("Checking SHA256 sum");
+            auto sum = sha256sum(temp_file);
+            if (sum != cs->checksum)
+            {
+                spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
+                fs::remove(temp_file);
+                return false;
+            }
+            return true;
+        }
+        else if ((cs = findchecksum(ChecksumType::kSHA1)))
+        {
+            spdlog::error("Checking SHA1 sum not implemented!");
+            return false;
+        }
+        else if ((cs = findchecksum(ChecksumType::kMD5)))
+        {
+            spdlog::info("Checking MD5 sum");
+            auto sum = md5sum(temp_file);
+            if (sum != cs->checksum)
+            {
+                spdlog::error("MD5 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
+                fs::remove(temp_file);
+                return false;
+            }
+            return true;
         }
         return true;
     }

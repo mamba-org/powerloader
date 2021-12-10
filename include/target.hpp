@@ -69,10 +69,11 @@ namespace powerloader
 
         void reset();
 
+        bool check_filesize();
         bool check_checksums();
 
         DownloadTarget* target;
-        fs::path out_file;
+        fs::path temp_file;
         std::string url_stub;
 
         bool resume = false;

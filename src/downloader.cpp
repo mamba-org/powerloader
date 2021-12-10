@@ -813,6 +813,11 @@ namespace powerloader
         //     }
         // } else {
 #endif
+            if (!current_target->check_checksums())
+            {
+                // this is what librepo does, but I am not sure it's ideal
+                return false;
+            }
         // New file was downloaded - clear checksums cached in extended attributes
         // ret = check_finished_transfer_checksum(fd,
         //                                       target->target->checksums,
@@ -1145,7 +1150,7 @@ namespace powerloader
         return true;
     }
 
-    void Downloader::download()
+    bool Downloader::download()
     {
         int still_running, repeats = 0;
         const long max_wait_msecs = 1000;
@@ -1159,7 +1164,12 @@ namespace powerloader
             {
                 throw std::runtime_error(curl_multi_strerror(code));
             }
-            check_msgs(failfast);
+            bool check = check_msgs(failfast);
+            if (!check)
+            {
+                curl_multi_cleanup(multi_handle);
+                return false;
+            }
 
             if (!still_running && m_running_transfers.empty() && !is_sig_interrupted())
             {
@@ -1208,10 +1218,10 @@ namespace powerloader
         {
             spdlog::info("Download interrupted");
             curl_multi_cleanup(multi_handle);
-            // return false;
-            return;
+            return false;
         }
 
+        return true;
         // check if all targets are in finished state
         // finished = true;
         // for (auto& t : m_targets)

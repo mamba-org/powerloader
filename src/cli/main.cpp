@@ -138,7 +138,7 @@ handle_download(const std::vector<std::string>& urls,
                 const std::vector<std::string>& mirrors,
                 bool resume,
                 const std::string& outfile,
-                std::string& sha_cli,
+                const std::string& sha_cli,
                 long int filesize)
 {
     // the format for URLs is:
@@ -192,6 +192,11 @@ handle_download(const std::vector<std::string>& urls,
         }
         targets.back()->resume = resume;
 
+        if (!sha_cli.empty())
+            targets.back()->checksums.push_back(Checksum{ChecksumType::kSHA256, sha_cli});
+        if (filesize > 0)
+            targets.back()->expected_size = filesize;
+
         using namespace std::placeholders;
         targets.back()->progress_callback
             = std::bind(&progress_callback, targets.back().get(), _1, _2);
@@ -205,7 +210,12 @@ handle_download(const std::vector<std::string>& urls,
         dl.add(t.get());
     }
 
-    dl.download();
+    bool success = dl.download();
+    if (!success)
+    {
+        spdlog::error("Download was not successful");
+        exit(1);
+    }
 
     return 0;
 }
