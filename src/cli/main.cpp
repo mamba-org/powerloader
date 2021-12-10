@@ -249,7 +249,7 @@ main(int argc, char** argv)
     s_ul->add_flag("-v", verbose, "Enable verbose output");
     s_dl->add_flag("-v", verbose, "Enable verbose output");
 
-    s_dl->add_option("--sha", sha_cli, "Expected SHA String");
+    s_dl->add_option("--sha", sha_cli, "Expected SHA string");
     s_dl->add_option("-i", filesize, "Expected file size");
 
     CLI11_PARSE(app, argc, argv);
