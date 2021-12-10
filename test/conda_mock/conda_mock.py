@@ -15,8 +15,7 @@ def conda_mock_handler(port):
 
     class CondaMockHandler(BaseHTTPRequestHandler):
         _port = port
-        count_thresh, time_thresh = 3, 7
-        start_time = time.time()
+        count_thresh = 3 
 
         def return_bad_request(self):
             self.send_response(400)
@@ -33,15 +32,6 @@ def conda_mock_handler(port):
                 self.return_not_found()
             else:
                 self.serve_static()
-
-        def return_not_found_temporary(self):
-            global failure_count
-            reference = 1.1 * self.time_thresh + time.time() - self.start_time
-            if ((reference % 10) < self.time_thresh) and failure_count < self.count_thresh:
-                return self.serve_static()
-            else:
-                failure_count += 1
-                return self.return_not_found()
 
         def reset_failure_count(self):
             global failure_count
@@ -104,9 +94,6 @@ def conda_mock_handler(port):
 
             if self.path.startswith('/broken_counts/static/'):
                 return self.return_not_found_counts()
-
-            if self.path.startswith('/broken_temporary/static/'):
-                return self.return_not_found_temporary()
 
             if self.path.startswith('/reset_broken_count'):
                 return self.reset_failure_count()

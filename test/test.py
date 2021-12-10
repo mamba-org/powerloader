@@ -7,7 +7,6 @@ import os
 import hashlib
 import time
 
-perform_slow_tests = False
 
 @pytest.fixture
 def get_proj_root(cwd=os.getcwd()):
@@ -108,53 +107,37 @@ def test_working_download(file, powerloader_binary, mock_server):
 
 # Download from a path that works on the third try
 def test_broken_for_three_tries(file, powerloader_binary, mock_server):
-    if perform_slow_tests:
-        remove_all(file)
-        out = subprocess.check_output([powerloader_binary,
-                                       "download",
-                                       f"{mock_server}/broken_counts/static/packages/{file['name']}"])
-        assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
-        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
-    else: pass
-
-
-# Download from a path that works after some time.
-# Warning: this test may take (very) long if "time_thresh" is too small in the server.
-def test_broken_temporarily(file, powerloader_binary, mock_server):
-    if perform_slow_tests:
-        remove_all(file)
-        out = subprocess.check_output([powerloader_binary,
-                                       "download",
-                                       f"{mock_server}/broken_temporary/static/packages/{file['name']}"])
-        assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
-        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
-    else: pass
+    remove_all(file)
+    out = subprocess.check_output([powerloader_binary,
+                                   "download",
+                                   f"{mock_server}/broken_counts/static/packages/{file['name']}"])
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
+    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
 
 
 def test_working_download_broken_checksum(file, powerloader_binary, mock_server):
     remove_all(file)
-
     try:
         out = subprocess.check_output([powerloader_binary,
                                        "download",
                                        f"{mock_server}/static/packages/{file['name']}",
                                        "--sha",
-                                       "\"broken_checksum\""])
+                                       "broken_checksum"])
     except subprocess.CalledProcessError as e: print(e)
 
     assert not Path(file["pdpart_path"]).exists()
     assert not Path(file["path"]).exists()
 
+
 # Download a broken file
 def test_broken_download_good_checksum(file, powerloader_binary, mock_server):
     remove_all(file)
-
     try:
         out = subprocess.check_output([powerloader_binary,
                                        "download",
                                        f"{mock_server}/harm_checksum/static/packages/{file['name']}",
                                        "--sha",
-                                       "\"broken_checksum\""])
+                                       "broken_checksum\""])
     except subprocess.CalledProcessError as e: print(e)
 
     assert not Path(file["pdpart_path"]).exists()
