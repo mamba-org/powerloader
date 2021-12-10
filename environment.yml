@@ -10,7 +10,7 @@ dependencies:
   - nlohmann_json
   - cli11
   # Not available on Windows
-  - sel(unix): zchunk
+  # - sel(unix): zchunk
   - spdlog
   - gtest
   # necessary for gtest cmake to work properly
