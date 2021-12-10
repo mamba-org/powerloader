@@ -15,7 +15,7 @@ def conda_mock_handler(port):
 
     class CondaMockHandler(BaseHTTPRequestHandler):
         _port = port
-        count_thresh = 3 
+        count_thresh = 3
 
         def return_bad_request(self):
             self.send_response(400)

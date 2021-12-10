@@ -137,7 +137,7 @@ def test_broken_download_good_checksum(file, powerloader_binary, mock_server):
                                        "download",
                                        f"{mock_server}/harm_checksum/static/packages/{file['name']}",
                                        "--sha",
-                                       "broken_checksum\""])
+                                       "broken_checksum"])
     except subprocess.CalledProcessError as e: print(e)
 
     assert not Path(file["pdpart_path"]).exists()
