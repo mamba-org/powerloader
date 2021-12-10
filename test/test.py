@@ -6,6 +6,9 @@ import platform
 import os
 import hashlib
 import time
+import json
+from urllib.request import urlopen
+
 
 
 @pytest.fixture
@@ -30,10 +33,10 @@ def powerloader_binary(get_proj_root):
 def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map = {}
     file_map["name"] = name
-    file_map["location"] = get_proj_root + "/"
-    file_map["path"] = file_map["location"] + file_map["name"]
-    file_map["pdpart_path"] = file_map["path"] + ".pdpart"
-    file_map["server"] = file_map["location"] + "server.py"
+    file_map["location"] = Path(get_proj_root)
+    file_map["path"] = file_map["location"] / file_map["name"]
+    file_map["pdpart_path"] = Path(str(file_map["path"]) + ".pdpart")
+    file_map["server"] = file_map["location"] / "server.py"
     file_map["url"] = "https://beta.mamba.pm/get/conda-forge/osx-arm64/" + file_map["name"]
     file_map["checksum"] = "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
     file_map["size"] = 185929
@@ -72,13 +75,6 @@ def mock_server(xprocess):
     # clean up whole process tree afterwards
     xprocess.getinfo("mock_server").terminate()
 
-
-def remove_file(file_path):
-    args = ("rm", "-rf", file_path)
-    subprocess.call('%s %s %s' % args, shell=True)
-    assert not Path(file_path).exists()
-
-
 def calculate_sha256(file):
     with open(file, "rb") as f:
         # read entire file as bytes
@@ -86,11 +82,9 @@ def calculate_sha256(file):
         readable_hash = hashlib.sha256(b).hexdigest();
         return readable_hash
 
-
 def remove_all(file):
-    remove_file(file["path"])
-    remove_file(file["pdpart_path"])
-
+    file["path"].unlink(missing_ok=True)
+    file["pdpart_path"].unlink(missing_ok=True)
 
 # Download the expected file
 def test_working_download(file, powerloader_binary, mock_server):
@@ -142,3 +136,29 @@ def test_broken_download_good_checksum(file, powerloader_binary, mock_server):
 
     assert not Path(file["pdpart_path"]).exists()
     assert not Path(file["path"]).exists()
+
+def get_prev_headers(mock_server):
+    with urlopen(f"{mock_server}/prev_headers") as fi:
+        return json.loads(fi.read().decode('utf-8'))
+
+def test_part_resume(file, powerloader_binary, mock_server):
+    # Download the expected file
+    out = subprocess.check_output([powerloader_binary,
+                                   "download",
+                                   f"{mock_server}/static/packages/{file['name']}"])
+
+    with open(file['path'], 'rb') as fi:
+        data = fi.read()
+    with open(file['pdpart_path'], 'wb') as fo:
+        fo.write(data[0:400])
+
+    out = subprocess.check_output([powerloader_binary,
+                               "download", "-r",
+                               f"{mock_server}/static/packages/{file['name']}"])
+
+    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+
+    sent_headers = get_prev_headers(mock_server)
+    assert ('Range' in sent_headers)
+    assert (sent_headers['Range'] == 'bytes=400-')

@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import re
+import json
 
 from .config import AUTH_USER, AUTH_PASS
 
@@ -11,7 +12,7 @@ def file_path(path):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
 failure_count = 0
-
+prev_headers = None
 BYTE_RANGE_RE = re.compile(r'bytes=(\d+)-(\d+)?$')
 def parse_byte_range(byte_range):
     '''Returns the two numbers in 'bytes=123-456' or throws ValueError.
@@ -105,7 +106,18 @@ def conda_mock_handler(port):
             self.end_headers()
             self.wfile.write(data[first:last + 1])
 
+        def serve_prev_headers(self):
+            if not prev_headers:
+                self.return_ok_with_message(json.dumps(None).encode('utf-8'), 'application/json')
+            d = {}
+            for k in prev_headers.keys():
+                d[k] = prev_headers[k]
+            self.return_ok_with_message(json.dumps(d).encode('utf-8'), 'application/json')
+
         def serve_file(self, path, harm_keyword=None):
+            global prev_headers
+            prev_headers = self.headers
+
             if 'Range' not in self.headers:
                 self.range = None
             else:
@@ -142,6 +154,9 @@ def conda_mock_handler(port):
             Add specific hooks if needed
             :return:
             """
+
+            if self.path.startswith('/prev_headers'):
+                return self.serve_prev_headers()
 
             if self.path.startswith('/broken_counts/static/'):
                 return self.return_not_found_counts()

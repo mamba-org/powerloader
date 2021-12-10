@@ -237,7 +237,7 @@ main(int argc, char** argv)
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
     s_dl->add_option("files", du_files, "Files to download");
     s_dl->add_option("-m", mirrors, "Mirrors from where to download");
-    s_dl->add_option("-r,--resume", resume, "Try to resume");
+    s_dl->add_flag("-r,--resume", resume, "Try to resume");
     s_dl->add_option("-f", file, "File from which to read upload / download files");
     s_dl->add_option("-o", outfile, "Output file");
 
