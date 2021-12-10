@@ -219,6 +219,8 @@ main(int argc, char** argv)
     std::vector<std::string> mirrors;
     std::string file, outfile;
     bool verbose = false;
+    unsigned int filesize;
+    std::string sha;
 
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
     s_dl->add_option("files", du_files, "Files to download");
@@ -234,6 +236,9 @@ main(int argc, char** argv)
 
     s_ul->add_flag("-v", verbose, "Enable verbose output");
     s_dl->add_flag("-v", verbose, "Enable verbose output");
+
+    s_dl->add_option("--sha", sha, "Expected SHA String");
+    s_dl->add_option("-i", filesize, "Expected file size");
 
     CLI11_PARSE(app, argc, argv);
 
