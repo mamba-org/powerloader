@@ -192,11 +192,6 @@ handle_download(const std::vector<std::string>& urls,
         }
         targets.back()->resume = resume;
 
-        if (!sha_cli.empty())
-            targets.back()->checksums.push_back(Checksum{ ChecksumType::kSHA256, sha_cli });
-        if (filesize > 0)
-            targets.back()->expected_size = filesize;
-
         using namespace std::placeholders;
         targets.back()->progress_callback
             = std::bind(&progress_callback, targets.back().get(), _1, _2);
@@ -210,12 +205,7 @@ handle_download(const std::vector<std::string>& urls,
         dl.add(t.get());
     }
 
-    bool success = dl.download();
-    if (!success)
-    {
-        spdlog::error("Download was not successful");
-        exit(1);
-    }
+    dl.download();
 
     return 0;
 }
@@ -231,8 +221,6 @@ main(int argc, char** argv)
     std::vector<std::string> mirrors;
     std::string file, outfile;
     bool verbose = false;
-    long int filesize = -1;
-    std::string sha_cli;
 
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
     s_dl->add_option("files", du_files, "Files to download");
@@ -248,9 +236,6 @@ main(int argc, char** argv)
 
     s_ul->add_flag("-v", verbose, "Enable verbose output");
     s_dl->add_flag("-v", verbose, "Enable verbose output");
-
-    s_dl->add_option("--sha", sha_cli, "Expected SHA String");
-    s_dl->add_option("-i", filesize, "Expected file size");
 
     CLI11_PARSE(app, argc, argv);
 
@@ -311,7 +296,7 @@ main(int argc, char** argv)
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(du_files, mirrors, resume, outfile, sha_cli, filesize);
+        return handle_download(du_files, mirrors, resume, outfile);
     }
 
     return 0;
