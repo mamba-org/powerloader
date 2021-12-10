@@ -138,7 +138,7 @@ handle_download(const std::vector<std::string>& urls,
                 const std::vector<std::string>& mirrors,
                 bool resume,
                 const std::string& outfile,
-                std::string sha_cli,
+                std::string& sha_cli,
                 long int filesize)
 {
     // the format for URLs is:
