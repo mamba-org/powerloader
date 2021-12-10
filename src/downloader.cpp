@@ -742,17 +742,17 @@ namespace powerloader
             }
             catch (const download_error& e)
             {
-                std::cerr << "ERROR: " << e.what() << '\n';
+                // non-fatal download error
+                spdlog::warn(e.what());
                 transfer_err = true;
                 serious_err = e.serious;
-                // non-fatal download error
             }
             catch (const fatal_download_error& e)
             {
-                std::cerr << "ERROR: " << e.what() << '\n';
+                // fatal download error
+                spdlog::error(e.what());
                 transfer_err = true;
                 fatal_err = true;
-                // fatal download error
             }
 
             // Error
@@ -765,6 +765,70 @@ namespace powerloader
                 fflush(current_target->f);
                 auto fd = fileno(current_target->f);
             }
+
+            if (transfer_err)
+                goto transfer_error;
+
+            // preserve timestamp?
+
+            // check checksums ...
+            // validate download
+
+#ifdef WITH_ZCHUNK
+        //     if (current_target->target->is_zchunk())
+        //     {
+        //     zckCtx *zck = NULL;
+        //     if (target->zck_state == LR_ZCK_DL_HEADER) {
+        //         if(target->mirror->max_ranges > 0 && target->mirror->mirror->protocol == LR_PROTOCOL_HTTP &&
+        //            !lr_zck_valid_header(target->target, target->target->path,
+        //                                 fd, &transfer_err))
+        //             goto transfer_error;
+        //     } else if(target->zck_state == LR_ZCK_DL_BODY) {
+        //         if(target->mirror->max_ranges > 0 && target->mirror->mirror->protocol == LR_PROTOCOL_HTTP) {
+        //             zckCtx *zck = zck_dl_get_zck(target->target->zck_dl);
+        //             if(zck == NULL) {
+        //                 g_set_error(&transfer_err, LR_DOWNLOADER_ERROR, LRE_ZCK,
+        //                             "Unable to get zchunk file from download context");
+        //                 goto transfer_error;
+        //             }
+        //             if(zck_failed_chunks(zck) == 0 && zck_missing_chunks(zck) == 0)
+        //                 target->zck_state = LR_ZCK_DL_FINISHED;
+        //         } else {
+        //             target->zck_state = LR_ZCK_DL_FINISHED;
+        //         }
+        //     }
+        //     if(target->zck_state == LR_ZCK_DL_FINISHED) {
+        //         zck = lr_zck_init_read(target->target, target->target->path, fd,
+        //                                &transfer_err);
+        //         if(!zck)
+        //             goto transfer_error;
+        //         if(zck_validate_checksums(zck) < 1) {
+        //             zck_free(&zck);
+        //             g_set_error(&transfer_err, LR_DOWNLOADER_ERROR, LRE_BADCHECKSUM,
+        //                         "At least one of the zchunk checksums doesn't match in %s",
+        //                         effective_url);
+        //             goto transfer_error;
+        //         }
+        //         zck_free(&zck);
+        //     }
+        // } else {
+#endif
+        // New file was downloaded - clear checksums cached in extended attributes
+        // ret = check_finished_transfer_checksum(fd,
+        //                                       target->target->checksums,
+        //                                       &matches,
+        //                                       &transfer_err,
+        //                                       &tmp_err);
+        // if (!ret) { // Error
+        //     g_propagate_prefixed_error(err, tmp_err, "Downloading from %s"
+        //             "was successful but error encountered while "
+        //             "checksumming: ", effective_url);
+        //     return FALSE;
+        // }
+#ifdef WITH_ZCHUNK
+        // }
+#endif
+
 
         transfer_error:
 
@@ -1038,10 +1102,6 @@ namespace powerloader
         // {
         //     goto transfer_error;
         // }
-
-        // check checksums ...
-
-        // preserve timestamp?
 
         // current_target->set_result(msg->data.result);
         // if (msg->data.result != CURLE_OK)

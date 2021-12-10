@@ -69,6 +69,8 @@ namespace powerloader
 
         void reset();
 
+        bool check_checksums();
+
         DownloadTarget* target;
         fs::path out_file;
         std::string url_stub;

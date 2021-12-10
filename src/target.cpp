@@ -427,4 +427,26 @@ namespace powerloader
 
         return ret;
     }
+
+    bool Target::check_checksums()
+    {
+        if (target->checksums.empty())
+        {
+            spdlog::warn("Could not check checksums. None available.");
+            return true;
+        }
+
+        auto findchecksum = [&](const ChecksumType& t) -> Checksum* {
+            for (auto& cs : target->checksums)
+            {
+                if (cs.type == t) return &cs;
+            }
+            return nullptr;
+        };
+        if (findchecksum(ChecksumType::kSHA256))
+        {
+            spdlog::warn("Checking SHA256");
+        }
+        return true;
+    }
 }
