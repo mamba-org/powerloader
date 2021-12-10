@@ -137,7 +137,9 @@ int
 handle_download(const std::vector<std::string>& urls,
                 const std::vector<std::string>& mirrors,
                 bool resume,
-                const std::string& outfile)
+                const std::string& outfile,
+                std::string sha_cli,
+                long int filesize)
 {
     // the format for URLs is:
     // conda-forge:linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2] (last part optional, can be
