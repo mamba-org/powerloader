@@ -193,7 +193,7 @@ handle_download(const std::vector<std::string>& urls,
         targets.back()->resume = resume;
 
         if (!sha_cli.empty())
-            targets.back()->checksums.push_back(Checksum{ChecksumType::kSHA256, sha_cli});
+            targets.back()->checksums.push_back(Checksum{ ChecksumType::kSHA256, sha_cli });
         if (filesize > 0)
             targets.back()->expected_size = filesize;
 

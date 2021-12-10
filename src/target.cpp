@@ -251,7 +251,8 @@ namespace powerloader
                         target->headercb_state = HeaderCbState::kINTERRUPTED;
                         target->headercb_interrupt_reason = fmt::format(
                             "Server reports Content-Length: {} but expected size is: {}",
-                            content_length, expected);
+                            content_length,
+                            expected);
 
                         // Return error value
                         ret++;
@@ -445,7 +446,8 @@ namespace powerloader
         auto findchecksum = [&](const ChecksumType& t) -> Checksum* {
             for (auto& cs : target->checksums)
             {
-                if (cs.type == t) return &cs;
+                if (cs.type == t)
+                    return &cs;
             }
             return nullptr;
         };
@@ -456,7 +458,9 @@ namespace powerloader
             auto sum = sha256sum(temp_file);
             if (sum != cs->checksum)
             {
-                spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
+                spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}",
+                              sum,
+                              cs->checksum);
                 fs::remove(temp_file);
                 return false;
             }
@@ -473,7 +477,8 @@ namespace powerloader
             auto sum = md5sum(temp_file);
             if (sum != cs->checksum)
             {
-                spdlog::error("MD5 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
+                spdlog::error(
+                    "MD5 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
                 fs::remove(temp_file);
                 return false;
             }
