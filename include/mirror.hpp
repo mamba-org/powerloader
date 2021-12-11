@@ -68,7 +68,7 @@ namespace powerloader
         int failed_transfers = 0;
         // Maximum ranges supported in a single request.  This will be automatically
         // adjusted when mirrors respond with 200 to a range request
-        int max_ranges = 0;
+        int max_ranges = 256;
 
         // retry & backoff values
         std::chrono::system_clock::time_point next_retry;

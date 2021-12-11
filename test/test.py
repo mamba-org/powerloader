@@ -366,3 +366,13 @@ class TestAll:
 
         for fn in sparse_mirrors_with_names["names"]:
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
+
+    def test_zchunk_basic(file, powerloader_binary, mock_server):
+        # Download the expected file
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server}/static/zchunk/lorem.txt.zck",
+                                       "--zck-header-size", "257",
+                                       "--zck-header-sha", "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b"])
+
+        assert (Path('data.zck').exists())

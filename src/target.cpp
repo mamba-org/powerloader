@@ -75,6 +75,7 @@ namespace powerloader
         if (target->fd && target->fd->is_open())
         {
             // Use supplied filedescriptor
+            spdlog::info("Using supplied fd");
             return target->fd;
             // if (fd == -1)
             // {
@@ -100,8 +101,12 @@ namespace powerloader
 
             temp_file = target->fn + PARTEXT;
             target->fd.reset(new std::ofstream(temp_file, open_flags));
+
+            f = fopen(temp_file.c_str(), "a+");
+            spdlog::info("Open {}", fileno(f));
+
             // TODO set permissions using fs::permissions?!
-            // fd = open(target->fn, open_flags, 0666);
+            // f = fopen(temp_file.c_str(), "wb"); //, 0666);
         }
 
         return target->fd;
@@ -122,10 +127,13 @@ namespace powerloader
         }
         else
         {
+            spdlog::info("Writing out ranges");
             // TODO?
         }
 
-        return zck_header_cb(buffer, size, nitems, self->target->zck_dl);
+        auto i = zck_header_cb(buffer, size, nitems, self->target->zck_dl);
+        spdlog::info("ZCK HEADER CALLBACK WROTE: {}", i);
+        return i;
     }
 #endif  // WITH_ZCHUNK
 
@@ -161,12 +169,12 @@ namespace powerloader
                 if (contains(header, "200")
                     || contains(header, "206") && !contains(header, "connection established"))
                 {
-                    // spdlog::info("Header state OK! {}", header);
+                    spdlog::info("Header state OK! {}", header);
                     target->headercb_state = HeaderCbState::kHTTP_STATE_OK;
                 }
                 else
                 {
-                    // spdlog::info("Header state not OK! {}", header);
+                    spdlog::info("Header state not OK! {}", header);
                 }
             }
             // else if (lrtarget->protocol == LR_PROTOCOL_FTP)
@@ -272,12 +280,14 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
     std::size_t zckwritecb(char* buffer, size_t size, size_t nitems, Target* self)
     {
-        if (self->zck_state == ZckState::HEADER)
+        if (self->zck_state == ZckState::kHEADER)
         {
+            spdlog::info("zck: Writing header");
             return zck_write_zck_header_cb(buffer, size, nitems, self->target->zck_dl);
         }
         else
         {
+            spdlog::info("zck: Writing body");
             return zck_write_chunk_cb(buffer, size, nitems, self->target->zck_dl);
         }
     }
@@ -295,7 +305,9 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
         if (self->target->is_zchunk && !self->range_fail && self->mirror
             && self->mirror->protocol == Protocol::kHTTP)
+        {
             return zckwritecb(buffer, size, nitems, self);
+        }
 #endif /* WITH_ZCHUNK */
 
         // Total number of bytes from curl

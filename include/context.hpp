@@ -5,6 +5,12 @@
 #include <chrono>
 #include <map>
 
+#ifdef WITH_ZCHUNK
+extern "C"
+{
+#include <zck.h>
+}
+#endif
 #include "mirror.hpp"
 
 namespace powerloader
@@ -16,7 +22,9 @@ namespace powerloader
         int verbosity = 0;
         bool adaptive_mirror_sorting = true;
 
+        fs::path cache_dir;
         std::size_t retry_backoff_factor = 2;
+        std::size_t max_resume_count = 3;
         std::chrono::steady_clock::duration retry_default_timeout = std::chrono::seconds(2);
 
         std::map<std::string, std::vector<std::shared_ptr<Mirror>>> mirror_map;
@@ -28,6 +36,17 @@ namespace powerloader
         inline void set_verbosity(int v)
         {
             verbosity = v;
+            if (v > 0)
+            {
+#ifdef WITH_ZCHUNK
+                zck_set_log_level(ZCK_LOG_DEBUG);
+#endif
+                spdlog::set_level(spdlog::level::debug);
+            }
+            else
+            {
+                spdlog::set_level(spdlog::level::warn);
+            }
         }
 
     private:

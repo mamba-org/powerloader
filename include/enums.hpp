@@ -1,8 +1,6 @@
 #pragma once
 
-#define CACHEDIR "/Users/wolfvollprecht/Programs/powerdownloader/cache"
 #define PARTEXT ".pdpart"
-#define LR_DOWNLOADER_MAXIMAL_RESUME_COUNT 10
 #define EMPTY_SHA "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 namespace powerloader
@@ -46,6 +44,9 @@ namespace powerloader
     /** Enum with zchunk file status */
     enum class ZckState
     {
+        // The zchunk file is waiting to download the header lead if header_size & hash not
+        // available
+        kHEADER_LEAD,
         // The zchunk file is waiting to check whether the header is available locally.
         kHEADER_CK,
         // The zchunk file is waiting to download the header
