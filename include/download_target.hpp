@@ -61,6 +61,8 @@ namespace powerloader
         EndCb endcb = nullptr;
         void* cbdata = nullptr;
 
+        // these are available checksums for the entire file  or, in the case of a zchunk file,
+        // for the header because the zchunk header contains checksums for the rest of the file.
         std::vector<Checksum> checksums;
 
         // error code
@@ -70,7 +72,7 @@ namespace powerloader
         zckDL* zck_dl = nullptr;
 
         // Zchunk header size
-        std::ptrdiff_t zck_header_size;
+        std::ptrdiff_t zck_header_size = -1;
 
         // Total to download in zchunk file
         double total_to_download;
