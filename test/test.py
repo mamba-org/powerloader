@@ -8,7 +8,7 @@ import hashlib
 import time
 import json
 from urllib.request import urlopen
-
+import shutil
 
 
 @pytest.fixture
@@ -17,6 +17,7 @@ def get_proj_root(cwd=os.getcwd()):
     if not Path(proj_root).exists():
         print("POWERLOADER NOT FOUND!")
     return proj_root
+
 
 @pytest.fixture
 def powerloader_binary(get_proj_root):
@@ -34,14 +35,24 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map = {}
     file_map["name"] = name
     file_map["location"] = Path(get_proj_root)
-    file_map["path"] = file_map["location"] / file_map["name"]
-    file_map["pdpart_path"] = Path(str(file_map["path"]) + ".pdpart")
     file_map["server"] = file_map["location"] / "server.py"
     file_map["url"] = "https://beta.mamba.pm/get/conda-forge/osx-arm64/" + file_map["name"]
     file_map["checksum"] = "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
     file_map["size"] = 185929
-    return file_map
+    file_map["test_path"] = "test/tmp/"
+    file_map["output_path"] = file_map["location"] / file_map["test_path"] / file_map["name"]
+    file_map["output_path_pdpart"] = file_map["location"] / file_map["test_path"] / Path(str(file_map["name"]) + ".pdpart")
 
+    try:
+        os.mkdir(file_map["test_path"])
+    except OSError:
+        print ("Creation of the directory %s failed" % file_map["test_path"])
+    else:
+        print ("Successfully created the directory %s " % file_map["test_path"])
+
+    yield file_map
+
+    shutil.rmtree(file_map["test_path"])
 
 @pytest.fixture
 def mock_server(xprocess):
@@ -70,95 +81,117 @@ def mock_server(xprocess):
     # ensure process is running and return its logfile
     logfile = xprocess.ensure("mock_server", Starter)
 
-    yield f"http://localhost:{port}" # True
+    yield f"http://localhost:{port}"  # True
 
     # clean up whole process tree afterwards
     xprocess.getinfo("mock_server").terminate()
 
-def calculate_sha256(file):
-    with open(file, "rb") as f:
-        # read entire file as bytes
-        b = f.read()
-        readable_hash = hashlib.sha256(b).hexdigest();
-        return readable_hash
-
-def remove_all(file):
-    file["path"].unlink(missing_ok=True)
-    file["pdpart_path"].unlink(missing_ok=True)
-
-# Download the expected file
-def test_working_download(file, powerloader_binary, mock_server):
-    remove_all(file)
-    out = subprocess.check_output([powerloader_binary,
-                                   "download",
-                                   f"{mock_server}/static/packages/{file['name']}"])
-
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
-    assert not Path(file["pdpart_path"]).exists()
-    assert Path(file["path"]).exists()
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
 
 
-# Download from a path that works on the third try
-def test_broken_for_three_tries(file, powerloader_binary, mock_server):
-    remove_all(file)
-    out = subprocess.check_output([powerloader_binary,
-                                   "download",
-                                   f"{mock_server}/broken_counts/static/packages/{file['name']}"])
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
+class TestAll:
+    @classmethod
+    def setup_class(cls):
+        pass
 
+    @classmethod
+    def teardown_class(cls):
+        pass
 
-def test_working_download_broken_checksum(file, powerloader_binary, mock_server):
-    remove_all(file)
-    try:
+    def calculate_sha256(self, file):
+        with open(file, "rb") as f:
+            # read entire file as bytes
+            b = f.read()
+            readable_hash = hashlib.sha256(b).hexdigest();
+            return readable_hash
+
+    def remove_all(self, file):
+        file["output_path"].unlink(missing_ok=True)
+        file["output_path_pdpart"].unlink(missing_ok=True)
+
+    # Download the expected file
+    def test_working_download(self, file, powerloader_binary, mock_server):
+        self.remove_all(file)
         out = subprocess.check_output([powerloader_binary,
                                        "download",
                                        f"{mock_server}/static/packages/{file['name']}",
-                                       "--sha",
-                                       "broken_checksum"])
-    except subprocess.CalledProcessError as e: print(e)
+                                       "-o",
+                                       file["output_path"]])
 
-    assert not Path(file["pdpart_path"]).exists()
-    assert not Path(file["path"]).exists()
+        assert self.calculate_sha256(file["output_path"]) == file["checksum"]
+        assert Path(file["output_path"]).exists()
+        assert not Path(file["output_path_pdpart"]).exists()
+        assert os.path.getsize(file["output_path"]) == file["size"]
 
 
-# Download a broken file
-def test_broken_download_good_checksum(file, powerloader_binary, mock_server):
-    remove_all(file)
-    try:
+    # Download from a path that works on the third try
+    def test_broken_for_three_tries(self, file, powerloader_binary, mock_server):
+        self.remove_all(file)
         out = subprocess.check_output([powerloader_binary,
                                        "download",
-                                       f"{mock_server}/harm_checksum/static/packages/{file['name']}",
-                                       "--sha",
-                                       "broken_checksum"])
-    except subprocess.CalledProcessError as e: print(e)
+                                       f"{mock_server}/broken_counts/static/packages/{file['name']}",
+                                       "-o",
+                                       file["output_path"]])
+        assert self.calculate_sha256(file["output_path"]) == file["checksum"]
+        assert os.path.getsize(file["output_path"]) == file["size"]
 
-    assert not Path(file["pdpart_path"]).exists()
-    assert not Path(file["path"]).exists()
 
-def get_prev_headers(mock_server):
-    with urlopen(f"{mock_server}/prev_headers") as fi:
-        return json.loads(fi.read().decode('utf-8'))
+    def test_working_download_broken_checksum(self, file, powerloader_binary, mock_server):
+        self.remove_all(file)
+        try:
+            out = subprocess.check_output([powerloader_binary,
+                                           "download",
+                                           f"{mock_server}/static/packages/{file['name']}",
+                                           "--sha",
+                                           "broken_checksum",
+                                           "-o",
+                                           file["output_path"]])
+        except subprocess.CalledProcessError as e: print(e)
+        assert not Path(file["output_path_pdpart"]).exists()
+        assert not Path(file["output_path"]).exists()
 
-def test_part_resume(file, powerloader_binary, mock_server):
-    # Download the expected file
-    out = subprocess.check_output([powerloader_binary,
-                                   "download",
-                                   f"{mock_server}/static/packages/{file['name']}"])
+    # Download a broken file
+    def test_broken_download_good_checksum(self, file, powerloader_binary, mock_server):
+        self.remove_all(file)
+        try:
+            out = subprocess.check_output([powerloader_binary,
+                                           "download",
+                                           f"{mock_server}/harm_checksum/static/packages/{file['name']}",
+                                           "--sha",
+                                           "broken_checksum",
+                                           "-o",
+                                           file["output_path"]
+                                           ])
+        except subprocess.CalledProcessError as e: print(e)
 
-    with open(file['path'], 'rb') as fi:
-        data = fi.read()
-    with open(file['pdpart_path'], 'wb') as fo:
-        fo.write(data[0:400])
+        assert not Path(file["output_path_pdpart"]).exists()
+        assert not Path(file["output_path"]).exists()
 
-    out = subprocess.check_output([powerloader_binary,
-                               "download", "-r",
-                               f"{mock_server}/static/packages/{file['name']}"])
+    def get_prev_headers(self, mock_server):
+        with urlopen(f"{mock_server}/prev_headers") as fi:
+            return json.loads(fi.read().decode('utf-8'))
 
-    assert calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-    assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == 185929
+    def test_part_resume(self, file, powerloader_binary, mock_server):
+        # Download the expected file
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server}/static/packages/{file['name']}",
+                                       "-o",
+                                       file["output_path"]])
 
-    sent_headers = get_prev_headers(mock_server)
-    assert ('Range' in sent_headers)
-    assert (sent_headers['Range'] == 'bytes=400-')
+        with open(file['output_path'], 'rb') as fi:
+            data = fi.read()
+        with open(file['output_path_pdpart'], 'wb') as fo:
+            fo.write(data[0:400])
+
+        # Resume the download
+        out = subprocess.check_output([powerloader_binary,
+                                   "download", "-r",
+                                   f"{mock_server}/static/packages/{file['name']}",
+                                   "-o",
+                                   file["output_path"]])
+        assert self.calculate_sha256(file["output_path"]) == file["checksum"]
+        assert os.path.getsize(file["output_path"]) == file["size"]
+
+        sent_headers = self.get_prev_headers(mock_server)
+        assert ('Range' in sent_headers)
+        assert (sent_headers['Range'] == 'bytes=400-')
