@@ -158,7 +158,8 @@ handle_download(const std::vector<std::string>& urls,
                 const std::vector<std::string>& mirrors,
                 bool resume,
                 const std::string& dest_folder,
-                DownloadMetadata& metadata)
+                DownloadMetadata& metadata,
+                bool do_zck_extract)
 {
     // the format for URLs is: <mirror>:<path> (e.g. conda-forge:linux-64/xtensor-123.tar.bz2) or
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2
@@ -245,6 +246,21 @@ handle_download(const std::vector<std::string>& urls,
         exit(1);
     }
 
+#ifdef WITH_ZCHUNK
+    if (do_zck_extract)
+    {
+        for (auto& t : targets)
+        {
+            if (t->is_zchunk)
+            {
+                fs::path p = t->fn;
+                fs::path p_ext = p;
+                p_ext.replace_extension("");
+                zck_extract(p, p_ext, false);
+            }
+        }
+    }
+#endif
     return 0;
 }
 
@@ -350,6 +366,7 @@ main(int argc, char** argv)
     std::vector<std::string> mirrors;
     std::string file, outfile, sha_cli, outdir;
     bool verbose = false;
+    bool do_zck_extract = false;
     long int filesize = -1;
 
     DownloadMetadata dl_meta;
@@ -361,6 +378,7 @@ main(int argc, char** argv)
     s_dl->add_option("-f", file, "File from which to read upload / download files");
     s_dl->add_option("-d", outdir, "Output directory");
     s_dl->add_option("-o", dl_meta.outfile, "Output file");
+    s_dl->add_flag("-x", do_zck_extract, "Output file");
 
     CLI::App* s_ul = app.add_subcommand("upload", "Upload a file");
     s_ul->add_option("files", du_files, "Files to upload");
@@ -410,7 +428,7 @@ main(int argc, char** argv)
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(du_files, mirrors, resume, outdir, dl_meta);
+        return handle_download(du_files, mirrors, resume, outdir, dl_meta, do_zck_extract);
     }
 
     return 0;

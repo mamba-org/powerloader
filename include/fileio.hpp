@@ -18,22 +18,41 @@ namespace powerloader
     {
     private:
         FILE* m_fs = nullptr;
+        fs::path m_path;
 
     public:
+#ifdef _WIN32
+        constexpr static wchar_t append_update_binary[] = L"ab+";
+        constexpr static wchar_t read_update_binary[] = L"rb+";
+        constexpr static wchar_t write_update_binary[] = L"wb+";
+        constexpr static wchar_t read_binary[] = L"rb";
+#else
+        constexpr static char append_update_binary[] = "ab+";
+        constexpr static char read_update_binary[] = "rb+";
+        constexpr static char write_update_binary[] = "wb+";
+        constexpr static char read_binary[] = "rb";
+#endif
+
         FileIO() = default;
 
 #ifdef _WIN32
         inline explicit FileIO(const fs::path& file_path,
                                const wchar_t* mode,
                                std::error_code& ec) noexcept
+            : m_path(file_path)
         {
-            ec.assign(::_wfopen_s(&m_fs, file_path.wstring().c_str(), mode),
-                      std::generic_category());
+            m_fs = ::_wfsopen(file_path.wstring().c_str(), mode, _SH_DENYNO);
+            if (!m_fs)
+            {
+                ec.assign(GetLastError(), std::generic_category());
+                spdlog::error("Could not open file: {}", ec.message());
+            }
         }
 #else
         inline explicit FileIO(const fs::path& file_path,
                                const char* mode,
                                std::error_code& ec) noexcept
+            : m_path(file_path)
         {
             m_fs = ::fopen(file_path.c_str(), mode);
             if (m_fs)
@@ -63,7 +82,11 @@ namespace powerloader
 
         inline int fd() const noexcept
         {
+#ifndef _WIN32
             return ::fileno(m_fs);
+#else
+            return ::_fileno(m_fs);
+#endif
         }
 
         inline int seek(int offset, int origin) const noexcept
@@ -143,13 +166,10 @@ namespace powerloader
 
         void truncate(off_t length, std::error_code& ec) const noexcept
         {
-            ec.clear();
 #ifdef _WIN32
-            if (SetFilePointerEx(m_fs, length, nullptr, FILE_BEGIN) == 0 || SetEndOfFile(m_fs) == 0)
-            {
-                ec.assign(static_cast<int>(::GetLastError()), std::system_category());
-            }
+            return fs::resize_file(m_path, length, ec);
 #else
+            ec.clear();
             if (::ftruncate(fd(), length) != 0)
             {
                 ec.assign(errno, std::generic_category());
