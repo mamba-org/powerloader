@@ -35,8 +35,6 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map = {}
     file_map["name"] = name
     file_map["location"] = Path(get_proj_root)
-    file_map["path"] = file_map["location"] / file_map["name"]
-    file_map["path_pdpart"] = Path(str(file_map["path"]) + ".pdpart")
     file_map["server"] = file_map["location"] / "server.py"
     file_map["url"] = "https://beta.mamba.pm/get/conda-forge/osx-arm64/" + file_map["name"]
     file_map["checksum"] = "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
@@ -109,8 +107,6 @@ class TestAll:
     def remove_all(self, file):
         file["output_path"].unlink(missing_ok=True)
         file["output_path_pdpart"].unlink(missing_ok=True)
-        file["path"].unlink(missing_ok=True)
-        file["path_pdpart"].unlink(missing_ok=True)
 
     # Download the expected file
     def test_working_download(self, file, powerloader_binary, mock_server):
@@ -146,12 +142,12 @@ class TestAll:
                                            "download",
                                            f"{mock_server}/static/packages/{file['name']}",
                                            "--sha",
-                                           "broken_checksum"])
+                                           "broken_checksum",
+                                           "-o",
+                                           file["output_path"]])
         except subprocess.CalledProcessError as e: print(e)
-
-        assert not Path(file["path_pdpart"]).exists()
-        assert not Path(file["path"]).exists()
-
+        assert not Path(file["output_path_pdpart"]).exists()
+        assert not Path(file["output_path"]).exists()
 
     # Download a broken file
     def test_broken_download_good_checksum(self, file, powerloader_binary, mock_server):
@@ -161,11 +157,14 @@ class TestAll:
                                            "download",
                                            f"{mock_server}/harm_checksum/static/packages/{file['name']}",
                                            "--sha",
-                                           "broken_checksum"])
+                                           "broken_checksum",
+                                           "-o",
+                                           file["output_path"]
+                                           ])
         except subprocess.CalledProcessError as e: print(e)
 
-        assert not Path(file["path_pdpart"]).exists()
-        assert not Path(file["path"]).exists()
+        assert not Path(file["output_path_pdpart"]).exists()
+        assert not Path(file["output_path"]).exists()
 
     def get_prev_headers(self, mock_server):
         with urlopen(f"{mock_server}/prev_headers") as fi:
@@ -175,18 +174,23 @@ class TestAll:
         # Download the expected file
         out = subprocess.check_output([powerloader_binary,
                                        "download",
-                                       f"{mock_server}/static/packages/{file['name']}"])
+                                       f"{mock_server}/static/packages/{file['name']}",
+                                       "-o",
+                                       file["output_path"]])
 
-        with open(file['path'], 'rb') as fi:
+        with open(file['output_path'], 'rb') as fi:
             data = fi.read()
-        with open(file['path_pdpart'], 'wb') as fo:
+        with open(file['output_path_pdpart'], 'wb') as fo:
             fo.write(data[0:400])
+
         # Resume the download
         out = subprocess.check_output([powerloader_binary,
                                    "download", "-r",
-                                   f"{mock_server}/static/packages/{file['name']}"])
-        assert self.calculate_sha256("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["checksum"]
-        assert os.path.getsize("xtensor-0.24.0-hc021e02_0.tar.bz2") == file["size"]
+                                   f"{mock_server}/static/packages/{file['name']}",
+                                   "-o",
+                                   file["output_path"]])
+        assert self.calculate_sha256(file["output_path"]) == file["checksum"]
+        assert os.path.getsize(file["output_path"]) == file["size"]
 
         sent_headers = self.get_prev_headers(mock_server)
         assert ('Range' in sent_headers)
