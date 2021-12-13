@@ -1,3 +1,4 @@
+import hashlib
 import base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
@@ -36,6 +37,7 @@ def conda_mock_handler(port):
     class CondaMockHandler(BaseHTTPRequestHandler):
         _port = port
         count_thresh = 3
+        number_of_servers = 4
 
         def return_bad_request(self):
             self.send_response(400)
@@ -84,7 +86,7 @@ def conda_mock_handler(port):
             specified keyword in the filename. If the filename doesn't contain
             the keyword, content of the file is returnen unchanged."""
             keyword, path = self.parse_path('', keyword_expected=True)
-            self.serve_file(path, harm_keyword=keyword)
+            return self.serve_file(path, harm_keyword=keyword)
 
         def serve_range_data(self, data, content_type):
             first, last = self.range
@@ -145,6 +147,28 @@ def conda_mock_handler(port):
                 # File probably doesn't exist or we can't read it
                 return self.return_not_found()
 
+        def serve_sparse_checksum(self):
+            try:
+                path = self.parse_path()
+                hash = int(hashlib.sha256(path.encode()).hexdigest(), 16)
+                if (hash % self.number_of_servers) == (port % self.number_of_servers):
+                    print("Good server")
+                    return self.serve_file(path.replace("sparse/", ""))
+                elif ((hash + 1) % self.number_of_servers) == (port % self.number_of_servers):
+                    print("Broken content")
+                    return self.serve_harm_checksum()
+                elif ((hash + 2) % self.number_of_servers) == (port % self.number_of_servers):
+                    print("Lazy server")
+                    return self.return_not_found_counts()
+                else:
+                    print("Not found")
+                    return self.return_not_found()
+            except:
+                e = sys.exc_info()[0]
+                print(str(e))
+                # self.return_ok_with_message(self, str(e), content_type='text/html')
+
+
         def serve_static(self):
             path = self.parse_path()
             self.serve_file(path)
@@ -167,6 +191,8 @@ def conda_mock_handler(port):
             if self.path.startswith('/harm_checksum/static/'):
                 return self.serve_harm_checksum()
 
+            if self.path.startswith('/sparse/static/'):
+                return self.serve_sparse_checksum()
             return self.serve_static()
 
     return CondaMockHandler
