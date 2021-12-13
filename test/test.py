@@ -369,10 +369,13 @@ class TestAll:
 
     def test_zchunk_basic(file, powerloader_binary, mock_server):
         # Download the expected file
+        assert (not Path('lorem.txt.zck').exists())
+
         out = subprocess.check_output([powerloader_binary,
                                        "download",
                                        f"{mock_server}/static/zchunk/lorem.txt.zck",
                                        "--zck-header-size", "257",
                                        "--zck-header-sha", "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b"])
 
-        assert (Path('data.zck').exists())
+        assert (Path('lorem.txt.zck').exists())
+        Path('lorem.txt.zck').unlink()

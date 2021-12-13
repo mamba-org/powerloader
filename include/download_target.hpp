@@ -5,6 +5,7 @@
 #include "enums.hpp"
 #include "url.hpp"
 #include "mirror.hpp"
+#include "fileio.hpp"
 
 #ifdef WITH_ZCHUNK
 extern "C"
@@ -47,7 +48,7 @@ namespace powerloader
 
         std::string complete_url;
         std::string fn, path, base_url;
-        std::shared_ptr<std::ofstream> fd;
+        std::unique_ptr<FileIO> outfile;
 
         std::size_t byterange_start = 0, byterange_end = 0;
         std::string range;
