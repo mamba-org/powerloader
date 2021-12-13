@@ -275,10 +275,10 @@ std::map<std::string, std::vector<std::unique_ptr<Mirror>>> parse_mirrors(const 
                     creds.region = get_env_from_str(cred["region"].as<std::string>());
                 }                
             }
-            auto kof = KindOf::HTTP;
+            auto kof = KindOf::kHTTP;
             if (creds.url.scheme() == "s3")
             {
-                kof = KindOf::S3;
+                kof = KindOf::kS3;
 
                 if (creds.user.empty()) creds.user = get_env("AWS_ACCESS_KEY");
                 if (creds.password.empty()) creds.password = get_env("AWS_SECRET_KEY");
@@ -286,23 +286,23 @@ std::map<std::string, std::vector<std::unique_ptr<Mirror>>> parse_mirrors(const 
             }
             else if (creds.url.scheme() == "oci")
             {
-                kof = KindOf::OCI;
+                kof = KindOf::kOCI;
                 if (creds.user.empty()) creds.user = get_env("GHA_USER");
                 if (creds.password.empty()) creds.password = get_env("GHA_PAT");
             }
 
-            if (kof != KindOf::HTTP)
+            if (kof != KindOf::kHTTP)
                 creds.url.set_scheme("https");
 
-            if (kof == KindOf::S3)
+            if (kof == KindOf::kS3)
             {
                 res[mirror_name].emplace_back(new S3Mirror(creds.url.url(), creds.region, creds.user, creds.password));
             }
-            else if (kof == KindOf::OCI)
+            else if (kof == KindOf::kOCI)
             {
                 res[mirror_name].emplace_back(new OCIMirror(creds.url.url(), "push,pull", creds.user, creds.password));
             }
-            else if (kof == KindOf::HTTP)
+            else if (kof == KindOf::kHTTP)
             {
                 res[mirror_name].emplace_back(new Mirror(creds.url.url()));
             }
