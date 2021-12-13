@@ -166,8 +166,8 @@ namespace powerloader
         virtual std::string format_url(Target* target);
     };
 
-    bool sort_mirrors(std::shared_ptr<std::vector<Mirror*>>& mirrors,
-                      Mirror* mirror,
+    bool sort_mirrors(std::vector<std::shared_ptr<Mirror>>& mirrors,
+                      const std::shared_ptr<Mirror>& mirror,
                       bool success,
                       bool serious);
 

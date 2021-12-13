@@ -42,7 +42,7 @@ namespace powerloader
         }
 
         inline Target(DownloadTarget* dl_target,
-                      const std::shared_ptr<std::vector<Mirror*>>& mirrors)
+                      const std::vector<std::shared_ptr<Mirror>>& mirrors)
             : state(DownloadState::kWAITING)
             , target(dl_target)
             , original_offset(-1)
@@ -86,10 +86,10 @@ namespace powerloader
         DownloadState state = DownloadState::kWAITING;
 
         // mirror list (or should we have a failure callback)
-        Mirror* mirror = nullptr;
-        std::shared_ptr<std::vector<Mirror*>> mirrors;
-        std::set<Mirror*> tried_mirrors;
-        Mirror* used_mirror = nullptr;
+        std::shared_ptr<Mirror> mirror = nullptr;
+        std::vector<std::shared_ptr<Mirror>> mirrors;
+        std::set<std::shared_ptr<Mirror>> tried_mirrors;
+        std::shared_ptr<Mirror> used_mirror = nullptr;
 
         HeaderCbState headercb_state;
         std::string headercb_interrupt_reason;
