@@ -65,7 +65,8 @@ namespace powerloader
                                      curl_off_t now_uploaded);
 
         bool truncate_transfer_file();
-        std::shared_ptr<std::ofstream> open_target_file();
+
+        void open_target_file();
 
         void reset();
 

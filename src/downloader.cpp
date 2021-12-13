@@ -545,8 +545,9 @@ namespace powerloader
             {
                 // Determine offset
                 // fseek(target->f, 0L, SEEK_END);
-                target->target->fd->seekp(0, std::ios::end);
-                std::ptrdiff_t determined_offset = target->target->fd->tellp();
+                // target->target->fd->seekp(0, std::ios::end);
+                target->target->outfile->seek(0L, SEEK_END);
+                std::ptrdiff_t determined_offset = target->target->outfile->tell();
 
                 if (determined_offset == -1)
                 {
@@ -752,10 +753,9 @@ namespace powerloader
             // if (!transfer_check)
             //     return false;
 
-            if (current_target->f)
+            if (current_target->target->outfile->open())
             {
-                fflush(current_target->f);
-                auto fd = fileno(current_target->f);
+                current_target->target->outfile->flush();
             }
 
             if (transfer_err)
@@ -1065,7 +1065,7 @@ namespace powerloader
                     }
 
                     // TODO current hack because of the memory management here ...
-                    current_target->target->fd.reset();
+                    // current_target->target->fd.reset();
 
                     // Remove xattr that states that the file is being downloaded
                     // by librepo, because the file is now completely downloaded

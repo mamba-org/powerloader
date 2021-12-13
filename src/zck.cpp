@@ -148,14 +148,12 @@ namespace powerloader
 
     zckCtx* zck_init_read(Target* target)
     {
-        int fd = fileno(target->f);
-        return zck_init_read(target->target, fd);
+        return zck_init_read(target->target, target->target->outfile->fd());
     }
 
     bool zck_valid_header(Target* target)
     {
-        int fd = fileno(target->f);
-        return zck_valid_header(target->target, fd);
+        return zck_valid_header(target->target, target->target->outfile->fd());
     }
 
 
@@ -164,10 +162,10 @@ namespace powerloader
         // assert(target && target->f && target->target && target->target->path);
 
         // TODO
-
-        int fd = fileno(target->f);
-        lseek(fd, 0, SEEK_END);
-        if (ftruncate(fd, 0) < 0)
+        std::error_code ec;
+        target->target->outfile->seek(0L, SEEK_END);
+        target->target->outfile->truncate(0, ec);
+        if (ec)
         {
             spdlog::error("Truncation went wrong!");
             // g_set_error(err, LR_DOWNLOADER_ERROR, LRE_IO,
@@ -215,7 +213,7 @@ namespace powerloader
     {
         zckCtx* zck = nullptr;
         bool found = false;
-        int fd = fileno(target->f);
+        int fd = target->target->outfile->fd();
 
         fs::path& cache_dir = Context::instance().cache_dir;
         if (!cache_dir.empty() && fs::exists(cache_dir))
@@ -296,7 +294,7 @@ namespace powerloader
     bool prepare_zck_header(Target* target)
     {
         zckCtx* zck = nullptr;
-        int fd = fileno(target->f);
+        int fd = target->target->outfile->fd();
 
         bool valid_header = false;
         try
@@ -366,7 +364,7 @@ namespace powerloader
         assert(target && target->target && target->target->zck_dl);
 
         zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
-        int fd = fileno(target->f);
+        int fd = target->target->outfile->fd();
         if (zck && fd != zck_get_fd(zck) && !zck_set_fd(zck, fd))
         {
             throw zchunk_error(fmt::format("Unable to set zchunk file descriptor for {}: {}",
@@ -438,7 +436,7 @@ namespace powerloader
     bool prepare_zck_body(Target* target)
     {
         zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
-        int fd = fileno(target->f);
+        int fd = target->target->outfile->fd();
         if (zck && fd != zck_get_fd(zck) && !zck_set_fd(zck, fd))
         {
             throw zchunk_error(fmt::format("Unable to set zchunk file descriptor for {}: {}",
@@ -482,8 +480,8 @@ namespace powerloader
     bool check_zck(Target* target)
     {
         assert(target);
-        assert(target->f);
         assert(target->target);
+        assert(target->target->outfile->open());
 
         if (target->mirror
             && (target->mirror->max_ranges == 0 || target->mirror->protocol != Protocol::kHTTP))
@@ -499,8 +497,6 @@ namespace powerloader
 
         if (target->target->zck_dl == nullptr)
         {
-            spdlog::info("Init zck!");
-
             target->target->zck_dl = zck_dl_init(nullptr);
             if (target->target->zck_dl == nullptr)
             {

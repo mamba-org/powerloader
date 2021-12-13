@@ -340,8 +340,6 @@ parse_mirrors(const YAML::Node& node)
 }
 
 
-=======
->>>>>>> 2add7d0 (improve zchunk compat)
 int
 main(int argc, char** argv)
 {
@@ -361,7 +359,6 @@ main(int argc, char** argv)
     s_dl->add_option("-m", mirrors, "Mirrors from where to download");
     s_dl->add_flag("-r,--resume", resume, "Try to resume");
     s_dl->add_option("-f", file, "File from which to read upload / download files");
-    s_dl->add_option("-o", outfile, "Output file");
     s_dl->add_option("-d", outdir, "Output directory");
     s_dl->add_option("-o", dl_meta.outfile, "Output file");
 
@@ -413,7 +410,7 @@ main(int argc, char** argv)
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(du_files, mirrors, resume, dl_meta, outdir);
+        return handle_download(du_files, mirrors, resume, outdir, dl_meta);
     }
 
     return 0;
