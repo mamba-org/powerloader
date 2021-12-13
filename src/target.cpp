@@ -100,11 +100,11 @@ namespace powerloader
         std::error_code ec;
         if (this->resume || target->is_zchunk)
         {
-            target->outfile = std::make_unique<FileIO>(temp_file, "a+b", ec);
+            target->outfile = std::make_unique<FileIO>(temp_file, FileIO::append_update_binary, ec);
         }
         else
         {
-            target->outfile = std::make_unique<FileIO>(temp_file, "w+b", ec);
+            target->outfile = std::make_unique<FileIO>(temp_file, FileIO::write_update_binary, ec);
         }
 
         if (ec)

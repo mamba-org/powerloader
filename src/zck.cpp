@@ -607,5 +607,57 @@ namespace powerloader
         return prepare_zck_body(target);
     }
 
+    bool zck_extract(const fs::path& source, const fs::path& dst, bool validate)
+    {
+        spdlog::info("zck: extracting from {} to {}", source.string(), dst.string());
+        zckCtx* zck = zck_create();
+        std::error_code ec;
+        FileIO sf(source, FileIO::read_binary, ec), of(dst, FileIO::write_update_binary, ec);
+
+        if (!zck_init_read(zck, sf.fd()))
+        {
+            spdlog::error("{}", zck_get_error(zck));
+            // goto error2;
+        }
+
+        if (validate)
+        {
+            spdlog::critical("Not implemented yet");
+        }
+        constexpr std::size_t BUF_SIZE = 32'768;
+
+        std::vector<char> buf(BUF_SIZE);
+
+        size_t total = 0;
+        while (true)
+        {
+            off_t read = zck_read(zck, buf.data(), BUF_SIZE);
+            if (read < 0)
+            {
+                spdlog::error("Error reading file {}: {}", source.string(), zck_get_error(zck));
+                // goto error2;
+            }
+            if (read == 0)
+            {
+                break;
+            }
+            if (of.write(buf.data(), 1, read) != read)
+            {
+                spdlog::error("Error writing to {}", dst.string());
+                // goto error2;
+            }
+            total += read;
+        }
+        if (!zck_close(zck))
+        {
+            spdlog::error("zck: Error closing {}", zck_get_error(zck));
+            // goto error2;
+        }
+        // if(arguments.log_level <= ZCK_LOG_INFO)
+        //     dprintf(STDERR_FILENO, "Decompressed %lu bytes\n", (unsigned long)total);
+        // }
+        zck_free(&zck);
+        return true;
+    }
 #endif
 }
