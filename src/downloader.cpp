@@ -207,13 +207,13 @@ namespace powerloader
         return max_mirrors_to_try <= 0;
     }
 
-    Mirror* Downloader::select_suitable_mirror(Target* target)
+    std::shared_ptr<Mirror> Downloader::select_suitable_mirror(Target* target)
     {
         // This variable is used to indentify that all possible mirrors
         // were already tried and the transfer should be marked as failed.
         bool at_least_one_suitable_mirror_found = false;
 
-        assert(target && target->mirrors);
+        assert(target && !target->mirrors.empty());
 
         // mirrors_iterated is used to allow to use mirrors multiple times for a target
         std::size_t mirrors_iterated = 0;
@@ -227,7 +227,7 @@ namespace powerloader
         //  number of allowed failures equal to dd->allowed_mirror_failures.
         do
         {
-            for (auto* mirror : *(target->mirrors))
+            for (const auto& mirror : target->mirrors)
             {
                 if (mirrors_iterated == 0)
                 {
@@ -315,7 +315,7 @@ namespace powerloader
         Mirror* mirror = nullptr;
         for (auto* target : m_targets)
         {
-            Mirror* mirror = nullptr;
+            std::shared_ptr<Mirror> mirror;
             std::string full_url;
 
             // Pick only waiting targets
@@ -325,7 +325,7 @@ namespace powerloader
             // Determine if path is a complete URL
             bool complete_url_in_path = target->target->has_complete_url();
 
-            bool have_mirrors = target->mirrors != nullptr && !target->mirrors->empty();
+            bool have_mirrors = !target->mirrors.empty();
             // Sanity check
             if (target->target->base_url.empty() && !have_mirrors && !complete_url_in_path)
             {
