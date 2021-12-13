@@ -139,6 +139,7 @@ handle_download(const std::vector<std::string>& urls,
                 bool resume,
                 const std::string& outfile,
                 const std::string& sha_cli,
+                const std::string& dest_folder,
                 long int filesize)
 {
     // the format for URLs is:
@@ -187,6 +188,9 @@ handle_download(const std::vector<std::string>& urls,
             }
             std::string dst = outfile.empty() ? rsplit(path, "/", 1).back() : outfile;
 
+            if (!dest_folder.empty())
+                dst = dest_folder + "/" + dst;
+
             spdlog::info("Downloading {} from {} to {}", path, mirror, dst);
             targets.emplace_back(new DownloadTarget(path, mirror, dst));
         }
@@ -229,10 +233,9 @@ main(int argc, char** argv)
     bool resume = false;
     std::vector<std::string> du_files;
     std::vector<std::string> mirrors;
-    std::string file, outfile;
+    std::string file, outfile, sha_cli, outdir;
     bool verbose = false;
     long int filesize = -1;
-    std::string sha_cli;
 
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
     s_dl->add_option("files", du_files, "Files to download");
@@ -240,6 +243,7 @@ main(int argc, char** argv)
     s_dl->add_flag("-r,--resume", resume, "Try to resume");
     s_dl->add_option("-f", file, "File from which to read upload / download files");
     s_dl->add_option("-o", outfile, "Output file");
+    s_dl->add_option("-d", outdir, "Output directory");
 
     CLI::App* s_ul = app.add_subcommand("upload", "Upload a file");
     s_ul->add_option("files", du_files, "Files to upload");
@@ -311,7 +315,7 @@ main(int argc, char** argv)
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(du_files, mirrors, resume, outfile, sha_cli, filesize);
+        return handle_download(du_files, mirrors, resume, outfile, sha_cli, outdir, filesize);
     }
 
     return 0;
