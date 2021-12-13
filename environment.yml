@@ -17,5 +17,6 @@ dependencies:
   - gmock
   - yaml-cpp
   - pytest
+  - pyyaml
   - pip:
     - pytest-xprocess

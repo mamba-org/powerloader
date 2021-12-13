@@ -8,7 +8,8 @@ import hashlib
 import time
 import json
 from urllib.request import urlopen
-import shutil
+import shutil, yaml, copy
+import glob
 
 
 @pytest.fixture
@@ -37,22 +38,32 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["location"] = Path(get_proj_root)
     file_map["server"] = file_map["location"] / "server.py"
     file_map["url"] = "https://beta.mamba.pm/get/conda-forge/osx-arm64/" + file_map["name"]
-    file_map["checksum"] = "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
     file_map["size"] = 185929
-    file_map["test_path"] = "test/tmp/"
-    file_map["output_path"] = file_map["location"] / file_map["test_path"] / file_map["name"]
-    file_map["output_path_pdpart"] = file_map["location"] / file_map["test_path"] / Path(str(file_map["name"]) + ".pdpart")
+    file_map["test_path"] = file_map["location"] / Path("test")
+    file_map["tmp_path"] = file_map["test_path"] / Path("tmp")
+    file_map["output_path"] = file_map["tmp_path"] / file_map["name"]
+    file_map["output_path_pdpart"] = file_map["tmp_path"] / Path(str(file_map["name"]) + ".pdpart")
+    file_map["mirrors"] = file_map["test_path"] / Path("mirrors.yml")  # TODO: Make sure that the files exist locally!
 
     try:
-        os.mkdir(file_map["test_path"])
+        os.mkdir(file_map["tmp_path"])
     except OSError:
-        print ("Creation of the directory %s failed" % file_map["test_path"])
+        print("Creation of the directory %s failed" % file_map["tmp_path"])
     else:
-        print ("Successfully created the directory %s " % file_map["test_path"])
+        print("Successfully created the directory %s " % file_map["tmp_path"])
 
     yield file_map
 
-    shutil.rmtree(file_map["test_path"])
+    shutil.rmtree(file_map["tmp_path"])
+
+@pytest.fixture
+def checksums():
+    cksums = {}
+    cksums["xtensor-0.24.0-hc021e02_0.tar.bz2"] = "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
+    cksums["python-3.9.7-hb7a2778_1_cpython.tar.bz2"] = "6971e6721bbf774a152de720f055d8f9b51439742a09c134698a57a4ed7304ba"
+    cksums["xtensor-0.23.10-hd62202e_0.tar.bz2"] = "e47ed847659b646c20d4e3e6162ebc11a53ecfe565928bea4f6c7110333241d5"
+    cksums["xtensor-0.23.10-h4bd325d_0.tar.bz2"] = "6440497a44cc09fa43fd6606c2461e52fb3cb3f980e7fe949e332c6a468f024a"
+    return cksums
 
 @pytest.fixture
 def mock_server(xprocess):
@@ -87,6 +98,22 @@ def mock_server(xprocess):
     xprocess.getinfo("mock_server").terminate()
 
 
+@pytest.fixture
+def yml_content(file):
+    with open(file["mirrors"], "r") as stream:
+        try:
+            return yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+@pytest.fixture
+def yml_with_names(yml_content):
+    names = []
+    for target in yml_content["targets"]:
+        names.append(Path(target.split("/")[-1]))
+    content = copy.deepcopy(yml_content)
+    content["names"] = names
+    return content
 
 class TestAll:
     @classmethod
@@ -97,6 +124,16 @@ class TestAll:
     def teardown_class(cls):
         pass
 
+    def get_files(self, file):
+        return glob.glob(str(file["tmp_path"]) + "/*")
+
+    def remove_all(self, file):
+        file["output_path"].unlink(missing_ok=True)
+        file["output_path_pdpart"].unlink(missing_ok=True)
+
+        for fle in self.get_files(file):
+            fle.unlink()
+
     def calculate_sha256(self, file):
         with open(file, "rb") as f:
             # read entire file as bytes
@@ -104,47 +141,37 @@ class TestAll:
             readable_hash = hashlib.sha256(b).hexdigest();
             return readable_hash
 
-    def remove_all(self, file):
-        file["output_path"].unlink(missing_ok=True)
-        file["output_path_pdpart"].unlink(missing_ok=True)
-
     # Download the expected file
-    def test_working_download(self, file, powerloader_binary, mock_server):
+    def test_working_download(self, file, powerloader_binary, mock_server, checksums):
         self.remove_all(file)
-        out = subprocess.check_output([powerloader_binary,
-                                       "download",
-                                       f"{mock_server}/static/packages/{file['name']}",
-                                       "-o",
-                                       file["output_path"]])
 
-        assert self.calculate_sha256(file["output_path"]) == file["checksum"]
+        # print(mock_server + "/static/packages/" + file['name'])
+        out = subprocess.check_output([powerloader_binary, "download",
+                                       f"{mock_server}/static/packages/{file['name']}",
+                                       "-o", file["output_path"]])
+
+        assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert Path(file["output_path"]).exists()
         assert not Path(file["output_path_pdpart"]).exists()
         assert os.path.getsize(file["output_path"]) == file["size"]
 
-
     # Download from a path that works on the third try
-    def test_broken_for_three_tries(self, file, powerloader_binary, mock_server):
+    def test_broken_for_three_tries(self, file, powerloader_binary, mock_server, checksums):
         self.remove_all(file)
-        out = subprocess.check_output([powerloader_binary,
-                                       "download",
+        out = subprocess.check_output([powerloader_binary, "download",
                                        f"{mock_server}/broken_counts/static/packages/{file['name']}",
-                                       "-o",
-                                       file["output_path"]])
-        assert self.calculate_sha256(file["output_path"]) == file["checksum"]
+                                       "-o", file["output_path"]])
+        assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert os.path.getsize(file["output_path"]) == file["size"]
 
 
     def test_working_download_broken_checksum(self, file, powerloader_binary, mock_server):
         self.remove_all(file)
         try:
-            out = subprocess.check_output([powerloader_binary,
-                                           "download",
+            out = subprocess.check_output([powerloader_binary, "download",
                                            f"{mock_server}/static/packages/{file['name']}",
-                                           "--sha",
-                                           "broken_checksum",
-                                           "-o",
-                                           file["output_path"]])
+                                           "--sha", "broken_checksum",
+                                           "-o", file["output_path"]])
         except subprocess.CalledProcessError as e: print(e)
         assert not Path(file["output_path_pdpart"]).exists()
         assert not Path(file["output_path"]).exists()
@@ -153,13 +180,10 @@ class TestAll:
     def test_broken_download_good_checksum(self, file, powerloader_binary, mock_server):
         self.remove_all(file)
         try:
-            out = subprocess.check_output([powerloader_binary,
-                                           "download",
+            out = subprocess.check_output([powerloader_binary, "download",
                                            f"{mock_server}/harm_checksum/static/packages/{file['name']}",
-                                           "--sha",
-                                           "broken_checksum",
-                                           "-o",
-                                           file["output_path"]
+                                           "--sha", "broken_checksum",
+                                           "-o", file["output_path"]
                                            ])
         except subprocess.CalledProcessError as e: print(e)
 
@@ -170,13 +194,11 @@ class TestAll:
         with urlopen(f"{mock_server}/prev_headers") as fi:
             return json.loads(fi.read().decode('utf-8'))
 
-    def test_part_resume(self, file, powerloader_binary, mock_server):
+    def test_part_resume(self, file, powerloader_binary, mock_server, checksums):
         # Download the expected file
-        out = subprocess.check_output([powerloader_binary,
-                                       "download",
+        out = subprocess.check_output([powerloader_binary, "download",
                                        f"{mock_server}/static/packages/{file['name']}",
-                                       "-o",
-                                       file["output_path"]])
+                                       "-o", file["output_path"]])
 
         with open(file['output_path'], 'rb') as fi:
             data = fi.read()
@@ -184,14 +206,23 @@ class TestAll:
             fo.write(data[0:400])
 
         # Resume the download
-        out = subprocess.check_output([powerloader_binary,
-                                   "download", "-r",
-                                   f"{mock_server}/static/packages/{file['name']}",
-                                   "-o",
-                                   file["output_path"]])
-        assert self.calculate_sha256(file["output_path"]) == file["checksum"]
+        out = subprocess.check_output([powerloader_binary, "download",
+                                    "-r", f"{mock_server}/static/packages/{file['name']}",
+                                    "-o", file["output_path"]])
+        assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert os.path.getsize(file["output_path"]) == file["size"]
 
         sent_headers = self.get_prev_headers(mock_server)
         assert ('Range' in sent_headers)
         assert (sent_headers['Range'] == 'bytes=400-')
+
+
+    def test_yml_download_working(self, file, yml_with_names, checksums, powerloader_binary):
+        self.remove_all(file)
+
+        out = subprocess.check_output([powerloader_binary, "download",
+                                       "-f", file["mirrors"],
+                                       "-d", file["tmp_path"]])
+
+        for fn in yml_with_names["names"]:
+            assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
