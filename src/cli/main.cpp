@@ -370,54 +370,7 @@ main(int argc, char** argv)
         if (config["mirrors"])
         {
             spdlog::info("Loading mirrors", file);
-
             ctx.mirror_map = parse_mirrors(config["mirrors"]);
-            // for(auto it = config["mirrors"].begin(); it != config["mirrors"].end(); ++it)
-            // {
-
-            //    std::string key = it->first.as<std::string>();       // <- key
-            //    cTypeList.push_back(it->second.as<CharacterType>()); // <- value
-            // }
-
-            //     for (const auto& [k, v] :
-            //          config["mirrors"].as<std::map<std::string, std::vector<std::string>>>())
-            //     {
-            //         ctx.mirror_map[k] = std::make_shared<std::vector<Mirror*>>();
-            //         for (auto& m : v)
-            //         {
-            //             std::cout << fmt::format("Adding mirror {} for {}", k, m) << std::endl;
-
-            //             if (starts_with(m, "oci://"))
-            //             {
-            //                 try
-            //                 {
-
-            //                     std::string GH_SECRET = get_env("GHA_PAT");
-            //                     std::string GH_USER = get_env("GHA_USER");
-            //                     ctx.mirrors.emplace_back(new OCIMirror(m, "pull", GH_USER,
-            //                     GH_SECRET));
-            //                 }
-            //                 catch (...)
-            //                 {
-            //                     ctx.mirrors.emplace_back(new OCIMirror(m, "pull", "", ""));
-            //                 }
-            //             }
-            //             else if (starts_with(m, "s3://"))
-            //             {
-            //                 std::string aws_ackey = get_env("AWS_ACCESS_KEY");
-            //                 std::string aws_sekey = get_env("AWS_SECRET_KEY");
-            //                 std::string aws_region = get_env("AWS_DEFAULT_REGION");
-            //                 ctx.mirrors.emplace_back(new S3Mirror(m, aws_region, aws_ackey,
-            //                 aws_sekey));
-            //             }
-            //             else
-            //             {
-            //                 ctx.mirrors.emplace_back(new Mirror(m));
-            //             }
-
-            //             ctx.mirror_map[k]->push_back(ctx.mirrors.back().get());
-            //         }
-            //     }
         }
     }
     spdlog::set_level(spdlog::level::warn);
