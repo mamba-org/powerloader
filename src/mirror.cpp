@@ -44,14 +44,13 @@ namespace powerloader
      *                  (like connection timeout), and the mirror should be
      *                  penalized more that usual.
      */
-    bool sort_mirrors(std::shared_ptr<std::vector<Mirror*>>& mirrors_ptr,
-                      Mirror* mirror,
+    bool sort_mirrors(std::vector<std::shared_ptr<Mirror>>& mirrors,
+                      const std::shared_ptr<Mirror>& mirror,
                       bool success,
                       bool serious)
     {
         assert(mirror);
 
-        std::vector<Mirror*>& mirrors = *mirrors_ptr;
         if (mirrors.size() == 1)
             return true;
 

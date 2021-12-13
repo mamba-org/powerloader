@@ -67,7 +67,7 @@ namespace powerloader
 
         bool is_max_mirrors_unlimited();
 
-        Mirror* select_suitable_mirror(Target* target);
+        std::shared_ptr<Mirror> select_suitable_mirror(Target* target);
 
         cpp::result<std::pair<Target*, std::string>, XError> select_next_target();
 
@@ -100,7 +100,7 @@ namespace powerloader
         int max_connection_per_host = -1;
         std::size_t max_parallel_connections = 5;
 
-        std::map<std::string, std::shared_ptr<std::vector<Mirror*>>> mirror_map;
+        std::map<std::string, std::vector<std::shared_ptr<Mirror>>> mirror_map;
     };
 
 }
