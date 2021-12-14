@@ -149,7 +149,8 @@ def conda_mock_handler(port, pkgs, err_type):
                 return self.return_not_found()
 
         def select_error(self, err_type):
-            match err_type:   # possible errors = 404, boken, lazy
+            # possible errors = 404, boken, lazy
+            match err_type:
                 case "404":
                     return self.return_not_found()
                 case "broken":
