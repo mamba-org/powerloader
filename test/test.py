@@ -31,6 +31,7 @@ def powerloader_binary(get_proj_root):
         else:
             return Path(get_proj_root) / "build" / "powerloader"
 
+
 @pytest.fixture
 def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map = {}
@@ -57,11 +58,13 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
 
     shutil.rmtree(file_map["tmp_path"])
 
+
 @pytest.fixture
 def checksums():
     cksums = {}
     cksums["xtensor-0.24.0-hc021e02_0.tar.bz2"] = "e785d6770ea5e69275c920cb1a6385bf22876e83fe5183a011d53fe705b21980"
-    cksums["python-3.9.7-hb7a2778_1_cpython.tar.bz2"] = "6971e6721bbf774a152de720f055d8f9b51439742a09c134698a57a4ed7304ba"
+    cksums[
+        "python-3.9.7-hb7a2778_1_cpython.tar.bz2"] = "6971e6721bbf774a152de720f055d8f9b51439742a09c134698a57a4ed7304ba"
     cksums["xtensor-0.23.10-hd62202e_0.tar.bz2"] = "e47ed847659b646c20d4e3e6162ebc11a53ecfe565928bea4f6c7110333241d5"
     cksums["xtensor-0.23.10-h4bd325d_0.tar.bz2"] = "6440497a44cc09fa43fd6606c2461e52fb3cb3f980e7fe949e332c6a468f024a"
     cksums["xtensor-0.23.10-h2acdbc0_0.tar.bz2"] = "6cfa43e528c21cff3a73b30c48eb04d0332224bd51471a307eea05737c0488d9"
@@ -105,38 +108,54 @@ def mock_server(xprocess, name, port):
     # clean up whole process tree afterwards
     xprocess.getinfo(name).terminate()
 
+
 @pytest.fixture
 def mock_server_1(xprocess):
     yield from mock_server(xprocess, "m1", 5000)
+
 
 @pytest.fixture
 def mock_server_2(xprocess):
     yield from mock_server(xprocess, "m2", 5001)
 
+
 @pytest.fixture
 def mock_server_3(xprocess):
     yield from mock_server(xprocess, "m3", 5002)
+
 
 @pytest.fixture
 def mock_server_4(xprocess):
     yield from mock_server(xprocess, "m4", 5003)
 
-@pytest.fixture
-def yml_content(file):
-    with open(file["mirrors"], "r") as stream:
+
+def yml_content(file, target):
+    with open(file[target], "r") as stream:
         try:
             return yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
 
-@pytest.fixture
-def yml_with_names(yml_content):
+
+def add_names(file, target):
+    yml_cont = yml_content(file, target)
     names = []
-    for target in yml_content["targets"]:
+    for target in yml_cont["targets"]:
         names.append(Path(target.split("/")[-1]))
-    content = copy.deepcopy(yml_content)
+    content = copy.deepcopy(yml_cont)
     content["names"] = names
     return content
+
+
+@pytest.fixture
+def mirrors_with_names(file):
+    return add_names(file, target="mirrors")
+
+
+@pytest.fixture
+def sparse_mirrors_with_names(file):
+    return add_names(file, target="sparse_mirrors")
+
 
 class TestAll:
     @classmethod
@@ -155,7 +174,7 @@ class TestAll:
         Path(file["output_path_pdpart"]).unlink(missing_ok=True)
 
         for fle in self.get_files(file):
-            fle.unlink()
+            (file["tmp_path"] / Path(fle)).unlink()
 
     def calculate_sha256(self, file):
         with open(file, "rb") as f:
@@ -187,7 +206,6 @@ class TestAll:
         assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert os.path.getsize(file["output_path"]) == file["size"]
 
-
     def test_working_download_broken_checksum(self, file, powerloader_binary, mock_server_1):
         self.remove_all(file)
         try:
@@ -195,7 +213,8 @@ class TestAll:
                                            f"{mock_server_1}/static/packages/{file['name']}",
                                            "--sha", "broken_checksum",
                                            "-o", file["output_path"]])
-        except subprocess.CalledProcessError as e: print(e)
+        except subprocess.CalledProcessError as e:
+            print(e)
         assert not Path(file["output_path_pdpart"]).exists()
         assert not Path(file["output_path"]).exists()
 
@@ -208,7 +227,8 @@ class TestAll:
                                            "--sha", "broken_checksum",
                                            "-o", file["output_path"]
                                            ])
-        except subprocess.CalledProcessError as e: print(e)
+        except subprocess.CalledProcessError as e:
+            print(e)
 
         assert not Path(file["output_path_pdpart"]).exists()
         assert not Path(file["output_path"]).exists()
@@ -230,8 +250,8 @@ class TestAll:
 
         # Resume the download
         out = subprocess.check_output([powerloader_binary, "download",
-                                    "-r", f"{mock_server_1}/static/packages/{file['name']}",
-                                    "-o", file["output_path"]])
+                                       "-r", f"{mock_server_1}/static/packages/{file['name']}",
+                                       "-o", file["output_path"]])
         assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert os.path.getsize(file["output_path"]) == file["size"]
 
@@ -239,25 +259,58 @@ class TestAll:
         assert ('Range' in sent_headers)
         assert (sent_headers['Range'] == 'bytes=400-')
 
-
-    def test_yml_download_working(self, file, yml_with_names, checksums, powerloader_binary, mock_server_1, mock_server_2):
+    def test_yml_download_working(self, file, mirrors_with_names, checksums,
+                                  powerloader_binary, mock_server_1, mock_server_2):
         self.remove_all(file)
 
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["mirrors"],
                                        "-d", file["tmp_path"]])
 
-        for fn in yml_with_names["names"]:
+        for fn in mirrors_with_names["names"]:
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
-
-    def test_yml_content_based_behavior(self, file, yml_with_names, checksums, powerloader_binary,
-                                 mock_server_1, mock_server_2, mock_server_3, mock_server_4):
+    def test_yml_content_based_behavior(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
+                                        mock_server_1, mock_server_2, mock_server_3, mock_server_4):
         self.remove_all(file)
 
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["sparse_mirrors"],
                                        "-d", file["tmp_path"]])
 
-        for fn in yml_with_names["names"]:
+        for fn in sparse_mirrors_with_names["names"]:
+            # print("Name: " + str(fn))
+            assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
+
+    def filter_broken(self, file_list, pdp):
+        broken = []
+        for file in file_list:
+            if file.endswith(pdp):
+                broken.append(file)
+        return broken
+
+    def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
+                                    mock_server_1, mock_server_2, mock_server_3, mock_server_4):
+        self.remove_all(file)
+
+        out = subprocess.check_output([powerloader_binary, "download",
+                                       "-f", file["sparse_mirrors"],
+                                       "-d", file["tmp_path"]])
+
+        for fn in sparse_mirrors_with_names["names"]:
+            fp = file["tmp_path"] / fn
+            pdp = ".pdpart"
+            with open(fp, 'rb') as fi:
+                data = fi.read()
+
+            with open(str(fp) + pdp, 'wb') as fo:
+                fo.write(data[0:400])
+
+            # The servers is reliable now
+            for broken_file in self.filter_broken(self.get_files(file), pdp):
+                out = subprocess.check_output([powerloader_binary, "download",
+                                               "-r", f"{mock_server_1}/static/packages/{fn}",
+                                               "-o", fp])
+
+        for fn in sparse_mirrors_with_names["names"]:
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]

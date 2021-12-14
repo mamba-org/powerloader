@@ -3,7 +3,6 @@ mirrors:
     - http://localhost:5000
     - http://localhost:5001
 
-
 targets:
   - conda-forge:/static/packages/python-3.9.7-hb7a2778_1_cpython.tar.bz2
   - conda-forge:/static/packages/xtensor-0.23.10-hd62202e_0.tar.bz2
