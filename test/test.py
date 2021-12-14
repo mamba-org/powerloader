@@ -1,5 +1,6 @@
 import sys, socket, pytest, py, pathlib
 from xprocess import ProcessStarter
+import shutil, yaml, copy, math
 from pathlib import Path
 import subprocess
 import platform
@@ -8,7 +9,6 @@ import hashlib
 import time
 import json
 from urllib.request import urlopen
-import shutil, yaml, copy
 import glob
 
 
@@ -45,7 +45,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["output_path"] = file_map["tmp_path"] / file_map["name"]
     file_map["output_path_pdpart"] = file_map["tmp_path"] / Path(str(file_map["name"]) + ".pdpart")
     file_map["mirrors"] = file_map["test_path"] / Path("mirrors.yml")
-    file_map["sparse_mirrors"] = file_map["test_path"] / Path("sparse_mirrors.yml")
+    file_map["local_mirrors"] = file_map["test_path"] / Path("local_static_mirrors.yml")
 
     try:
         os.mkdir(file_map["tmp_path"])
@@ -77,14 +77,16 @@ def checksums():
     return cksums
 
 
-def mock_server(xprocess, name, port):
+def mock_server(xprocess, name, port, pkgs, error_type):
     curdir = pathlib.Path(__file__).parent
     print("Starting mock_server")
 
     class Starter(ProcessStarter):
+
         pattern = "Server started!"
         terminate_on_interrupt = True
-        args = [sys.executable, "-u", curdir / 'server.py', '-p', str(port)]
+        args = [sys.executable, "-u", curdir / 'server.py',
+                '-p', str(port), "-e", error_type, "--pkgs", pkgs]
 
         def startup_check(self):
             s = socket.socket()
@@ -109,24 +111,70 @@ def mock_server(xprocess, name, port):
     xprocess.getinfo(name).terminate()
 
 
-@pytest.fixture
-def mock_server_1(xprocess):
-    yield from mock_server(xprocess, "m1", 5000)
+def get_pkgs(port, checksums, num_servers=2):
+    files = list(checksums.keys())
+    section, increment = port % num_servers, len(files) / 4
+    lb = math.floor(section * increment)
+    ub = math.ceil((section + 1) * increment)
+    lb = max(lb, 0)
+    ub = min(ub, len(files) - 1)
+    return set(files[lb:ub])
 
 
 @pytest.fixture
-def mock_server_2(xprocess):
-    yield from mock_server(xprocess, "m2", 5001)
+def mock_server_1_404(xprocess, checksums):
+    port = 5001
+    pkgs = get_pkgs(port, checksums)
+    yield from mock_server(xprocess, "m1", port, pkgs, error_type="404")
 
 
 @pytest.fixture
-def mock_server_3(xprocess):
-    yield from mock_server(xprocess, "m3", 5002)
+def mock_server_1_lazy(xprocess, checksums):
+    port = 5002
+    pkgs = get_pkgs(port, checksums)
+    yield from mock_server(xprocess, "m2", port, pkgs, error_type="lazy")
 
 
 @pytest.fixture
-def mock_server_4(xprocess):
-    yield from mock_server(xprocess, "m4", 5003)
+def mock_server_1_broken(xprocess, checksums):
+    port = 5003
+    pkgs = get_pkgs(port, checksums)
+    yield from mock_server(xprocess, "m3", 5003, pkgs, error_type="broken")
+
+
+@pytest.fixture
+def mock_server_1(xprocess, checksums):
+    port = 5004
+    pkgs = get_pkgs(port, checksums)
+    yield from mock_server(xprocess, "m4", 5004, pkgs, error_type=None)
+
+
+@pytest.fixture
+def mock_server_2_404(xprocess, checksums):
+    port = 5005
+    pkgs = get_pkgs(port, checksums)
+    yield from mock_server(xprocess, "m5", port, pkgs, error_type="404")
+
+
+@pytest.fixture
+def mock_server_2_lazy(xprocess, checksums):
+    port = 5006
+    pkgs = get_pkgs(port, checksums)
+    yield from mock_server(xprocess, "m6", port, pkgs, error_type="lazy")
+
+
+@pytest.fixture
+def mock_server_2_broken(xprocess, checksums):
+    port = 5007
+    pkgs = get_pkgs(port, checksums)
+    yield from mock_server(xprocess, "m7", port, pkgs, error_type="broken")
+
+
+@pytest.fixture
+def mock_server_2(xprocess, checksums):
+    port = 5008
+    pkgs = get_pkgs(port, checksums)
+    yield from mock_server(xprocess, "m8", port, pkgs, error_type=None)
 
 
 def yml_content(file, target):
@@ -154,7 +202,7 @@ def mirrors_with_names(file):
 
 @pytest.fixture
 def sparse_mirrors_with_names(file):
-    return add_names(file, target="sparse_mirrors")
+    return add_names(file, target="local_mirrors")
 
 
 class TestAll:
@@ -271,15 +319,15 @@ class TestAll:
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
     def test_yml_content_based_behavior(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
-                                        mock_server_1, mock_server_2, mock_server_3, mock_server_4):
+                                        mock_server_1, mock_server_1_404, mock_server_1_lazy, mock_server_1_broken,
+                                        mock_server_2, mock_server_2_404, mock_server_2_lazy, mock_server_2_broken):
         self.remove_all(file)
 
         out = subprocess.check_output([powerloader_binary, "download",
-                                       "-f", file["sparse_mirrors"],
+                                       "-f", file["local_mirrors"],
                                        "-d", file["tmp_path"]])
 
         for fn in sparse_mirrors_with_names["names"]:
-            # print("Name: " + str(fn))
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
     def filter_broken(self, file_list, pdp):
@@ -289,30 +337,32 @@ class TestAll:
                 broken.append(file)
         return broken
 
+    # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
-                                    mock_server_1, mock_server_2, mock_server_3, mock_server_4):
+                                    mock_server_1, mock_server_1_404, mock_server_1_lazy, mock_server_1_broken,
+                                    mock_server_2, mock_server_2_404, mock_server_2_lazy, mock_server_2_broken):
         self.remove_all(file)
-
         out = subprocess.check_output([powerloader_binary, "download",
-                                       "-f", file["sparse_mirrors"],
+                                       "-f", file["local_mirrors"],
                                        "-d", file["tmp_path"], "-v"])
 
-        print(str(out))
-
+        pdp = ".pdpart"
         for fn in sparse_mirrors_with_names["names"]:
             fp = file["tmp_path"] / fn
-            pdp = ".pdpart"
             with open(fp, 'rb') as fi:
                 data = fi.read()
 
             with open(str(fp) + pdp, 'wb') as fo:
                 fo.write(data[0:400])
+            fp.unlink()
 
-            # The servers is reliable now
-            for broken_file in self.filter_broken(self.get_files(file), pdp):
-                out = subprocess.check_output([powerloader_binary, "download",
-                                               "-r", f"{mock_server_1}/static/packages/{fn}",
-                                               "-o", fp])
+        # The servers is reliable now
+        for broken_file in self.filter_broken(self.get_files(file), pdp):
+            fn = broken_file.replace(pdp, "").split("/")[-1]
+            fp = Path(file["tmp_path"]) / Path(fn)
+            out = subprocess.check_output([powerloader_binary, "download",
+                                           "-r", f"{mock_server_1}/static/packages/{fn}",
+                                           "-o", fp])
 
         for fn in sparse_mirrors_with_names["names"]:
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]

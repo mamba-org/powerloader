@@ -1,0 +1,22 @@
+mirrors:
+  conda-forge:
+    - http://localhost:5001
+    - http://localhost:5002
+    - http://localhost:5003
+    - http://localhost:5004
+    - http://localhost:5005
+    - http://localhost:5006
+    - http://localhost:5007
+    - http://localhost:5008
+
+targets:
+  - conda-forge:static/packages/xtensor-0.23.10-hd62202e_0.tar.bz2
+  - conda-forge:static/packages/xtensor-0.23.10-h4bd325d_0.tar.bz2
+  - conda-forge:static/packages/xtensor-0.23.10-h2acdbc0_0.tar.bz2
+  - conda-forge:static/packages/xtensor-0.23.10-hc021e02_0.tar.bz2
+  - conda-forge:static/packages/xtensor-0.23.10-h940c156_0.tar.bz2
+  - conda-forge:static/packages/xtensor-0.23.9-h4bd325d_1.tar.bz2
+  - conda-forge:static/packages/xtensor-0.23.9-hd62202e_1.tar.bz2
+  - conda-forge:static/packages/xtensor-0.23.9-h2acdbc0_1.tar.bz2
+  - conda-forge:static/packages/xtensor-0.23.9-hc021e02_1.tar.bz2
+  - conda-forge:static/packages/python-3.9.7-hb7a2778_1_cpython.tar.bz2

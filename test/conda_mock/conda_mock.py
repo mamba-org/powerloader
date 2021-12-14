@@ -32,10 +32,11 @@ def parse_byte_range(byte_range):
         raise ValueError('Invalid byte range %s' % byte_range)
     return first, last
 
-def conda_mock_handler(port):
+def conda_mock_handler(port, pkgs, err_type):
 
     class CondaMockHandler(BaseHTTPRequestHandler):
-        _port = port
+        _port, _pkgs, _err_type = port, pkgs, err_type
+
         count_thresh = 3
         number_of_servers = 4
 
@@ -147,31 +148,31 @@ def conda_mock_handler(port):
                 # File probably doesn't exist or we can't read it
                 return self.return_not_found()
 
-        def serve_sparse_checksum(self):
-            try:
-                path = self.parse_path()
-                hash = int(hashlib.sha256(path.encode()).hexdigest(), 16)
-                if (hash % self.number_of_servers) == (port % self.number_of_servers):
-                    print("Good server")
-                    return self.serve_file(path.replace("sparse/", ""))
-                elif ((hash + 1) % self.number_of_servers) == (port % self.number_of_servers):
-                    print("Broken content")
-                    return self.serve_harm_checksum()
-                elif ((hash + 2) % self.number_of_servers) == (port % self.number_of_servers):
-                    print("Lazy server")
-                    return self.return_not_found_counts()
-                else:
-                    print("Not found")
+        def select_error(self, err_type):
+            match err_type:   # possible errors = 404, boken, lazy
+                case "404":
                     return self.return_not_found()
-            except:
-                e = sys.exc_info()[0]
-                print(str(e))
-                # self.return_ok_with_message(self, str(e), content_type='text/html')
+                case "broken":
+                    return self.serve_harm_checksum()
+                case "lazy":
+                    return self.return_not_found_counts()
+                case None:
+                    path = self.parse_path()
+                    return self.serve_file(path)
+                case _:
+                    raise Exception("Unexpected state!")
 
+        def get_filename(self):
+            filename = self.path.split("/")[-1]
+            print(filename)
+            return filename
 
         def serve_static(self):
-            path = self.parse_path()
-            self.serve_file(path)
+            if self.get_filename() in pkgs:
+                return self.select_error(err_type)
+            else:
+                path = self.parse_path()
+                return self.serve_file(path)
 
         def do_GET(self):
             """
@@ -191,8 +192,6 @@ def conda_mock_handler(port):
             if self.path.startswith('/harm_checksum/static/'):
                 return self.serve_harm_checksum()
 
-            if self.path.startswith('/sparse/static/'):
-                return self.serve_sparse_checksum()
             return self.serve_static()
 
     return CondaMockHandler
