@@ -152,7 +152,7 @@ def mock_server_broken(xprocess, checksums):
 
 
 @pytest.fixture
-def mock_server_fx(xprocess, checksums):
+def mock_server_working(xprocess, checksums):
     port = 5004
     pkgs = {}
     yield from mock_server(xprocess, "m4", port, pkgs, error_type=None)
@@ -220,12 +220,12 @@ class TestAll:
             return readable_hash
 
     # Download the expected file
-    def test_working_download(self, file, powerloader_binary, mock_server_fx, checksums):
+    def test_working_download(self, file, powerloader_binary, mock_server_working, checksums):
         self.remove_all(file)
 
-        # print(mock_server_fx + "/static/packages/" + file['name'])
+        # print(mock_server_working + "/static/packages/" + file['name'])
         out = subprocess.check_output([powerloader_binary, "download",
-                                       f"{mock_server_fx}/static/packages/{file['name']}",
+                                       f"{mock_server_working}/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
 
         assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
@@ -247,19 +247,19 @@ class TestAll:
         assert os.path.getsize(file["output_path"]) == file["size"]
 
     # Download from a path that works on the third try
-    def test_broken_for_three_tries(self, file, powerloader_binary, mock_server_fx, checksums):
+    def test_broken_for_three_tries(self, file, powerloader_binary, mock_server_working, checksums):
         self.remove_all(file)
         out = subprocess.check_output([powerloader_binary, "download",
-                                       f"{mock_server_fx}/broken_counts/static/packages/{file['name']}",
+                                       f"{mock_server_working}/broken_counts/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
         assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert os.path.getsize(file["output_path"]) == file["size"]
 
-    def test_working_download_broken_checksum(self, file, powerloader_binary, mock_server_fx):
+    def test_working_download_broken_checksum(self, file, powerloader_binary, mock_server_working):
         self.remove_all(file)
         try:
             out = subprocess.check_output([powerloader_binary, "download",
-                                           f"{mock_server_fx}/static/packages/{file['name']}",
+                                           f"{mock_server_working}/static/packages/{file['name']}",
                                            "--sha", "broken_checksum",
                                            "-o", file["output_path"]])
         except subprocess.CalledProcessError as e:
@@ -268,11 +268,11 @@ class TestAll:
         assert not Path(file["output_path"]).exists()
 
     # Download a broken file
-    def test_broken_download_good_checksum(self, file, powerloader_binary, mock_server_fx):
+    def test_broken_download_good_checksum(self, file, powerloader_binary, mock_server_working):
         self.remove_all(file)
         try:
             out = subprocess.check_output([powerloader_binary, "download",
-                                           f"{mock_server_fx}/harm_checksum/static/packages/{file['name']}",
+                                           f"{mock_server_working}/harm_checksum/static/packages/{file['name']}",
                                            "--sha", "broken_checksum",
                                            "-o", file["output_path"]
                                            ])
@@ -282,14 +282,14 @@ class TestAll:
         assert not Path(file["output_path_pdpart"]).exists()
         assert not Path(file["output_path"]).exists()
 
-    def get_prev_headers(self, mock_server_fx):
-        with urlopen(f"{mock_server_fx}/prev_headers") as fi:
+    def get_prev_headers(self, mock_server_working):
+        with urlopen(f"{mock_server_working}/prev_headers") as fi:
             return json.loads(fi.read().decode('utf-8'))
 
-    def test_part_resume(self, file, powerloader_binary, mock_server_fx, checksums):
+    def test_part_resume(self, file, powerloader_binary, mock_server_working, checksums):
         # Download the expected file
         out = subprocess.check_output([powerloader_binary, "download",
-                                       f"{mock_server_fx}/static/packages/{file['name']}",
+                                       f"{mock_server_working}/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
 
         with open(file['output_path'], 'rb') as fi:
@@ -299,17 +299,17 @@ class TestAll:
 
         # Resume the download
         out = subprocess.check_output([powerloader_binary, "download",
-                                       "-r", f"{mock_server_fx}/static/packages/{file['name']}",
+                                       "-r", f"{mock_server_working}/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
         assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert os.path.getsize(file["output_path"]) == file["size"]
 
-        sent_headers = self.get_prev_headers(mock_server_fx)
+        sent_headers = self.get_prev_headers(mock_server_working)
         assert ('Range' in sent_headers)
         assert (sent_headers['Range'] == 'bytes=400-')
 
     def test_yml_download_working(self, file, mirrors_with_names, checksums, powerloader_binary,
-                                  mock_server_fx, mock_server_404, mock_server_lazy,
+                                  mock_server_working, mock_server_404, mock_server_lazy,
                                   mock_server_broken, mock_server_password):
         self.remove_all(file)
 
@@ -321,7 +321,7 @@ class TestAll:
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
     def test_yml_content_based_behavior(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
-                                        mock_server_fx, mock_server_404, mock_server_lazy,
+                                        mock_server_working, mock_server_404, mock_server_lazy,
                                         mock_server_broken, mock_server_password):
         self.remove_all(file)
 
@@ -341,7 +341,7 @@ class TestAll:
 
     # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
-                                    mock_server_fx, mock_server_404, mock_server_lazy,
+                                    mock_server_working, mock_server_404, mock_server_lazy,
                                     mock_server_broken, mock_server_password):
         self.remove_all(file)
         out = subprocess.check_output([powerloader_binary, "download",
@@ -363,19 +363,19 @@ class TestAll:
             fn = broken_file.replace(pdp, "").split("/")[-1]
             fp = Path(file["tmp_path"]) / Path(fn)
             out = subprocess.check_output([powerloader_binary, "download",
-                                           "-r", f"{mock_server_fx}/static/packages/{fn}",
+                                           "-r", f"{mock_server_working}/static/packages/{fn}",
                                            "-o", fp])
 
         for fn in sparse_mirrors_with_names["names"]:
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
-    def test_zchunk_basic(file, powerloader_binary, mock_server_1):
+    def test_zchunk_basic(file, powerloader_binary, mock_server_working):
         # Download the expected file
         assert (not Path('lorem.txt.zck').exists())
 
         out = subprocess.check_output([powerloader_binary,
                                        "download",
-                                       f"{mock_server_1}/static/zchunk/lorem.txt.zck",
+                                       f"{mock_server_working}/static/zchunk/lorem.txt.zck",
                                        "--zck-header-size", "257",
                                        "--zck-header-sha", "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b"])
 
