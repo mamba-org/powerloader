@@ -76,17 +76,23 @@ def checksums():
     cksums["xtensor-0.23.9-hc021e02_1.tar.bz2"] = "404a2e4664a1cbf94f5f98deaf568b267b7474c4e1267deb367b8c758fe71ed2"
     return cksums
 
-
-def mock_server(xprocess, name, port, pkgs, error_type):
+def mock_server(xprocess, name, port, pkgs, error_type,
+                uname=None, pwd=None):
     curdir = pathlib.Path(__file__).parent
     print("Starting mock_server")
+    authenticate = (uname is not None) and (pwd is not None)
 
     class Starter(ProcessStarter):
 
         pattern = "Server started!"
         terminate_on_interrupt = True
+
         args = [sys.executable, "-u", curdir / 'server.py',
-                '-p', str(port), "-e", error_type, "--pkgs", pkgs]
+                '-p', str(port), "-e", error_type,
+                "--pkgs", pkgs]
+
+        if authenticate:
+            args.extend(["-u", uname, "--pwd", pwd])
 
         def startup_check(self):
             s = socket.socket()
@@ -105,13 +111,16 @@ def mock_server(xprocess, name, port, pkgs, error_type):
     # ensure process is running and return its logfile
     logfile = xprocess.ensure(name, Starter)
 
-    yield f"http://localhost:{port}"  # True
+    if authenticate:
+        yield f"http://{uname}:{pwd}@localhost:{port}"  # True
+    else:
+        yield f"http://localhost:{port}"  # True
 
     # clean up whole process tree afterwards
     xprocess.getinfo(name).terminate()
 
 
-def get_pkgs(port, checksums, num_servers=2):
+def get_pkgs(port, checksums, num_servers=5):
     files = list(checksums.keys())
     section, increment = port % num_servers, len(files) / 4
     lb = math.floor(section * increment)
@@ -122,59 +131,38 @@ def get_pkgs(port, checksums, num_servers=2):
 
 
 @pytest.fixture
-def mock_server_1_404(xprocess, checksums):
+def mock_server_404(xprocess, checksums):
     port = 5001
     pkgs = get_pkgs(port, checksums)
     yield from mock_server(xprocess, "m1", port, pkgs, error_type="404")
 
 
 @pytest.fixture
-def mock_server_1_lazy(xprocess, checksums):
+def mock_server_lazy(xprocess, checksums):
     port = 5002
     pkgs = get_pkgs(port, checksums)
     yield from mock_server(xprocess, "m2", port, pkgs, error_type="lazy")
 
 
 @pytest.fixture
-def mock_server_1_broken(xprocess, checksums):
+def mock_server_broken(xprocess, checksums):
     port = 5003
     pkgs = get_pkgs(port, checksums)
-    yield from mock_server(xprocess, "m3", 5003, pkgs, error_type="broken")
+    yield from mock_server(xprocess, "m3", port, pkgs, error_type="broken")
 
 
 @pytest.fixture
-def mock_server_1(xprocess, checksums):
+def mock_server_fx(xprocess, checksums):
     port = 5004
-    pkgs = get_pkgs(port, checksums)
-    yield from mock_server(xprocess, "m4", 5004, pkgs, error_type=None)
+    pkgs = {}
+    yield from mock_server(xprocess, "m4", port, pkgs, error_type=None)
 
 
 @pytest.fixture
-def mock_server_2_404(xprocess, checksums):
+def mock_server_password(xprocess, checksums):
     port = 5005
     pkgs = get_pkgs(port, checksums)
-    yield from mock_server(xprocess, "m5", port, pkgs, error_type="404")
-
-
-@pytest.fixture
-def mock_server_2_lazy(xprocess, checksums):
-    port = 5006
-    pkgs = get_pkgs(port, checksums)
-    yield from mock_server(xprocess, "m6", port, pkgs, error_type="lazy")
-
-
-@pytest.fixture
-def mock_server_2_broken(xprocess, checksums):
-    port = 5007
-    pkgs = get_pkgs(port, checksums)
-    yield from mock_server(xprocess, "m7", port, pkgs, error_type="broken")
-
-
-@pytest.fixture
-def mock_server_2(xprocess, checksums):
-    port = 5008
-    pkgs = get_pkgs(port, checksums)
-    yield from mock_server(xprocess, "m8", port, pkgs, error_type=None)
+    yield from mock_server(xprocess, "m5", port, pkgs, error_type=None, uname="user", pwd="secret")
 
 
 def yml_content(file, target):
@@ -232,12 +220,25 @@ class TestAll:
             return readable_hash
 
     # Download the expected file
-    def test_working_download(self, file, powerloader_binary, mock_server_1, checksums):
+    def test_working_download(self, file, powerloader_binary, mock_server_fx, checksums):
         self.remove_all(file)
 
-        # print(mock_server_1 + "/static/packages/" + file['name'])
+        # print(mock_server_fx + "/static/packages/" + file['name'])
         out = subprocess.check_output([powerloader_binary, "download",
-                                       f"{mock_server_1}/static/packages/{file['name']}",
+                                       f"{mock_server_fx}/static/packages/{file['name']}",
+                                       "-o", file["output_path"]])
+
+        assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
+        assert Path(file["output_path"]).exists()
+        assert not Path(file["output_path_pdpart"]).exists()
+        assert os.path.getsize(file["output_path"]) == file["size"]
+
+    # Download the expected file
+    def test_working_download_pwd(self, file, powerloader_binary, mock_server_password, checksums):
+        self.remove_all(file)
+
+        out = subprocess.check_output([powerloader_binary, "download",
+                                       f"{mock_server_password}/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
 
         assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
@@ -246,19 +247,19 @@ class TestAll:
         assert os.path.getsize(file["output_path"]) == file["size"]
 
     # Download from a path that works on the third try
-    def test_broken_for_three_tries(self, file, powerloader_binary, mock_server_1, checksums):
+    def test_broken_for_three_tries(self, file, powerloader_binary, mock_server_fx, checksums):
         self.remove_all(file)
         out = subprocess.check_output([powerloader_binary, "download",
-                                       f"{mock_server_1}/broken_counts/static/packages/{file['name']}",
+                                       f"{mock_server_fx}/broken_counts/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
         assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert os.path.getsize(file["output_path"]) == file["size"]
 
-    def test_working_download_broken_checksum(self, file, powerloader_binary, mock_server_1):
+    def test_working_download_broken_checksum(self, file, powerloader_binary, mock_server_fx):
         self.remove_all(file)
         try:
             out = subprocess.check_output([powerloader_binary, "download",
-                                           f"{mock_server_1}/static/packages/{file['name']}",
+                                           f"{mock_server_fx}/static/packages/{file['name']}",
                                            "--sha", "broken_checksum",
                                            "-o", file["output_path"]])
         except subprocess.CalledProcessError as e:
@@ -267,11 +268,11 @@ class TestAll:
         assert not Path(file["output_path"]).exists()
 
     # Download a broken file
-    def test_broken_download_good_checksum(self, file, powerloader_binary, mock_server_1):
+    def test_broken_download_good_checksum(self, file, powerloader_binary, mock_server_fx):
         self.remove_all(file)
         try:
             out = subprocess.check_output([powerloader_binary, "download",
-                                           f"{mock_server_1}/harm_checksum/static/packages/{file['name']}",
+                                           f"{mock_server_fx}/harm_checksum/static/packages/{file['name']}",
                                            "--sha", "broken_checksum",
                                            "-o", file["output_path"]
                                            ])
@@ -281,14 +282,14 @@ class TestAll:
         assert not Path(file["output_path_pdpart"]).exists()
         assert not Path(file["output_path"]).exists()
 
-    def get_prev_headers(self, mock_server_1):
-        with urlopen(f"{mock_server_1}/prev_headers") as fi:
+    def get_prev_headers(self, mock_server_fx):
+        with urlopen(f"{mock_server_fx}/prev_headers") as fi:
             return json.loads(fi.read().decode('utf-8'))
 
-    def test_part_resume(self, file, powerloader_binary, mock_server_1, checksums):
+    def test_part_resume(self, file, powerloader_binary, mock_server_fx, checksums):
         # Download the expected file
         out = subprocess.check_output([powerloader_binary, "download",
-                                       f"{mock_server_1}/static/packages/{file['name']}",
+                                       f"{mock_server_fx}/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
 
         with open(file['output_path'], 'rb') as fi:
@@ -298,17 +299,18 @@ class TestAll:
 
         # Resume the download
         out = subprocess.check_output([powerloader_binary, "download",
-                                       "-r", f"{mock_server_1}/static/packages/{file['name']}",
+                                       "-r", f"{mock_server_fx}/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
         assert self.calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert os.path.getsize(file["output_path"]) == file["size"]
 
-        sent_headers = self.get_prev_headers(mock_server_1)
+        sent_headers = self.get_prev_headers(mock_server_fx)
         assert ('Range' in sent_headers)
         assert (sent_headers['Range'] == 'bytes=400-')
 
-    def test_yml_download_working(self, file, mirrors_with_names, checksums,
-                                  powerloader_binary, mock_server_1, mock_server_2):
+    def test_yml_download_working(self, file, mirrors_with_names, checksums, powerloader_binary,
+                                  mock_server_fx, mock_server_404, mock_server_lazy,
+                                  mock_server_broken, mock_server_password):
         self.remove_all(file)
 
         out = subprocess.check_output([powerloader_binary, "download",
@@ -319,8 +321,8 @@ class TestAll:
             assert self.calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
     def test_yml_content_based_behavior(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
-                                        mock_server_1, mock_server_1_404, mock_server_1_lazy, mock_server_1_broken,
-                                        mock_server_2, mock_server_2_404, mock_server_2_lazy, mock_server_2_broken):
+                                        mock_server_fx, mock_server_404, mock_server_lazy,
+                                        mock_server_broken, mock_server_password):
         self.remove_all(file)
 
         out = subprocess.check_output([powerloader_binary, "download",
@@ -339,8 +341,8 @@ class TestAll:
 
     # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
-                                    mock_server_1, mock_server_1_404, mock_server_1_lazy, mock_server_1_broken,
-                                    mock_server_2, mock_server_2_404, mock_server_2_lazy, mock_server_2_broken):
+                                    mock_server_fx, mock_server_404, mock_server_lazy,
+                                    mock_server_broken, mock_server_password):
         self.remove_all(file)
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["local_mirrors"],
@@ -361,7 +363,7 @@ class TestAll:
             fn = broken_file.replace(pdp, "").split("/")[-1]
             fp = Path(file["tmp_path"]) / Path(fn)
             out = subprocess.check_output([powerloader_binary, "download",
-                                           "-r", f"{mock_server_1}/static/packages/{fn}",
+                                           "-r", f"{mock_server_fx}/static/packages/{fn}",
                                            "-o", fp])
 
         for fn in sparse_mirrors_with_names["names"]:
