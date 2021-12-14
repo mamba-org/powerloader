@@ -150,18 +150,14 @@ def conda_mock_handler(port, pkgs, err_type):
 
         def select_error(self, err_type):
             # possible errors = 404, boken, lazy
-            match err_type:
-                case "404":
-                    return self.return_not_found()
-                case "broken":
-                    return self.serve_harm_checksum()
-                case "lazy":
-                    return self.return_not_found_counts()
-                case None:
-                    path = self.parse_path()
-                    return self.serve_file(path)
-                case _:
-                    raise Exception("Unexpected state!")
+            if err_type == "404":
+                return self.return_not_found()
+            elif err_type == "broken":
+                return self.serve_harm_checksum()
+            elif err_type == "lazy":
+                return self.return_not_found_counts()
+            path = self.parse_path()
+            return self.serve_file(path)
 
         def get_filename(self):
             filename = self.path.split("/")[-1]
