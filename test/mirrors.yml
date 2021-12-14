@@ -1,9 +1,21 @@
 mirrors:
   conda-forge:
     - http://localhost:5004
-    - http://localhost:5008
 
 targets:
   - conda-forge:/static/packages/python-3.9.7-hb7a2778_1_cpython.tar.bz2
   - conda-forge:/static/packages/xtensor-0.23.10-hd62202e_0.tar.bz2
   - conda-forge:/static/packages/xtensor-0.23.10-h4bd325d_0.tar.bz2
+
+# Mock server with and without password
+# Check if it's compattible with yaml file
+# Check authentification formats in yaml
+
+# OCI: Registry (server),
+# - url: http://localhost:5004
+#   user: username
+#   pass: mypassword
+# - http://username:mypass@localhost:5004
+#- http://localhost:5008
+#- oci://ghcr.io/...
+#- s3://...

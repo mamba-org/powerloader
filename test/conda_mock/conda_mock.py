@@ -1,11 +1,6 @@
-import hashlib
-import base64
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import os
-import sys
-import time
-import re
-import json
+from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, HTTPServer
+import os, sys, time, re, json
+import hashlib, base64
 
 from .config import AUTH_USER, AUTH_PASS
 
@@ -32,11 +27,11 @@ def parse_byte_range(byte_range):
         raise ValueError('Invalid byte range %s' % byte_range)
     return first, last
 
-def conda_mock_handler(port, pkgs, err_type):
+def conda_mock_handler(port, pkgs, err_type, username, pwd):
 
     class CondaMockHandler(BaseHTTPRequestHandler):
         _port, _pkgs, _err_type = port, pkgs, err_type
-
+        _username, _pwd = username, pwd
         count_thresh = 3
         number_of_servers = 4
 
@@ -171,12 +166,18 @@ def conda_mock_handler(port, pkgs, err_type):
                 path = self.parse_path()
                 return self.serve_file(path)
 
-        def do_GET(self):
-            """
-            Add specific hooks if needed
-            :return:
-            """
+        def do_HEAD(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
 
+        def do_AUTHHEAD(self):
+            self.send_response(401)
+            self.send_header("WWW-Authenticate", 'Basic realm="Test"')
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+
+        def get_main(self):
             if self.path.startswith('/prev_headers'):
                 return self.serve_prev_headers()
 
@@ -191,4 +192,32 @@ def conda_mock_handler(port, pkgs, err_type):
 
             return self.serve_static()
 
+        def do_GET(self):
+            """
+            Add specific hooks if needed
+            :return:
+            """
+            # "user:passwort" # os.environ["TESTPWD"]
+            key = username + ":" + pwd
+
+            if key == ":":
+                # Workaround, because we don't support empty usernames and passwords
+                self.get_main()
+            else:
+                key = base64.b64encode(bytes(key, "utf-8")).decode("ascii")
+                """ Present frontpage with user authentication. """
+                auth_header = self.headers.get("Authorization", "")
+
+                if not auth_header:
+                    self.do_AUTHHEAD()
+                    self.wfile.write(b"no auth header received")
+                    return True
+                elif auth_header == "Basic " + key:
+                    # SimpleHTTPRequestHandler.do_GET(self)
+                    return self.get_main()
+                else:
+                    self.do_AUTHHEAD()
+                    self.wfile.write(auth_header.encode("ascii"))
+                    self.wfile.write(b"not authenticated")
+                    return True
     return CondaMockHandler

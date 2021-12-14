@@ -5,9 +5,6 @@ mirrors:
     - http://localhost:5003
     - http://localhost:5004
     - http://localhost:5005
-    - http://localhost:5006
-    - http://localhost:5007
-    - http://localhost:5008
 
 targets:
   - conda-forge:static/packages/xtensor-0.23.10-hd62202e_0.tar.bz2
