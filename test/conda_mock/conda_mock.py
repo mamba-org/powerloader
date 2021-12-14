@@ -1,3 +1,4 @@
+import hashlib
 import base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
@@ -31,11 +32,13 @@ def parse_byte_range(byte_range):
         raise ValueError('Invalid byte range %s' % byte_range)
     return first, last
 
-def conda_mock_handler(port):
+def conda_mock_handler(port, pkgs, err_type):
 
     class CondaMockHandler(BaseHTTPRequestHandler):
-        _port = port
+        _port, _pkgs, _err_type = port, pkgs, err_type
+
         count_thresh = 3
+        number_of_servers = 4
 
         def return_bad_request(self):
             self.send_response(400)
@@ -84,7 +87,7 @@ def conda_mock_handler(port):
             specified keyword in the filename. If the filename doesn't contain
             the keyword, content of the file is returnen unchanged."""
             keyword, path = self.parse_path('', keyword_expected=True)
-            self.serve_file(path, harm_keyword=keyword)
+            return self.serve_file(path, harm_keyword=keyword)
 
         def serve_range_data(self, data, content_type):
             first, last = self.range
@@ -145,9 +148,28 @@ def conda_mock_handler(port):
                 # File probably doesn't exist or we can't read it
                 return self.return_not_found()
 
-        def serve_static(self):
+        def select_error(self, err_type):
+            # possible errors = 404, boken, lazy
+            if err_type == "404":
+                return self.return_not_found()
+            elif err_type == "broken":
+                return self.serve_harm_checksum()
+            elif err_type == "lazy":
+                return self.return_not_found_counts()
             path = self.parse_path()
-            self.serve_file(path)
+            return self.serve_file(path)
+
+        def get_filename(self):
+            filename = self.path.split("/")[-1]
+            print(filename)
+            return filename
+
+        def serve_static(self):
+            if self.get_filename() in pkgs:
+                return self.select_error(err_type)
+            else:
+                path = self.parse_path()
+                return self.serve_file(path)
 
         def do_GET(self):
             """
