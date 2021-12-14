@@ -237,9 +237,6 @@ class TestAll:
     def test_working_download_pwd(self, file, powerloader_binary, mock_server_password, checksums):
         self.remove_all(file)
 
-        # time.sleep(1000)
-
-        # print(mock_server_fx + "/static/packages/" + file['name'])
         out = subprocess.check_output([powerloader_binary, "download",
                                        f"{mock_server_password}/static/packages/{file['name']}",
                                        "-o", file["output_path"]])
