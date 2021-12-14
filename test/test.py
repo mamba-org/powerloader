@@ -295,7 +295,9 @@ class TestAll:
 
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["sparse_mirrors"],
-                                       "-d", file["tmp_path"]])
+                                       "-d", file["tmp_path"], "-v"])
+
+        print(str(out))
 
         for fn in sparse_mirrors_with_names["names"]:
             fp = file["tmp_path"] / fn
