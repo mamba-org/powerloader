@@ -1,9 +1,9 @@
 mirrors:
   conda-forge:
-    - https://conda.anaconda.org/conda-forge
-    - https://repo.mamba.pm/conda-forge
+    - http://localhost:5004
+    - http://localhost:5008
 
 targets:
-  - conda-forge:linux-64/python-3.9.7-hb7a2778_1_cpython.tar.bz2
-  - conda-forge:linux-aarch64/xtensor-0.23.10-hd62202e_0.tar.bz2
-  - conda-forge:linux-64/xtensor-0.23.10-h4bd325d_0.tar.bz2
+  - conda-forge:/static/packages/python-3.9.7-hb7a2778_1_cpython.tar.bz2
+  - conda-forge:/static/packages/xtensor-0.23.10-hd62202e_0.tar.bz2
+  - conda-forge:/static/packages/xtensor-0.23.10-h4bd325d_0.tar.bz2
