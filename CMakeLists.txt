@@ -34,6 +34,8 @@ option(DEV "Enable dev" OFF)
 if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp)
     find_library(ZCK_LIBRARY zck)
+    find_file(ZCK_H_FILE NAMES zck.h)
+    get_filename_component(ZCK_INCLUDE_DIRS ${ZCK_H_FILE} DIRECTORY)
 endif()
 
 if (MSVC)
@@ -47,6 +49,7 @@ add_library(libpowerloader
 target_include_directories(powerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
+    ${ZCK_INCLUDE_DIRS}
 )
 if (DEV)
     add_executable(dpowerloader src/main.cpp)
@@ -58,6 +61,10 @@ endif()
 
 if (WITH_ZCHUNK)
     target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
+    target_compile_definitions(libpowerloader PUBLIC WITH_ZCHUNK)
+    if (MSVC)
+        target_compile_definitions(libpowerloader PUBLIC /wd4996)
+    endif()
 endif()
 
 find_package(spdlog REQUIRED)

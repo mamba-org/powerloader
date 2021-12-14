@@ -5,6 +5,7 @@
 #include "enums.hpp"
 #include "url.hpp"
 #include "mirror.hpp"
+#include "fileio.hpp"
 
 #ifdef WITH_ZCHUNK
 extern "C"
@@ -47,7 +48,7 @@ namespace powerloader
 
         std::string complete_url;
         std::string fn, path, base_url;
-        std::shared_ptr<std::ofstream> fd;
+        std::unique_ptr<FileIO> outfile;
 
         std::size_t byterange_start = 0, byterange_end = 0;
         std::string range;
@@ -61,6 +62,8 @@ namespace powerloader
         EndCb endcb = nullptr;
         void* cbdata = nullptr;
 
+        // these are available checksums for the entire file  or, in the case of a zchunk file,
+        // for the header because the zchunk header contains checksums for the rest of the file.
         std::vector<Checksum> checksums;
 
         // error code
@@ -70,7 +73,7 @@ namespace powerloader
         zckDL* zck_dl = nullptr;
 
         // Zchunk header size
-        std::ptrdiff_t zck_header_size;
+        std::ptrdiff_t zck_header_size = -1;
 
         // Total to download in zchunk file
         double total_to_download;

@@ -32,10 +32,13 @@ struct MirrorCredentials
     std::string user, password, region;
 };
 
+static bool show_progress_bars = true;
 
 int
 progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
 {
+    if (!show_progress_bars)
+        return 0;
     if (total == 0 || done == 0)
         return 0;
     if (global_progress.total_done.size() != 0)
@@ -140,19 +143,26 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
     return 1;
 }
 
+struct DownloadMetadata
+{
+    std::string outfile;
+    std::string sha256;
+    std::ptrdiff_t filesize = -1;
+
+    std::string zck_header_sha256;
+    std::ptrdiff_t zck_header_size = -1;
+};
+
 int
 handle_download(const std::vector<std::string>& urls,
                 const std::vector<std::string>& mirrors,
                 bool resume,
-                const std::string& outfile,
-                const std::string& sha_cli,
                 const std::string& dest_folder,
-                long int filesize)
+                DownloadMetadata& metadata,
+                bool do_zck_extract)
 {
-    // the format for URLs is:
-    // conda-forge:linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2] (last part optional, can be
-    // inferred from `path`)
-    // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2[:xtensor.tar.bz2]
+    // the format for URLs is: <mirror>:<path> (e.g. conda-forge:linux-64/xtensor-123.tar.bz2) or
+    // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2
     std::vector<std::unique_ptr<DownloadTarget>> targets;
 
     auto& ctx = Context::instance();
@@ -169,7 +179,8 @@ handle_download(const std::vector<std::string>& urls,
             std::string host = uh.host();
             std::string path = uh.path();
             std::string mirror_url = url.substr(0, url.size() - path.size());
-            std::string dst = outfile.empty() ? rsplit(uh.path(), "/", 1).back() : outfile;
+            std::string dst
+                = metadata.outfile.empty() ? rsplit(uh.path(), "/", 1).back() : metadata.outfile;
 
             if (ctx.mirror_map.find(host) == ctx.mirror_map.end())
             {
@@ -191,7 +202,8 @@ handle_download(const std::vector<std::string>& urls,
             {
                 throw std::runtime_error("Not the correct number of : in the url");
             }
-            std::string dst = outfile.empty() ? rsplit(path, "/", 1).back() : outfile;
+            std::string dst
+                = metadata.outfile.empty() ? rsplit(path, "/", 1).back() : metadata.outfile;
 
             if (!dest_folder.empty())
                 dst = dest_folder + "/" + dst;
@@ -201,10 +213,18 @@ handle_download(const std::vector<std::string>& urls,
         }
         targets.back()->resume = resume;
 
-        if (!sha_cli.empty())
-            targets.back()->checksums.push_back(Checksum{ ChecksumType::kSHA256, sha_cli });
-        if (filesize > 0)
-            targets.back()->expected_size = filesize;
+        if (!metadata.sha256.empty())
+            targets.back()->checksums.push_back(Checksum{ ChecksumType::kSHA256, metadata.sha256 });
+        if (metadata.filesize > 0)
+            targets.back()->expected_size = metadata.filesize;
+            // TODO we should have two different fields for those two
+#ifdef WITH_ZCHUNK
+        if (!metadata.zck_header_sha256.empty())
+            targets.back()->checksums.push_back(
+                Checksum{ ChecksumType::kSHA256, metadata.zck_header_sha256 });
+        if (metadata.zck_header_size > 0)
+            targets.back()->zck_header_size = metadata.zck_header_size;
+#endif
 
         using namespace std::placeholders;
         targets.back()->progress_callback
@@ -226,6 +246,21 @@ handle_download(const std::vector<std::string>& urls,
         exit(1);
     }
 
+#ifdef WITH_ZCHUNK
+    if (do_zck_extract)
+    {
+        for (auto& t : targets)
+        {
+            if (t->is_zchunk)
+            {
+                fs::path p = t->fn;
+                fs::path p_ext = p;
+                p_ext.replace_extension("");
+                zck_extract(p, p_ext, false);
+            }
+        }
+    }
+#endif
     return 0;
 }
 
@@ -331,15 +366,19 @@ main(int argc, char** argv)
     std::vector<std::string> mirrors;
     std::string file, outfile, sha_cli, outdir;
     bool verbose = false;
+    bool do_zck_extract = false;
     long int filesize = -1;
+
+    DownloadMetadata dl_meta;
 
     CLI::App* s_dl = app.add_subcommand("download", "Download a file");
     s_dl->add_option("files", du_files, "Files to download");
     s_dl->add_option("-m", mirrors, "Mirrors from where to download");
     s_dl->add_flag("-r,--resume", resume, "Try to resume");
     s_dl->add_option("-f", file, "File from which to read upload / download files");
-    s_dl->add_option("-o", outfile, "Output file");
     s_dl->add_option("-d", outdir, "Output directory");
+    s_dl->add_option("-o", dl_meta.outfile, "Output file");
+    s_dl->add_flag("-x", do_zck_extract, "Output file");
 
     CLI::App* s_ul = app.add_subcommand("upload", "Upload a file");
     s_ul->add_option("files", du_files, "Files to upload");
@@ -349,13 +388,23 @@ main(int argc, char** argv)
     s_ul->add_flag("-v", verbose, "Enable verbose output");
     s_dl->add_flag("-v", verbose, "Enable verbose output");
 
-    s_dl->add_option("--sha", sha_cli, "Expected SHA string");
-    s_dl->add_option("-i", filesize, "Expected file size");
+    s_dl->add_option("--sha", dl_meta.sha256, "Expected SHA string");
+    s_dl->add_option("-i", dl_meta.filesize, "Expected file size");
+
+    s_dl->add_option("--zck-header-sha",
+                     dl_meta.zck_header_sha256,
+                     "Header SHA256 for zchunk header (find with zck_read_header)");
+    s_dl->add_option("--zck-header-size",
+                     dl_meta.zck_header_size,
+                     "Header size for zchunk header (find with zck_read_header)");
 
     CLI11_PARSE(app, argc, argv);
 
     if (verbose)
+    {
+        show_progress_bars = false;
         Context::instance().set_verbosity(1);
+    }
 
     std::vector<Mirror> mlist;
     spdlog::info("Loading file.");
@@ -373,14 +422,13 @@ main(int argc, char** argv)
             ctx.mirror_map = parse_mirrors(config["mirrors"]);
         }
     }
-    spdlog::set_level(spdlog::level::warn);
     if (app.got_subcommand("upload"))
     {
         return handle_upload(du_files, mirrors);
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(du_files, mirrors, resume, outfile, sha_cli, outdir, filesize);
+        return handle_download(du_files, mirrors, resume, outdir, dl_meta, do_zck_extract);
     }
 
     return 0;

@@ -5,11 +5,11 @@ namespace powerloader
     void Target::reset()
     {
         // curl_handle.reset();
-        if (this->f != nullptr)
-        {
-            fclose(this->f);
-            this->f = nullptr;
-        }
+        // if (this->f != nullptr)
+        // {
+        //     fclose(this->f);
+        //     this->f = nullptr;
+        // }
     }
 
     CbReturnCode Target::call_endcallback(TransferStatus status)
@@ -61,50 +61,59 @@ namespace powerloader
         if (original_offset >= 0)
             offset = original_offset;
 
-        fs::resize_file(p, offset);
-        if (target->fd && target->fd->is_open())
+        assert(target->outfile->open());
+        std::error_code ec;
+        target->outfile->truncate(offset, ec);
+        if (ec)
         {
-            target->fd->seekp(original_offset);
+            throw std::runtime_error("Could not truncate");
         }
+        target->outfile->seek(original_offset, SEEK_SET);
+        // fs::resize_file(p, offset);
+        // if (target->fd && target->fd->is_open())
+        // {
+        //     target->fd->seekp(original_offset);
+        // }
         return true;
     }
 
-    std::shared_ptr<std::ofstream> Target::open_target_file()
+    void Target::open_target_file()
     {
         /** Open the file to write to */
-        if (target->fd && target->fd->is_open())
+        // if (target->fd && target->fd->is_open())
+        // {
+        //     // Use supplied filedescriptor
+        //     spdlog::info("Using supplied fd");
+        //     // return target->fd;
+        //     // if (fd == -1)
+        //     // {
+        //     //     g_set_error(err, LR_DOWNLOADER_ERROR, LRE_IO,
+        //     //                 "dup(%d) failed: %s",
+        //     //                 target->target->fd, g_strerror(errno));
+        //     //     return nullptr;
+        //     // }
+        // }
+        // else
+        // {
+        // Use supplied filename
+        temp_file = target->fn + PARTEXT;
+        std::error_code ec;
+        if (this->resume || target->is_zchunk)
         {
-            // Use supplied filedescriptor
-            return target->fd;
-            // if (fd == -1)
-            // {
-            //     g_set_error(err, LR_DOWNLOADER_ERROR, LRE_IO,
-            //                 "dup(%d) failed: %s",
-            //                 target->target->fd, g_strerror(errno));
-            //     return nullptr;
-            // }
+            target->outfile = std::make_unique<FileIO>(temp_file, FileIO::append_update_binary, ec);
         }
         else
         {
-            // Use supplied filename
-            // int open_flags = O_CREAT | O_TRUNC | O_RDWR;
-            std::ios::openmode open_flags;
-            if (this->resume || target->is_zchunk)
-            {
-                open_flags = std::ios::app | std::ios::binary | std::ios::ate;
-            }
-            else
-            {
-                open_flags = std::ios::out | std::ios::trunc | std::ios::binary;
-            }
-
-            temp_file = target->fn + PARTEXT;
-            target->fd.reset(new std::ofstream(temp_file, open_flags));
-            // TODO set permissions using fs::permissions?!
-            // fd = open(target->fn, open_flags, 0666);
+            target->outfile = std::make_unique<FileIO>(temp_file, FileIO::write_update_binary, ec);
         }
 
-        return target->fd;
+        if (ec)
+        {
+            throw std::runtime_error("Could not open target file.");
+        }
+        // }
+
+        // return target->outfile;
     }
 
 #ifdef WITH_ZCHUNK
@@ -122,10 +131,13 @@ namespace powerloader
         }
         else
         {
+            spdlog::info("Writing out ranges");
             // TODO?
         }
 
-        return zck_header_cb(buffer, size, nitems, self->target->zck_dl);
+        auto i = zck_header_cb(buffer, size, nitems, self->target->zck_dl);
+        spdlog::info("ZCK HEADER CALLBACK WROTE: {}", i);
+        return i;
     }
 #endif  // WITH_ZCHUNK
 
@@ -161,12 +173,12 @@ namespace powerloader
                 if (contains(header, "200")
                     || contains(header, "206") && !contains(header, "connection established"))
                 {
-                    // spdlog::info("Header state OK! {}", header);
+                    spdlog::info("Header state OK! {}", header);
                     target->headercb_state = HeaderCbState::kHTTP_STATE_OK;
                 }
                 else
                 {
-                    // spdlog::info("Header state not OK! {}", header);
+                    spdlog::info("Header state not OK! {}", header);
                 }
             }
             // else if (lrtarget->protocol == LR_PROTOCOL_FTP)
@@ -272,12 +284,14 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
     std::size_t zckwritecb(char* buffer, size_t size, size_t nitems, Target* self)
     {
-        if (self->zck_state == ZckState::HEADER)
+        if (self->zck_state == ZckState::kHEADER)
         {
+            spdlog::info("zck: Writing header");
             return zck_write_zck_header_cb(buffer, size, nitems, self->target->zck_dl);
         }
         else
         {
+            spdlog::info("zck: Writing body");
             return zck_write_chunk_cb(buffer, size, nitems, self->target->zck_dl);
         }
     }
@@ -295,7 +309,9 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
         if (self->target->is_zchunk && !self->range_fail && self->mirror
             && self->mirror->protocol == Protocol::kHTTP)
+        {
             return zckwritecb(buffer, size, nitems, self);
+        }
 #endif /* WITH_ZCHUNK */
 
         // Total number of bytes from curl
@@ -308,7 +324,7 @@ namespace powerloader
             // Write everything curl give to you
             self->writecb_received += all;
             // TODO check bad bit here!
-            self->target->fd->write(buffer, all);
+            self->target->outfile->write(buffer, size, nitems);
             return all;
         }
 
@@ -371,7 +387,7 @@ namespace powerloader
         }
 
         assert(nitems > 0);
-        self->target->fd->write(buffer, size * nitems);
+        self->target->outfile->write(buffer, size, nitems);
 
         // TOOD check failbit!
         // if (cur_written != nitems)

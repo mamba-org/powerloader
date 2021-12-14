@@ -41,8 +41,10 @@ namespace powerloader
                                int fd);
 
     zckCtx* zck_init_read(DownloadTarget* target, int fd);
+    zckCtx* zck_init_read(Target* target);
 
     bool zck_valid_header(DownloadTarget* target, int fd);
+    bool zck_valid_header(Target* target);
 
     bool zck_clear_header(Target* target);
 
@@ -60,4 +62,5 @@ namespace powerloader
     bool prepare_zck_body(Target* target);
     bool check_zck(Target* target);
 
+    bool zck_extract(const fs::path& source, const fs::path& dst, bool validate);
 }

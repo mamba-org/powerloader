@@ -27,7 +27,7 @@ namespace fs = std::filesystem;
 #include "target.hpp"
 #include "utils.hpp"
 #ifdef WITH_ZCHUNK
-#include "zck.hpp"
+#include <zck.hpp>
 #endif
 #include "result.hpp"
 
@@ -104,47 +104,39 @@ namespace powerloader
                 throw download_error("Interrupted by header callback "
                                      + target->headercb_interrupt_reason);
             }
-            // #ifdef WITH_ZCHUNK
-            //             else if (target->range_fail)
-            //             {
-            //                 zckRange *range =
-            //                 zck_dl_get_range(target->target->zck_dl); int range_count
-            //                 = zck_get_range_count(range); if
-            //                 (target->mirror->max_ranges >= range_count)
-            //                 {
-            //                     target->mirror->max_ranges = range_count / 2;
-            //                     g_debug("%s: Setting mirror's max_ranges to %i",
-            //                     __func__,
-            //                             target->mirror->max_ranges);
-            //                 }
-            //                 return TRUE;
-            //             }
-            //             else if (target->target->zck_dl != NULL &&
-            //             zck_is_error(zck_dl_get_zck(target->target->zck_dl)) > 0)
-            //             {
-            //                 zckCtx *zck = zck_dl_get_zck(target->target->zck_dl);
+#ifdef WITH_ZCHUNK
+            else if (target->range_fail)
+            {
+                zckRange* range = zck_dl_get_range(target->target->zck_dl);
+                int range_count = zck_get_range_count(range);
+                if (target->mirror->max_ranges >= range_count)
+                {
+                    target->mirror->max_ranges = range_count / 2;
+                    spdlog::debug("Setting mirror max_ranges to {}", target->mirror->max_ranges);
+                }
+                return true;
+            }
+            else if (target->target->zck_dl != nullptr
+                     && zck_is_error(zck_dl_get_zck(target->target->zck_dl)) > 0)
+            {
+                zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
 
-            //                 // Something went wrong while writing the zchunk file
-            //                 g_set_error(transfer_err, LR_DOWNLOADER_ERROR, LRE_ZCK,
-            //                             "Zchunk error: %s",
-            //                             zck_get_error(zck));
-            //                 if (zck_is_error(zck) == 1)
-            //                 {
-            //                     // Non-fatal zchunk error
-            //                     g_info("Serious zchunk error: %s",
-            //                            zck_get_error(zck));
-            //                     *serious_error = TRUE;
-            //                 }
-            //                 else
-            //                 { // zck_is_error(zck) == 2
-            //                     // Fatal zchunk error
-            //                     g_info("Fatal zchunk error: %s",
-            //                            zck_get_error(zck));
-            //                     *fatal_error = TRUE;
-            //                 }
-            //                 return TRUE;
-            //             }
-            // #endif /* WITH_ZCHUNK */
+                // Something went wrong while writing the zchunk file
+                if (zck_is_error(zck) == 1)
+                {
+                    // Non-fatal zchunk error
+                    spdlog::warn("Serious zchunk error: %s", zck_get_error(zck));
+                    throw download_error(zck_get_error(zck), true);
+                }
+                else
+                {
+                    // Fatal zchunk error (zck_is_error(zck) == 2)
+                    spdlog::error("Fatal zchunk error: %s", zck_get_error(zck));
+                    throw fatal_download_error(zck_get_error(zck));
+                }
+                return true;
+            }
+#endif /* WITH_ZCHUNK */
             else
             {
                 // There was a CURL error
@@ -494,10 +486,10 @@ namespace powerloader
         // If file is zchunk, prep it
         if (target->target->is_zchunk)
         {
-            spdlog::info("opening {}", target->target->path);
+            spdlog::info("zck: opening {}", target->temp_file.string());
             // TODO we need to open with a+ ... is there a better way?
             //      compare again with librepo
-            target->f = fopen(target->target->path.c_str(), "a+");
+            // target->f = fopen(target->temp_file.c_str(), "a+");
             if (!check_zck(target))
             {
                 spdlog::info("Could not initialize zchunk!");
@@ -512,7 +504,7 @@ namespace powerloader
             // If zchunk is finished, we're done, so move to next target
             if (target->zck_state == ZckState::kFINISHED)
             {
-                spdlog::info("Target already fully downloaded: {}", target->target->path);
+                spdlog::info("Target fully downloaded: {}", target->target->path);
                 target->state = DownloadState::kFINISHED;
                 target->reset();
                 target->headercb_interrupt_reason.clear();
@@ -539,7 +531,7 @@ namespace powerloader
         //     }
         // }
 
-        if (target->resume && target->resume_count >= LR_DOWNLOADER_MAXIMAL_RESUME_COUNT)
+        if (target->resume && target->resume_count >= Context::instance().max_resume_count)
         {
             target->resume = false;
             spdlog::info("Download resume ignored, maximal number of attempts has been reached");
@@ -553,8 +545,9 @@ namespace powerloader
             {
                 // Determine offset
                 // fseek(target->f, 0L, SEEK_END);
-                target->target->fd->seekp(0, std::ios::end);
-                std::ptrdiff_t determined_offset = target->target->fd->tellp();
+                // target->target->fd->seekp(0, std::ios::end);
+                target->target->outfile->seek(0L, SEEK_END);
+                std::ptrdiff_t determined_offset = target->target->outfile->tell();
 
                 if (determined_offset == -1)
                 {
@@ -760,10 +753,9 @@ namespace powerloader
             // if (!transfer_check)
             //     return false;
 
-            if (current_target->f)
+            if (current_target->target->outfile->open())
             {
-                fflush(current_target->f);
-                auto fd = fileno(current_target->f);
+                current_target->target->outfile->flush();
             }
 
             if (transfer_err)
@@ -775,65 +767,83 @@ namespace powerloader
                 // validate download
 
 #ifdef WITH_ZCHUNK
-                //     if (current_target->target->is_zchunk())
-                //     {
-                //     zckCtx *zck = NULL;
-                //     if (target->zck_state == LR_ZCK_DL_HEADER) {
-                //         if(target->mirror->max_ranges > 0 && target->mirror->mirror->protocol ==
-                //         LR_PROTOCOL_HTTP &&
-                //            !lr_zck_valid_header(target->target, target->target->path,
-                //                                 fd, &transfer_err))
-                //             goto transfer_error;
-                //     } else if(target->zck_state == LR_ZCK_DL_BODY) {
-                //         if(target->mirror->max_ranges > 0 && target->mirror->mirror->protocol ==
-                //         LR_PROTOCOL_HTTP) {
-                //             zckCtx *zck = zck_dl_get_zck(target->target->zck_dl);
-                //             if(zck == NULL) {
-                //                 g_set_error(&transfer_err, LR_DOWNLOADER_ERROR, LRE_ZCK,
-                //                             "Unable to get zchunk file from download context");
-                //                 goto transfer_error;
-                //             }
-                //             if(zck_failed_chunks(zck) == 0 && zck_missing_chunks(zck) == 0)
-                //                 target->zck_state = LR_ZCK_DL_FINISHED;
-                //         } else {
-                //             target->zck_state = LR_ZCK_DL_FINISHED;
-                //         }
-                //     }
-                //     if(target->zck_state == LR_ZCK_DL_FINISHED) {
-                //         zck = lr_zck_init_read(target->target, target->target->path, fd,
-                //                                &transfer_err);
-                //         if(!zck)
-                //             goto transfer_error;
-                //         if(zck_validate_checksums(zck) < 1) {
-                //             zck_free(&zck);
-                //             g_set_error(&transfer_err, LR_DOWNLOADER_ERROR, LRE_BADCHECKSUM,
-                //                         "At least one of the zchunk checksums doesn't match in
-                //                         %s", effective_url);
-                //             goto transfer_error;
-                //         }
-                //         zck_free(&zck);
-                //     }
-                // } else {
-#endif
-            if (!current_target->check_checksums())
+            if (current_target->target->is_zchunk)
             {
-                // this is what librepo does, but I am not sure it's ideal
-                return false;
+                zckCtx* zck = nullptr;
+                if (current_target->zck_state == ZckState::kHEADER)
+                {
+                    if (current_target->mirror->max_ranges > 0
+                        && current_target->mirror->protocol == Protocol::kHTTP
+                        && !zck_valid_header(current_target))
+                    {
+                        goto transfer_error;
+                    }
+                }
+                else if (current_target->zck_state == ZckState::kBODY)
+                {
+                    if (current_target->mirror->max_ranges > 0
+                        && current_target->mirror->protocol == Protocol::kHTTP)
+                    {
+                        zckCtx* zck = zck_dl_get_zck(current_target->target->zck_dl);
+                        if (zck == nullptr)
+                        {
+                            spdlog::error("Unable to get zchunk file from download context");
+                            // g_set_error(&transfer_err,
+                            //             LR_DOWNLOADER_ERROR,
+                            //             LRE_ZCK,
+                            //             "Unable to get zchunk file from download context");
+                            goto transfer_error;
+                        }
+                        if (zck_failed_chunks(zck) == 0 && zck_missing_chunks(zck) == 0)
+                        {
+                            current_target->zck_state = ZckState::kFINISHED;
+                        }
+                    }
+                    else
+                    {
+                        current_target->zck_state = ZckState::kFINISHED;
+                    }
+                }
+                if (current_target->zck_state == ZckState::kFINISHED)
+                {
+                    zck = zck_init_read(current_target);
+                    if (!zck)
+                        goto transfer_error;
+                    if (zck_validate_checksums(zck) < 1)
+                    {
+                        zck_free(&zck);
+                        spdlog::error("At least one of the zchunk checksums doesn't match in {}",
+                                      effective_url);
+                        // g_set_error(&transfer_err, LR_DOWNLOADER_ERROR, LRE_BADCHECKSUM,
+                        // "At least one of the zchunk checksums doesn't match in
+                        // %s", effective_url);
+                        goto transfer_error;
+                    }
+                    zck_free(&zck);
+                }
             }
-            // New file was downloaded - clear checksums cached in extended attributes
-            // ret = check_finished_transfer_checksum(fd,
-            //                                       target->target->checksums,
-            //                                       &matches,
-            //                                       &transfer_err,
-            //                                       &tmp_err);
-            // if (!ret) { // Error
-            //     g_propagate_prefixed_error(err, tmp_err, "Downloading from %s"
-            //             "was successful but error encountered while "
-            //             "checksumming: ", effective_url);
-            //     return FALSE;
-            // }
+            else
+            {
+#endif
+                if (!current_target->check_checksums())
+                {
+                    // this is what librepo does, but I am not sure it's ideal
+                    return false;
+                }
+                // New file was downloaded - clear checksums cached in extended attributes
+                // ret = check_finished_transfer_checksum(fd,
+                //                                       target->target->checksums,
+                //                                       &matches,
+                //                                       &transfer_err,
+                //                                       &tmp_err);
+                // if (!ret) { // Error
+                //     g_propagate_prefixed_error(err, tmp_err, "Downloading from %s"
+                //             "was successful but error encountered while "
+                //             "checksumming: ", effective_url);
+                //     return FALSE;
+                // }
 #ifdef WITH_ZCHUNK
-            // }
+            }
 #endif
 
 
@@ -1055,7 +1065,7 @@ namespace powerloader
                     }
 
                     // TODO current hack because of the memory management here ...
-                    current_target->target->fd.reset();
+                    // current_target->target->fd.reset();
 
                     // Remove xattr that states that the file is being downloaded
                     // by librepo, because the file is now completely downloaded
