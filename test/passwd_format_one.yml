@@ -1,9 +1,5 @@
 mirrors:
   conda-forge:
-    - http://localhost:5001
-    - http://localhost:5002
-    - http://localhost:5003
-    - http://localhost:5004
     - http://user:secret@localhost:5005
 
 targets:
