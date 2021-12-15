@@ -35,6 +35,7 @@ if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp)
     find_library(ZCK_LIBRARY zck)
     find_file(ZCK_H_FILE NAMES zck.h)
+    message("Found file: ${ZCK_H_FILE}")
     get_filename_component(ZCK_INCLUDE_DIRS ${ZCK_H_FILE} DIRECTORY)
 endif()
 
@@ -68,10 +69,14 @@ if (WITH_ZCHUNK)
 endif()
 
 find_package(spdlog REQUIRED)
-
+if (MSVC)
+    set(SPDLOG_TARGET spdlog::spdlog_header_only)
+else()
+    set(SPDLOG_TARGET spdlog::spdlog)
+endif()
 target_link_libraries(libpowerloader
                       ${CURL_LIBRARIES}
-                      spdlog::spdlog
+                      ${SPDLOG_TARGET}
                       ${ZCK_LIBRARY}
                       ${OPENSSL_LIBRARIES}
                       ${YAML_CPP_LIBRARIES})

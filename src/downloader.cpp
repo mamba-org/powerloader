@@ -477,22 +477,26 @@ namespace powerloader
         h.url(full_url);
 
         // Prepare FILE
-        if (!target->target->outfile)
-        {
-            target->open_target_file();
-        }
-        else
-        {
-            target->target->outfile->seek(0, SEEK_SET);
-        }
-        target->writecb_received = 0;
-        target->writecb_required_range_written = false;
-
 #ifdef WITH_ZCHUNK
+        if (!target->target->is_zchunk)
+        {
+#endif
+            target->open_target_file();
+            target->writecb_received = 0;
+            target->writecb_required_range_written = false;
+#ifdef WITH_ZCHUNK
+        }
         // If file is zchunk, prep it
         if (target->target->is_zchunk)
         {
-            spdlog::info("zck: opening {}", target->temp_file.string());
+            if (!target->target->outfile)
+            {
+                spdlog::info("zck: opening file {}", target->temp_file.string());
+                target->open_target_file();
+                target->writecb_received = 0;
+                target->writecb_required_range_written = false;
+            }
+
             // TODO we need to open with a+ ... is there a better way?
             //      compare again with librepo
             // target->f = fopen(target->temp_file.c_str(), "a+");

@@ -492,9 +492,6 @@ main(int argc, char** argv)
     Context::instance().disable_ssl = disable_ssl;
 
     std::vector<Mirror> mlist;
-    spdlog::info("Loading file.");
-
-
     if (!file.empty())
     {
         spdlog::info("Loading file {}", file);

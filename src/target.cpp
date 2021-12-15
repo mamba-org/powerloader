@@ -4,12 +4,15 @@ namespace powerloader
 {
     void Target::reset()
     {
-        // curl_handle.reset();
-        // if (this->f != nullptr)
-        // {
-        //     fclose(this->f);
-        //     this->f = nullptr;
-        // }
+        if (target->outfile && !zck_running())
+        {
+            std::error_code ec;
+            target->outfile->close(ec);
+            if (ec)
+            {
+                spdlog::error("Could not close file: {}", target->outfile->path().string());
+            }
+        }
     }
 
     CbReturnCode Target::call_endcallback(TransferStatus status)
