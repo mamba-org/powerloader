@@ -48,6 +48,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["local_mirrors"] = file_map["test_path"] / Path("local_static_mirrors.yml")
     file_map["pw_format_one"] = file_map["test_path"] / Path("passwd_format_one.yml")
     file_map["pw_format_two"] = file_map["test_path"] / Path("passwd_format_two.yml")
+    file_map["pw_format_three"] = file_map["test_path"] / Path("s3test.yml")
 
     try:
         os.mkdir(file_map["tmp_path"])
@@ -86,6 +87,8 @@ def checksums():
         "70f65c25f8a8c3879923cd01cffc32c603d7675e7657fa9ca265f5565b9203fd"
     cksums["xtensor-0.23.9-hc021e02_1.tar.bz2"] = \
         "404a2e4664a1cbf94f5f98deaf568b267b7474c4e1267deb367b8c758fe71ed2"
+    cksums["boa-0.8.1.tar.gz"] = \
+        "b824237d80155efd97b79469534d602637b40a2a27c4f71417d5e6977238ff74"
     return cksums
 
 
@@ -195,6 +198,10 @@ def add_names(file, target):
     content = copy.deepcopy(yml_cont)
     content["names"] = names
     return content
+
+
+def path_to_name(path):
+    return path.split("/")[-1]
 
 
 @pytest.fixture
@@ -370,6 +377,25 @@ class TestAll:
         for fn in sparse_mirrors_with_names["names"]:
             assert calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
+    @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
+                        or os.environ.get("AWS_ACCESS_KEY") is ""
+                        or os.environ.get("AWS_SECRET_KEY") is None
+                        or os.environ.get("AWS_SECRET_KEY") is ""
+                        or os.environ.get("AWS_DEFAULT_REGION") is None
+                        or os.environ.get("AWS_DEFAULT_REGION") is "",
+                        reason="Environment variable(s) not defined")
+    def test_yml_s3_mirror(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
+                           mock_server_working, mock_server_404, mock_server_lazy,
+                           mock_server_broken, mock_server_password):
+        remove_all(file)
+
+        out = subprocess.check_output([powerloader_binary, "download",
+                                       "-f", file["pw_format_three"],
+                                       "-d", file["tmp_path"]])
+
+        for fp in get_files(file):
+            assert calculate_sha256(fp) == checksums[str(path_to_name(fp))]
+
     """
     def test_yml_password_format_two(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
                                      mock_server_working, mock_server_404, mock_server_lazy,
@@ -405,7 +431,7 @@ class TestAll:
 
         # The servers is reliable now
         for broken_file in filter_broken(get_files(file), pdp):
-            fn = broken_file.replace(pdp, "").split("/")[-1]
+            fn = path_to_name(broken_file.replace(pdp, ""))
             fp = Path(file["tmp_path"]) / Path(fn)
             out = subprocess.check_output([powerloader_binary, "download",
                                            "-r", f"{mock_server_working}/static/packages/{fn}",

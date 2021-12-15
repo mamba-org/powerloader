@@ -270,10 +270,14 @@ parse_mirrors(const YAML::Node& node)
     assert(node.IsMap());
     std::map<std::string, std::vector<std::shared_ptr<Mirror>>> res;
 
-    auto get_env_from_str = [](const std::string& s) {
+    auto get_env_from_str = [](const std::string& s, const std::string default_val) {
         if (starts_with(s, "env:"))
         {
             return get_env(s.substr(4).c_str());
+        }
+        if (!s.empty())
+        {
+            return get_env(default_val.c_str());
         }
         return s;
     };
@@ -298,28 +302,23 @@ parse_mirrors(const YAML::Node& node)
                 creds.url = URLHandler(cred["url"].as<std::string>());
                 if (cred["password"])
                 {
-                    creds.password = get_env_from_str(cred["password"].as<std::string>());
+                    creds.password
+                        = get_env_from_str(cred["password"].as<std::string>(), "AWS_SECRET_KEY");
                 }
                 if (cred["user"])
                 {
-                    creds.user = get_env_from_str(cred["user"].as<std::string>());
+                    creds.user = get_env_from_str(cred["user"].as<std::string>(), "AWS_ACCESS_KEY");
                 }
                 if (cred["region"])
                 {
-                    creds.region = get_env_from_str(cred["region"].as<std::string>());
+                    creds.region
+                        = get_env_from_str(cred["region"].as<std::string>(), "AWS_DEFAULT_REGION");
                 }
             }
             auto kof = KindOf::kHTTP;
             if (creds.url.scheme() == "s3")
             {
                 kof = KindOf::kS3;
-
-                if (creds.user.empty())
-                    creds.user = get_env("AWS_ACCESS_KEY");
-                if (creds.password.empty())
-                    creds.password = get_env("AWS_SECRET_KEY");
-                if (creds.region.empty())
-                    creds.region = get_env("AWS_DEFAULT_REGION");
             }
             else if (creds.url.scheme() == "oci")
             {
