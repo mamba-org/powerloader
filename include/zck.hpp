@@ -8,7 +8,11 @@
 extern "C"
 {
 #include <fcntl.h>
+#ifndef _WIN32
 #include <unistd.h>
+#else
+#include <io.h>
+#endif
 #include <zck.h>
 }
 
@@ -40,10 +44,10 @@ namespace powerloader
                                std::ptrdiff_t zck_header_size,
                                int fd);
 
-    zckCtx* zck_init_read(DownloadTarget* target, int fd);
+    zckCtx* zck_init_read(const std::shared_ptr<DownloadTarget>& target, int fd);
     zckCtx* zck_init_read(Target* target);
 
-    bool zck_valid_header(DownloadTarget* target, int fd);
+    bool zck_valid_header(const std::shared_ptr<DownloadTarget>& target, int fd);
     bool zck_valid_header(Target* target);
 
     bool zck_clear_header(Target* target);

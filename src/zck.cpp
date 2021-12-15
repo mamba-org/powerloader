@@ -232,7 +232,8 @@ namespace powerloader
                     continue;
                 }
 
-                int chk_fd = open(file.c_str(), O_RDONLY);
+                // int chk_fd = open(file.c_str(), O_RDONLY);
+                int chk_fd = -1;
                 if (chk_fd < 0)
                 {
                     // spdlog::info("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
@@ -252,19 +253,19 @@ namespace powerloader
                 if (valid_header)
                 {
                     spdlog::info("zchunk: Found file with same header at ", file.string());
-                    if (lr_copy_content(chk_fd, fd) == 0
-                        && ftruncate(fd, lseek(chk_fd, 0, SEEK_END)) >= 0
-                        && lseek(fd, 0, SEEK_SET) == 0
-                        && (zck = zck_init_read(target->target, chk_fd)))
-                    {
-                        found = true;
-                        break;
-                    }
-                    else
-                    {
-                        spdlog::error("Error copying file");
-                        // g_clear_error(&tmp_err);
-                    }
+                    // if (lr_copy_content(chk_fd, fd) == 0
+                    //     && ftruncate(fd, lseek(chk_fd, 0, SEEK_END)) >= 0
+                    //     && lseek(fd, 0, SEEK_SET) == 0
+                    //     && (zck = zck_init_read(target->target, chk_fd)))
+                    // {
+                    //     found = true;
+                    //     break;
+                    // }
+                    // else
+                    // {
+                    //     spdlog::error("Error copying file");
+                    //     // g_clear_error(&tmp_err);
+                    // }
                 }
                 close(chk_fd);
             }
@@ -314,7 +315,7 @@ namespace powerloader
             }
             catch (const zchunk_error& e)
             {
-                spdlog::info("Error reading validated header {}", e.what());
+                spdlog::error("Error reading validated header {}", e.what());
             }
             if (zck)
             {
@@ -389,7 +390,8 @@ namespace powerloader
                     continue;
                 }
 
-                int chk_fd = open(file.c_str(), O_RDONLY);
+                // int chk_fd = open(file.string().c_str(), O_RDONLY);
+                int chk_fd = -1;
                 if (chk_fd < 0)
                 {
                     // spdlog::info("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
@@ -612,7 +614,7 @@ namespace powerloader
         spdlog::info("zck: extracting from {} to {}", source.string(), dst.string());
         zckCtx* zck = zck_create();
         std::error_code ec;
-        FileIO sf(source, FileIO::read_binary, ec), of(dst, FileIO::write_update_binary, ec);
+        FileIO sf(source.string() + ".pdpart", FileIO::read_binary, ec), of(dst, FileIO::write_update_binary, ec);
 
         if (!zck_init_read(zck, sf.fd()))
         {

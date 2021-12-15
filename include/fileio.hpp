@@ -184,6 +184,11 @@ namespace powerloader
 
         void close(std::error_code& ec) noexcept
         {
+            if (!m_fs)
+            {
+                ec.clear();
+                return;
+            }
             if (::fclose(m_fs) == 0)
             {
                 ec.clear();

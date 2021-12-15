@@ -10,6 +10,13 @@ namespace powerloader
         //     fclose(this->f);
         //     this->f = nullptr;
         // }
+        std::error_code ec;
+        // target->outfile->close(ec);
+
+        if (ec)
+        {
+            spdlog::error("Received error {}", ec.message());
+        }
     }
 
     CbReturnCode Target::call_endcallback(TransferStatus status)
@@ -32,8 +39,8 @@ namespace powerloader
 
         if (target->outfile && status == TransferStatus::kSUCCESSFUL)
         {
-            reset();
-            fs::rename(temp_file, target->fn);
+            // reset();
+            // fs::rename(temp_file, fs::path(target->fn));
         }
         else if (status == TransferStatus::kALREADYEXISTS)
         {
