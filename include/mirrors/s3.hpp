@@ -60,6 +60,8 @@ namespace powerloader
             , aws_secret_access_key(aws_secret_key)
             , Mirror(bucket_url)
         {
+            if (bucket_url.back() == '/')
+                this->bucket_url = this->bucket_url.substr(0, this->bucket_url.size() - 1);
         }
 
         inline S3Mirror(const std::string& url)
