@@ -74,12 +74,10 @@ jobs:
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
-
           # There is probably a better way of doing this...
           server_path="test/conda_mock/static/packages"
           powerloader_path="build/powerloader"
           wget https://beta.mamba.pm/get/conda-forge/osx-arm64/xtensor-0.24.0-hc021e02_0.tar.bz2 \
               -O ./test/conda_mock/static/packages/xtensor-0.24.0-hc021e02_0.tar.bz2
           $powerloader_path download -f test/remote_mirrors.yml -d $server_path
-          $powerloader_path download -f test/s3test.yml -d $server_path
           pytest ./test/*.py

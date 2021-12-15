@@ -377,21 +377,14 @@ class TestAll:
         for fn in sparse_mirrors_with_names["names"]:
             assert calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
-    @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
-                        or os.environ.get("AWS_ACCESS_KEY") is ""
-                        or os.environ.get("AWS_SECRET_KEY") is None
-                        or os.environ.get("AWS_SECRET_KEY") is ""
-                        or os.environ.get("AWS_DEFAULT_REGION") is None
-                        or os.environ.get("AWS_DEFAULT_REGION") is "",
+    @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") in {None, ""} or os.environ.get("NO_AWS_TEST"),
                         reason="Environment variable(s) not defined")
-    def test_yml_s3_mirror(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
-                           mock_server_working, mock_server_404, mock_server_lazy,
-                           mock_server_broken, mock_server_password):
+    def test_yml_s3_mirror(self, file, checksums, powerloader_binary):
         remove_all(file)
-
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["pw_format_three"],
-                                       "-d", file["tmp_path"]])
+                                       "-d", file["tmp_path"]],
+                                       env=os.environ)
 
         for fp in get_files(file):
             assert calculate_sha256(fp) == checksums[str(path_to_name(fp))]
