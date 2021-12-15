@@ -140,7 +140,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
         }
     }
 
-    return 1;
+    return 0;
 }
 
 struct DownloadMetadata
