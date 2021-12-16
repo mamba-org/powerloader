@@ -198,6 +198,13 @@ namespace powerloader
         return res;
     }
 
+    std::string URLHandler::url_without_path()
+    {
+        std::string u = url(false);
+        u = u.substr(u.find(path()));
+        return u;
+    }
+
     std::string URLHandler::scheme()
     {
         return m_has_scheme ? get_part(CURLUPART_SCHEME) : "";

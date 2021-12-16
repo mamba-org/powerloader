@@ -19,25 +19,28 @@ namespace powerloader
         std::string repo_prefix, scope, username, password;
         std::function<std::pair<std::string, std::string>(const std::string&)> m_split_func;
 
-        OCIMirror(const std::string& url, const std::string& repo_prefix)
-            : Mirror(url)
+        OCIMirror(const std::string& host, const std::string& repo_prefix)
+            : Mirror(host)
+            , repo_prefix(repo_prefix)
             , scope("pull")
         {
         }
 
-        OCIMirror(const std::string& url,
+        OCIMirror(const std::string& host,
                   const std::string& repo_prefix,
                   const std::string& scope,
                   const std::string& username,
                   const std::string& password)
-            : Mirror(url)
+            : Mirror(host)
+            , repo_prefix(repo_prefix)
             , scope(scope)
             , username(username)
             , password(password)
         {
         }
 
-        void set_fn_tag_split_function(const std::function<std::pair<std::string, std::string>(const std::string&)>& func)
+        void set_fn_tag_split_function(
+            const std::function<std::pair<std::string, std::string>(const std::string&)>& func)
         {
             m_split_func = func;
         }
@@ -46,7 +49,7 @@ namespace powerloader
         {
             if (!repo_prefix.empty())
                 return fmt::format("{}/{}", repo_prefix, repo);
-            else 
+            else
                 return repo;
         }
         std::string get_auth_url(const std::string& repo, const std::string& scope)

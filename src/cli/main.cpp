@@ -78,12 +78,13 @@ progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
     return 0;
 }
 
-std::pair<std::string, std::string> oci_fn_split_tag(const std::string& fn)
+std::pair<std::string, std::string>
+oci_fn_split_tag(const std::string& fn)
 {
     // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
     // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
     std::pair<std::string, std::string> result;
-    auto parts = rsplit(fn, 2);
+    auto parts = rsplit(fn, "-", 2);
 
     if (parts.size() != 3)
     {
@@ -97,6 +98,7 @@ std::pair<std::string, std::string> oci_fn_split_tag(const std::string& fn)
     std::string tag = fmt::format("{}-{}", parts[1], last_part);
     replace_all(tag, "_", "-");
     result.second = tag;
+    return result;
 }
 
 int
@@ -136,8 +138,8 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
             }
             std::string GH_SECRET = get_env("GHA_PAT");
             std::string GH_USER = get_env("GHA_USER");
-            
-            // OCIMirror mirror(url.url(), GH_USER, "push", GH_USER, GH_SECRET);
+
+            OCIMirror mirror(url.url(), GH_USER, "push", GH_USER, GH_SECRET);
             oci_upload(mirror, dest, elems[2], elems[0]);
         }
         else if (kof == KindOf::kS3)
@@ -365,7 +367,7 @@ parse_mirrors(const YAML::Node& node)
                 // res[mirror_name].emplace_back(
                 //     new OCIMirror(creds.url.url(), "push,pull", creds.user, creds.password));
                 res[mirror_name].emplace_back(
-                    new OCIMirror(creds.url.url()));
+                    new OCIMirror(creds.url.url_without_path(), creds.url.path()));
             }
             else if (kof == KindOf::kHTTP)
             {
