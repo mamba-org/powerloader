@@ -4,6 +4,7 @@ import shutil, yaml, copy, math
 from pathlib import Path
 import subprocess
 import platform
+import datetime
 import os
 import hashlib
 import time
@@ -49,6 +50,8 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["pw_format_one"] = file_map["test_path"] / Path("passwd_format_one.yml")
     file_map["pw_format_two"] = file_map["test_path"] / Path("passwd_format_two.yml")
     file_map["pw_format_three"] = file_map["test_path"] / Path("s3test.yml")
+    file_map["s3_upload_location"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
+    file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
 
     try:
         os.mkdir(file_map["tmp_path"])
@@ -182,8 +185,8 @@ def mock_server_password(xprocess, checksums):
                            uname="user", pwd="secret")
 
 
-def yml_content(file, target):
-    with open(file[target], "r") as stream:
+def yml_content(path):
+    with open(path, "r") as stream:
         try:
             return yaml.safe_load(stream)
         except yaml.YAMLError as exc:
@@ -191,7 +194,7 @@ def yml_content(file, target):
 
 
 def add_names(file, target):
-    yml_cont = yml_content(file, target)
+    yml_cont = yml_content(file[target])
     names = []
     for target in yml_cont["targets"]:
         names.append(Path(target.split("/")[-1]))
@@ -201,7 +204,7 @@ def add_names(file, target):
 
 
 def path_to_name(path):
-    return path.split("/")[-1]
+    return str(path).split("/")[-1]
 
 
 @pytest.fixture
@@ -377,31 +380,73 @@ class TestAll:
         for fn in sparse_mirrors_with_names["names"]:
             assert calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
-    @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") in {None, ""} or os.environ.get("NO_AWS_TEST"),
+    @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
+                        or os.environ.get("AWS_ACCESS_KEY") == ""
+                        or os.environ.get("AWS_SECRET_KEY") is None
+                        or os.environ.get("AWS_SECRET_KEY") == ""
+                        or os.environ.get("AWS_DEFAULT_REGION") is None
+                        or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_yml_s3_mirror(self, file, checksums, powerloader_binary):
         remove_all(file)
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["pw_format_three"],
-                                       "-d", file["tmp_path"]],
-                                       env=os.environ)
+                                       "-d", file["tmp_path"]])
 
         for fp in get_files(file):
             assert calculate_sha256(fp) == checksums[str(path_to_name(fp))]
 
-    """
-    def test_yml_password_format_two(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
-                                     mock_server_working, mock_server_404, mock_server_lazy,
-                                     mock_server_broken, mock_server_password):
+    @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
+                        or os.environ.get("AWS_ACCESS_KEY") == ""
+                        or os.environ.get("AWS_SECRET_KEY") is None
+                        or os.environ.get("AWS_SECRET_KEY") == ""
+                        or os.environ.get("AWS_DEFAULT_REGION") is None
+                        or os.environ.get("AWS_DEFAULT_REGION") == "",
+                        reason="Environment variable(s) not defined")
+    def test_s3_upload(self, file, powerloader_binary):
         remove_all(file)
 
-        out = subprocess.check_output([powerloader_binary, "download",
-                                       "-f", file["pw_format_two"],
-                                       "-d", file["tmp_path"]])
+        # Generate a unique file
+        upload_path = str(file["tmp_path"] / Path(str(platform.system()) + "_test.txt"))
+        with open(upload_path, "w+") as f:
+            f.write("Content: " + str(datetime.datetime.now()))
+        f.close()
 
-        for fn in sparse_mirrors_with_names["names"]:
-            assert calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
-    """
+        # Store the checksum for later
+        hash_before_upload = calculate_sha256(upload_path)
+
+        # Upload the file
+        name_on_server = path_to_name(upload_path)
+        proc = subprocess.Popen([powerloader_binary, "upload",
+                                       upload_path + ":" + name_on_server,
+                                       "-m", file["s3_upload_location"]],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc.communicate()
+        assert proc.returncode == 0  # Check that the error code is one
+
+        # Delete the file
+        Path(upload_path).unlink()
+
+        # Generate a YML file for the download
+        aws_template = yml_content(file["s3_yml_template"])
+        aws_template["targets"] = [aws_template["targets"][0].replace("__filename__", name_on_server)]
+        print(str(aws_template))
+
+        tmp_yaml = file["tmp_path"] / Path("tmp.yml")
+        with open(str(tmp_yaml), 'w') as outfile:
+            yaml.dump(aws_template, outfile, default_flow_style=False)
+
+        # Download using this YML file
+        proc = subprocess.Popen([powerloader_binary, "download",
+                                       "-f", str(tmp_yaml),
+                                       "-d", str(file["tmp_path"])],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc.communicate()
+        assert proc.returncode == 0
+
+        # Check that the downloaded file is the same as the uploaded file
+        hash_after_upload = calculate_sha256(upload_path)
+        assert hash_before_upload == hash_after_upload
 
     # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
