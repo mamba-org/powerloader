@@ -54,9 +54,18 @@ namespace powerloader
 
         inline nlohmann::json json() const
         {
-            nlohmann::json j;
-            content >> j;
-            return j;
+            try
+            {
+                nlohmann::json j;
+                content >> j;
+                return j;
+            }
+            catch (const nlohmann::detail::parse_error& e)
+            {
+                spdlog::error("Could not parse JSON\n{}", content.str());
+                spdlog::error("Error message: {}", e.what());
+                exit(1);
+            }
         }
     };
 

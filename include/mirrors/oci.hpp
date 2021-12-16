@@ -16,15 +16,17 @@ namespace powerloader
         };
 
         std::map<std::string, std::unique_ptr<AuthCallbackData>> path_cb_map;
-        std::string scope, username, password;
+        std::string repo_prefix, scope, username, password;
+        std::function<std::pair<std::string, std::string>(const std::string&)> m_split_func;
 
-        OCIMirror(const std::string& url)
+        OCIMirror(const std::string& url, const std::string& repo_prefix)
             : Mirror(url)
             , scope("pull")
         {
         }
 
         OCIMirror(const std::string& url,
+                  const std::string& repo_prefix,
                   const std::string& scope,
                   const std::string& username,
                   const std::string& password)
@@ -35,6 +37,18 @@ namespace powerloader
         {
         }
 
+        void set_fn_tag_split_function(const std::function<std::pair<std::string, std::string>(const std::string&)>& func)
+        {
+            m_split_func = func;
+        }
+
+        std::string get_repo(const std::string& repo)
+        {
+            if (!repo_prefix.empty())
+                return fmt::format("{}/{}", repo_prefix, repo);
+            else 
+                return repo;
+        }
         std::string get_auth_url(const std::string& repo, const std::string& scope)
         {
             return fmt::format("{}/token?scope=repository:{}:{}", url, repo, scope);
