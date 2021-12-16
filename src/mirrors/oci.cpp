@@ -54,34 +54,51 @@ namespace powerloader
         return false;
     }
 
+    std::pair<std::string, std::string> OCIMirror::split_path_tag(const std::string& path) const
+    {
+        std::string split_path, split_tag;
+        if (m_split_func)
+        {
+            std::tie(split_path, split_tag) = m_split_func(path);
+        }
+        else
+        {
+            split_path = path;
+            split_tag = "latest";
+        }
+        return std::make_pair(split_path, split_tag);
+    }
+
     OCIMirror::AuthCallbackData* OCIMirror::get_data(Target* target)
     {
-        auto it = path_cb_map.find(target->target->path);
+        auto [split_path, _] = split_path_tag(target->target->path);
+        auto it = path_cb_map.find(split_path);
         if (it != path_cb_map.end())
         {
-            return path_cb_map[target->target->path].get();
+            return it->second.get();
         }
         return nullptr;
     }
 
     bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
     {
-        auto it = path_cb_map.find(path);
+        auto [split_path, split_tag] = split_path_tag(path);
+
+        auto it = path_cb_map.find(split_path);
         if (it == path_cb_map.end())
         {
-            path_cb_map[path].reset(new AuthCallbackData);
-            auto data = path_cb_map[path].get();
+            path_cb_map[split_path].reset(new AuthCallbackData);
+            auto data = path_cb_map[split_path].get();
             data->self = this;
         }
 
-        auto& cbdata = path_cb_map[path];
+        auto& cbdata = path_cb_map[split_path];
 
         if (cbdata->token.empty())
         {
-            std::string auth_url = get_auth_url(path, scope);
+            std::string auth_url = get_auth_url(split_path, scope);
             handle.url(auth_url);
 
-            // handle.set_default_callbacks(cbdata->response);
             handle.set_default_callbacks();
 
             if (!username.empty())
@@ -94,54 +111,55 @@ namespace powerloader
             }
 
             auto end_callback = [this, &cbdata](const Response& response) {
+                if (!response.ok())
+                    return CbReturnCode::kERROR;
+
                 auto j = response.json();
                 if (j.contains("token"))
                 {
                     cbdata->token = j["token"].get<std::string>();
-                    return 0;
-                    // return CbReturnCode::kOK;
+                    return CbReturnCode::kOK;
                 }
-                return 1;
-                // return CbReturnCode::kERROR;
+                return CbReturnCode::kERROR;
             };
 
             handle.set_end_callback(end_callback);
         }
         else
         {
-            // cbdata->response = Response();
             handle.set_default_callbacks();
 
-            std::string manifest_url = get_manifest_url(path, "1.0");
+            std::string manifest_url = get_manifest_url(split_path, split_tag);
 
             handle.url(manifest_url)
                 .add_headers(get_auth_headers(path))
                 .add_header("Accept: application/vnd.oci.image.manifest.v1+json");
 
             auto finalize_manifest_callback = [this, &cbdata](const Response& response) {
+                if (!response.ok())
+                    return CbReturnCode::kERROR;
                 auto j = response.json();
+
+                std::cout << "Got manifest callback!" << std::endl;
+                std::cout << j.dump(4) << std::endl;
 
                 if (j.contains("layers"))
                 {
                     std::string digest = j["layers"][0]["digest"];
                     std::size_t expected_size = j["layers"][0]["size"];
+
                     assert(starts_with(digest, "sha256:"));
 
-                    // TODO check if we should push the checksums into the download target
-                    // or do something
-                    //      on the mirror level?!
+                    // For some reason target->target isn't available here?
                     // cbdata->target->target->checksums.push_back(
-                    //     Checksum{.type = ChecksumType::SHA256,
-                    //              .checksum = digest.substr(sizeof("sha256:") - 1)}
+                    //     Checksum{ChecksumType::kSHA256, digest.substr(sizeof("sha256:") - 1)}
                     // );
 
                     cbdata->sha256sum = digest.substr(sizeof("sha256:") - 1);
-
-                    // path_shasum[d->target->target->path] =
-                    // digest.substr(sizeof("sha256:"));
-                    return 0;
+                    return CbReturnCode::kOK;
                 }
-                return 1;
+
+                return CbReturnCode::kERROR;
             };
 
             handle.set_end_callback(finalize_manifest_callback);
@@ -164,14 +182,16 @@ namespace powerloader
             auto* data = get_data(target);
             checksum = &data->sha256sum;
         }
+        auto [split_path, split_tag] = split_path_tag(target->target->path);
 
         // https://ghcr.io/v2/wolfv/artifact/blobs/sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4
-        return fmt::format("{}/v2/{}/blobs/sha256:{}", url, target->target->path, *checksum);
+        return fmt::format("{}/v2/{}/blobs/sha256:{}", url, get_repo(split_path), *checksum);
     }
 
     std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path)
     {
-        auto& data = path_cb_map[path];
+        auto [split_path, _] = split_path_tag(path);
+        auto& data = path_cb_map[split_path];
         return { fmt::format("Authorization: Bearer {}", data->token) };
     }
 
