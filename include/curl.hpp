@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "utils.hpp"
+#include "enums.hpp"
 
 namespace powerloader
 {
@@ -44,7 +45,6 @@ namespace powerloader
 
     struct Response
     {
-        int status_code;
         std::map<std::string, std::string> header;
         mutable std::stringstream content;
 
@@ -52,11 +52,25 @@ namespace powerloader
         long http_status;
         std::string effective_url;
 
+        inline bool ok() const
+        {
+            return http_status / 100 == 2;
+        }
+
         inline nlohmann::json json() const
         {
-            nlohmann::json j;
-            content >> j;
-            return j;
+            try
+            {
+                nlohmann::json j;
+                content >> j;
+                return j;
+            }
+            catch (const nlohmann::detail::parse_error& e)
+            {
+                spdlog::error("Could not parse JSON\n{}", content.str());
+                spdlog::error("Error message: {}", e.what());
+                throw;
+            }
         }
     };
 
@@ -276,7 +290,8 @@ namespace powerloader
             return *this;
         }
 
-        inline CURLHandle& set_end_callback(const std::function<int(const Response&)>& func)
+        inline CURLHandle& set_end_callback(
+            const std::function<CbReturnCode(const Response&)>& func)
         {
             end_callback = func;
             return *this;
@@ -287,7 +302,7 @@ namespace powerloader
         char errorbuffer[CURL_ERROR_SIZE];
 
         std::unique_ptr<Response> response;
-        std::function<int(const Response&)> end_callback;
+        std::function<CbReturnCode(const Response&)> end_callback;
     };
 
 }

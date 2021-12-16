@@ -69,6 +69,7 @@ namespace powerloader
         URLHandler& operator=(URLHandler&&);
 
         std::string url(bool strip_scheme = false);
+        std::string url_without_path();
 
         std::string scheme();
         std::string host();

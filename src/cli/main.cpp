@@ -78,6 +78,43 @@ progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
     return 0;
 }
 
+std::pair<std::string, std::string>
+oci_fn_split_tag(const std::string& fn)
+{
+    spdlog::info("Splitting {}", fn);
+    // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
+    // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
+    std::pair<std::string, std::string> result;
+    auto parts = rsplit(fn, "-", 2);
+
+    if (parts.size() < 2)
+    {
+        spdlog::error("Could not split filename into enough parts");
+    }
+
+    result.first = parts[0];
+
+    std::string tag;
+    if (parts.size() > 2)
+    {
+        std::string last_part = parts[2].substr(0, parts[2].size() - parts[2].find_first_of("."));
+        tag = fmt::format("{}-{}", parts[1], last_part);
+    }
+    else
+    {
+        tag = parts[1];
+    }
+
+    if (ends_with(tag, ".tar.bz2"))
+        tag = tag.substr(0, tag.size() - 8);
+    if (ends_with(tag, ".conda"))
+        tag = tag.substr(0, tag.size() - 6);
+
+    replace_all(tag, "_", "-");
+    result.second = tag;
+    return result;
+}
+
 int
 handle_upload(const std::vector<std::string>& files, const std::vector<std::string>& mirrors)
 {
@@ -116,8 +153,8 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
             std::string GH_SECRET = get_env("GHA_PAT");
             std::string GH_USER = get_env("GHA_USER");
 
-            OCIMirror mirror(url.url(), "push", GH_USER, GH_SECRET);
-            oci_upload(mirror, GH_USER + "/" + dest, elems[2], elems[0]);
+            OCIMirror mirror(url.url(), GH_USER, "push", GH_USER, GH_SECRET);
+            oci_upload(mirror, dest, elems[2], elems[0]);
         }
         else if (kof == KindOf::kS3)
         {
@@ -341,8 +378,21 @@ parse_mirrors(const YAML::Node& node)
             else if (kof == KindOf::kOCI)
             {
                 spdlog::info("Adding OCI mirror: {} -> {}", mirror_name, creds.url.url());
-                res[mirror_name].emplace_back(
-                    new OCIMirror(creds.url.url(), "push,pull", creds.user, creds.password));
+                if (!creds.password.empty())
+                {
+                    res[mirror_name].emplace_back(new OCIMirror(creds.url.url_without_path(),
+                                                                creds.url.path(),
+                                                                "pull",
+                                                                creds.user,
+                                                                creds.password));
+                }
+                else
+                {
+                    res[mirror_name].emplace_back(
+                        new OCIMirror(creds.url.url_without_path(), creds.url.path()));
+                }
+                std::dynamic_pointer_cast<OCIMirror>(res[mirror_name].back())
+                    ->set_fn_tag_split_function(oci_fn_split_tag);
             }
             else if (kof == KindOf::kHTTP)
             {
