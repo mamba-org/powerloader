@@ -32,11 +32,6 @@ namespace powerloader
 #include <curl/curl.h>
     }
 
-#define LRO_CONNECTTIMEOUT_DEFAULT 30L
-#define LRO_LOWSPEEDTIME_DEFAULT 30L
-#define LRO_LOWSPEEDLIMIT_DEFAULT 1000L
-#define LRO_FTPUSEEPSV_DEFAULT 1L
-
     template <class T>
     std::size_t read_callback(char* ptr, std::size_t size, std::size_t nmemb, T* stream);
 
