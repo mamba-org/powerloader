@@ -51,7 +51,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["pw_format_two"] = file_map["test_path"] / Path("passwd_format_two.yml")
     file_map["pw_format_three"] = file_map["test_path"] / Path("s3test.yml")
     file_map["s3_upload_location"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
-    file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
+    file_map["oci_upload_location"] = "oci://ghcr.io"
 
     try:
         os.mkdir(file_map["tmp_path"])
@@ -94,6 +94,13 @@ def checksums():
         "b824237d80155efd97b79469534d602637b40a2a27c4f71417d5e6977238ff74"
     return cksums
 
+def generate_unique_file(file):
+    # Generate a unique file
+    upload_path = str(file["tmp_path"] / Path(str(platform.system()) + "_test.txt"))
+    with open(upload_path, "w+") as f:
+        f.write("Content: " + str(datetime.datetime.now()))
+    f.close()
+    return upload_path
 
 def mock_server(xprocess, name, port, pkgs, error_type,
                 uname=None, pwd=None):
@@ -407,10 +414,7 @@ class TestAll:
         remove_all(file)
 
         # Generate a unique file
-        upload_path = str(file["tmp_path"] / Path(str(platform.system()) + "_test.txt"))
-        with open(upload_path, "w+") as f:
-            f.write("Content: " + str(datetime.datetime.now()))
-        f.close()
+        upload_path = generate_unique_file(file)
 
         # Store the checksum for later
         hash_before_upload = calculate_sha256(upload_path)
@@ -478,7 +482,7 @@ class TestAll:
         for fn in sparse_mirrors_with_names["names"]:
             assert calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
-    def test_zchunk_basic(file, powerloader_binary, mock_server_working):
+    def test_zchunk_basic(self, powerloader_binary, mock_server_working):
         # Download the expected file
         assert (not Path('lorem.txt.zck').exists())
 
@@ -491,3 +495,32 @@ class TestAll:
 
         assert (Path('lorem.txt.zck').exists())
         Path('lorem.txt.zck').unlink()
+
+    def test_oci_fixes(self, file, powerloader_binary):
+        # Generate a unique file
+        upload_path = generate_unique_file(file)
+
+        # Store the checksum for later
+        hash_before_upload = calculate_sha256(upload_path)
+
+        # Upload the file
+        username = os.environ.get("GHA_USER")
+        name_on_server = path_to_name(upload_path)
+        out = subprocess.check_output([powerloader_binary, "upload",
+                                       upload_path + ":" + username + "/" + name_on_server + ":123",
+                                       "-m", file["oci_upload_location"]])
+
+        # Delete the file locally
+        Path(upload_path).unlink()
+
+        # TODO: Download the file
+
+        """
+        # Check that the downloaded file is the same as the uploaded file
+        hash_after_upload = calculate_sha256(upload_path)
+        assert hash_before_upload == hash_after_upload
+        """
+
+        # Need to figure out what the package id is
+        # Delete: https://stackoverflow.com/questions/59103177/how-to-delete-remove-unlink-unversion-a-package-from-the-github-package-registry
+        # https://github.com/actions/delete-package-versions

@@ -22,6 +22,13 @@ namespace powerloader
         int verbosity = 0;
         bool adaptive_mirror_sorting = true;
 
+        bool disable_ssl = false;
+
+        long connect_timeout = 30L;
+        long low_speed_time = 30L;
+        long low_speed_limit = 1000L;
+        bool ftp_use_seepsv = true;
+
         fs::path cache_dir;
         std::size_t retry_backoff_factor = 2;
         std::size_t max_resume_count = 3;

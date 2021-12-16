@@ -18,5 +18,7 @@ dependencies:
   - yaml-cpp
   - pytest
   - pyyaml
+  - gh
   - pip:
     - pytest-xprocess
+    - versionfinder

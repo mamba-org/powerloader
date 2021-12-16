@@ -390,6 +390,7 @@ main(int argc, char** argv)
     std::vector<std::string> mirrors;
     std::string file, outfile, sha_cli, outdir;
     bool verbose = false;
+    bool disable_ssl = false;
     bool do_zck_extract = false;
     long int filesize = -1;
 
@@ -421,6 +422,7 @@ main(int argc, char** argv)
     s_dl->add_option("--zck-header-size",
                      dl_meta.zck_header_size,
                      "Header size for zchunk header (find with zck_read_header)");
+    s_dl->add_option("-k", disable_ssl, "Disable SSL verification");
 
     CLI11_PARSE(app, argc, argv);
 
@@ -429,6 +431,7 @@ main(int argc, char** argv)
         show_progress_bars = false;
         Context::instance().set_verbosity(1);
     }
+    Context::instance().disable_ssl = disable_ssl;
 
     std::vector<Mirror> mlist;
     spdlog::info("Loading file.");
