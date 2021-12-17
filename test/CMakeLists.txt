@@ -6,6 +6,7 @@ include_directories(${GTEST_INCLUDE_DIRS} SYSTEM)
 set(TEST_SRCS
     test_s3.cpp
     test_fileio.cpp
+    test_url.cpp
 )
 
 add_executable(test_powerloader ${TEST_SRCS})

@@ -753,7 +753,7 @@ namespace powerloader
             // if (!transfer_check)
             //     return false;
 
-            if (current_target->target->outfile->open())
+            if (current_target->target->outfile && current_target->target->outfile->open())
             {
                 current_target->target->outfile->flush();
             }

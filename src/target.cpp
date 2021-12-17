@@ -30,7 +30,7 @@ namespace powerloader
             }
         }
 
-        if (status == TransferStatus::kSUCCESSFUL)
+        if (target->outfile && status == TransferStatus::kSUCCESSFUL)
         {
             reset();
             fs::rename(temp_file, target->fn);
@@ -96,6 +96,7 @@ namespace powerloader
         // else
         // {
         // Use supplied filename
+        spdlog::warn("Opening file {}", target->fn);
         temp_file = target->fn + PARTEXT;
         std::error_code ec;
         if (this->resume || target->is_zchunk)
