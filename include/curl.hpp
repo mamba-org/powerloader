@@ -187,6 +187,8 @@ namespace powerloader
 
             response.effective_url = tmp_effective_url;
 
+            if (!response.ok())
+                spdlog::error("Received {}: {}", response.http_status, response.content.str());
             if (end_callback)
             {
                 end_callback(response);

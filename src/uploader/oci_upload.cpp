@@ -13,6 +13,8 @@ namespace powerloader
         std::string digest = fmt::format("sha256:{}", sha256sum(file));
         std::size_t fsize = fs::file_size(file);
 
+        spdlog::info("Uploading {} with digest {}", file.string(), digest);
+
         CURLHandle auth_handle;
         if (mirror.prepare(reference, auth_handle))
         {
@@ -42,9 +44,10 @@ namespace powerloader
         auto cres = chandle.perform();
 
         // Now we need to upload the manifest for OCI servers
-        std::string manifest_url = fmt::format("{}/v2/{}/manifests/{}", mirror.url, reference, tag);
+        std::string manifest_url = mirror.get_manifest_url(reference, tag);
         std::string manifest = mirror.create_manifest(fsize, digest);
 
+        spdlog::info("Manifest: {}", manifest);
         std::istringstream manifest_stream(manifest);
 
         CURLHandle mhandle(manifest_url);
@@ -52,7 +55,9 @@ namespace powerloader
             .add_header("Content-Type: application/vnd.oci.image.manifest.v1+json")
             .upload(manifest_stream);
 
-        return mhandle.perform();
+        Response result = mhandle.perform();
+        spdlog::info("Uploaded {} to {}:{}", file.string(), mirror.get_repo(reference), tag);
+        return result;
     }
 
 }

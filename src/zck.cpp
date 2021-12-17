@@ -106,7 +106,7 @@ namespace powerloader
         return true;
     }
 
-    zckCtx* zck_init_read(DownloadTarget* target, int fd)
+    zckCtx* zck_init_read(const std::shared_ptr<DownloadTarget>& target, int fd)
     {
         zckCtx* zck = nullptr;
         bool found = false;
@@ -133,7 +133,7 @@ namespace powerloader
         return zck;
     }
 
-    bool zck_valid_header(DownloadTarget* target, int fd)
+    bool zck_valid_header(const std::shared_ptr<DownloadTarget>& target, int fd)
     {
         for (auto& chksum : target->checksums)
         {

@@ -200,7 +200,7 @@ handle_download(const std::vector<std::string>& urls,
 {
     // the format for URLs is: <mirror>:<path> (e.g. conda-forge:linux-64/xtensor-123.tar.bz2) or
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2
-    std::vector<std::unique_ptr<DownloadTarget>> targets;
+    std::vector<std::shared_ptr<DownloadTarget>> targets;
 
     auto& ctx = Context::instance();
 
@@ -273,7 +273,7 @@ handle_download(const std::vector<std::string>& urls,
 
     for (auto& t : targets)
     {
-        dl.add(t.get());
+        dl.add(t);
     }
 
     bool success = dl.download();
