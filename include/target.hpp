@@ -33,7 +33,7 @@ namespace powerloader
                                           std::size_t nitems,
                                           Target* self);
 
-        inline Target(DownloadTarget* dl_target)
+        inline Target(const std::shared_ptr<DownloadTarget>& dl_target)
             : state(DownloadState::kWAITING)
             , target(dl_target)
             , original_offset(-1)
@@ -41,7 +41,7 @@ namespace powerloader
         {
         }
 
-        inline Target(DownloadTarget* dl_target,
+        inline Target(const std::shared_ptr<DownloadTarget>& dl_target,
                       const std::vector<std::shared_ptr<Mirror>>& mirrors)
             : state(DownloadState::kWAITING)
             , target(dl_target)
@@ -73,7 +73,7 @@ namespace powerloader
         bool check_filesize();
         bool check_checksums();
 
-        DownloadTarget* target;
+        std::shared_ptr<DownloadTarget> target;
         fs::path temp_file;
         std::string url_stub;
 

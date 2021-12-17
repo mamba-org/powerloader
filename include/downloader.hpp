@@ -49,7 +49,7 @@ namespace powerloader
         Downloader();
         ~Downloader();
 
-        void add(DownloadTarget* dl_target);
+        void add(const std::shared_ptr<DownloadTarget>& dl_target);
 
         /** Check the finished transfer
          * Evaluate CURL return code and status code of protocol if needed.
