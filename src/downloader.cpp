@@ -45,12 +45,11 @@ namespace powerloader
         curl_multi_cleanup(multi_handle);
     }
 
-    void Downloader::add(DownloadTarget* dl_target)
+    void Downloader::add(const std::shared_ptr<DownloadTarget>& dl_target)
     {
         // this function converts a DownloadTarget into a "Target"
         if (!dl_target)
             return;
-
 
         if (mirror_map.find(dl_target->base_url) != mirror_map.end())
         {
