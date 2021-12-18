@@ -8,9 +8,6 @@ namespace powerloader
     std::string get_yyyymmdd(const std::chrono::system_clock::time_point& t);
     std::string get_iso8601(const std::chrono::system_clock::time_point& t);
 
-    // TODO replace with proper URL parsing
-    std::string get_host(std::string& url);
-
     struct S3CanonicalRequest
     {
         std::string http_verb;
