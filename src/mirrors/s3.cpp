@@ -10,6 +10,7 @@ extern "C"
 #include "mirrors/s3.hpp"
 #include "mirror.hpp"
 #include "target.hpp"
+#include "url.hpp"
 
 namespace powerloader
 {
@@ -31,22 +32,14 @@ namespace powerloader
         return iso8601;
     }
 
-    // TODO replace with proper URL parsing
-    std::string get_host(std::string& url)
-    {
-        if (url.find("://") != std::string::npos)
-            return url.substr(url.find("://") + 3);
-        else
-            return url;
-    }
-
     void S3CanonicalRequest::init_default_headers()
     {
+        URLHandler uh(bucket_url);
         headers["x-amz-date"] = get_iso8601(date);
         // if (s3_session_token != "")
         //     headers["x-amz-security-token"] = s3_session_token;
         headers["x-amz-content-sha256"] = hashed_payload;
-        headers["Host"] = get_host(bucket_url);
+        headers["Host"] = uh.host();
         headers["Content-Type"] = "application/octet-stream";
     }
 
