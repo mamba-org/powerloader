@@ -47,6 +47,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["s3_upload_location"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
     file_map["s3_mock_upload_location"] = "s3://127.0.0.1:9000"
     file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
+    file_map["s3_bucketname"] = Path("testbucket")
 
     try:
         os.mkdir(file_map["tmp_path"])
@@ -376,10 +377,16 @@ class TestAll:
     def test_s3_mirror_up_and_down(self, file, checksums, powerloader_binary):
         uplocation = file["s3_mock_upload_location"]
 
+        """
+        proc = subprocess.Popen(
+            ["aws --endpoint-url $AWS_S3_ENDPOINT s3 rm s3://testbucket/linuxtest.txt"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        """
+
         remove_all(file)
 
         # Generate a unique file
-        upload_path = str(file["tmp_path"] / Path(str(platform.system()) + "_test.txt"))
+        upload_path = str(file["tmp_path"] / unique_filename())
         with open(upload_path, "w+") as f:
             f.write("Content: " + str(datetime.datetime.now()))
         f.close()
@@ -387,23 +394,43 @@ class TestAll:
         # Store the checksum for later
         hash_before_upload = calculate_sha256(upload_path)
 
-
         # Upload the file
         name_on_server = path_to_name(upload_path)
-        up_path = upload_path + ":" + name_on_server
-        print("uppath: " + str(up_path))
-        print("uplocation: " + str(up_path))
+        up_path = upload_path + ":" + str(file["s3_bucketname"] / Path(name_on_server))
         proc = subprocess.Popen([powerloader_binary, "upload",
-                                 up_path,
-                                 "-m", uplocation],
+                                 up_path, "-k", "--plain-http",
+                                 "-m", file["s3_mock_upload_location"]],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
-        print("OUT: " + str(out))
-        print("ERR: " + str(err))
-        # assert proc.returncode == 0  # Check that the error code is one
-
+        assert proc.returncode == 0  # Check that the error code is one
         # s3_up_and_down(file, powerloader_binary, file["s3_mock_upload_location"])
 
+        # Delete the file
+        Path(upload_path).unlink()
+
+        # Generate a YML file for the download
+        aws_template = yml_content(file["s3_yml_template"])
+        aws_template["targets"] = \
+            [aws_template["targets"][0].replace("__filename__", str(Path(name_on_server)))]
+        aws_template["mirrors"]["s3test"][0]["url"] = \
+            str(file["s3_mock_upload_location"] + "/" + str(file["s3_bucketname"]))
+        print(str(aws_template))
+
+        tmp_yaml = file["tmp_path"] / Path("tmp.yml")
+        with open(str(tmp_yaml), 'w') as outfile:
+            yaml.dump(aws_template, outfile, default_flow_style=False)
+
+        # Download using this YML file
+        proc = subprocess.Popen([powerloader_binary, "download",
+                                 "-f", str(tmp_yaml),
+                                 "-d", str(file["tmp_path"])],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc.communicate()
+        # assert proc.returncode == 0
+
+        # Check that the downloaded file is the same as the uploaded file
+        hash_after_upload = calculate_sha256(upload_path)
+        assert hash_before_upload == hash_after_upload
 
     @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
                         or os.environ.get("AWS_ACCESS_KEY") == ""
