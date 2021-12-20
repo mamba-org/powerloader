@@ -5,6 +5,30 @@
 
 namespace powerloader
 {
+    std::string format_upload_url(const std::string& mirror_url,
+                                  const std::string& temp_upload_location,
+                                  const std::string& digest)
+    {
+        std::string upload_url;
+        if (contains(temp_upload_location, "://"))
+        {
+            upload_url = fmt::format("{}", temp_upload_location);
+        }
+        else
+        {
+            upload_url = fmt::format("{}{}", mirror_url, temp_upload_location);
+        }
+        if (contains(upload_url, "?"))
+        {
+            upload_url = fmt::format("{}&digest={}", upload_url, digest);
+        }
+        else
+        {
+            upload_url = fmt::format("{}?digest={}", upload_url, digest);
+        }
+        return upload_url;
+    }
+
     Response oci_upload(OCIMirror& mirror,
                         const std::string& reference,
                         const std::string& tag,
@@ -16,7 +40,7 @@ namespace powerloader
         spdlog::info("Uploading {} with digest {}", file.string(), digest);
 
         CURLHandle auth_handle;
-        if (mirror.prepare(reference, auth_handle))
+        if (mirror.need_auth() && mirror.prepare(reference, auth_handle))
         {
             auth_handle.perform();
         }
@@ -28,9 +52,8 @@ namespace powerloader
                             .perform();
 
         std::string temp_upload_location = response.header["location"];
-        std::string upload_url
-            = fmt::format("{}{}?digest={}", mirror.url, temp_upload_location, digest);
 
+        auto upload_url = format_upload_url(mirror.url, temp_upload_location, digest);
         spdlog::info("Upload url: {}", upload_url);
 
         CURLHandle chandle(upload_url);
@@ -41,7 +64,19 @@ namespace powerloader
             .add_header("Content-Type: application/octet-stream")
             .upload(ufile);
 
-        auto cres = chandle.perform();
+        // On certain registries, we also need to push the empty config
+        upload_url = format_upload_url(
+            mirror.url, temp_upload_location, fmt::format("sha256:{}", EMPTY_SHA));
+        spdlog::info("Upload url: {}", upload_url);
+
+        CURLHandle chandle_config(upload_url);
+        std::istringstream emptyfile;
+        chandle_config.setopt(CURLOPT_UPLOAD, 1L)
+            .add_headers(mirror.get_auth_headers(reference))
+            .add_header("Content-Type: application/vnd.unknown.config.v1+json")
+            .upload(emptyfile);
+
+        auto cres = chandle_config.perform();
 
         // Now we need to upload the manifest for OCI servers
         std::string manifest_url = mirror.get_manifest_url(reference, tag);

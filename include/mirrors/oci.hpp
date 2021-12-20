@@ -76,6 +76,7 @@ namespace powerloader
         // authenticate per target, and authentication state
         // is also dependent on each target unfortunately?!
         bool prepare(const std::string& path, CURLHandle& handle);
+        bool need_auth() const;
         virtual bool need_preparation(Target* target);
 
         // void add_extra_headers(Target* target);

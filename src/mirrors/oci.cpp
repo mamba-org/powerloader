@@ -37,10 +37,15 @@ namespace powerloader
     //     ]
     // }
 
+    bool OCIMirror::need_auth() const
+    {
+        return username.size() && password.size();
+    }
+
     bool OCIMirror::need_preparation(Target* target)
     {
         auto* data = get_data(target);
-        if (data && data->token.empty())
+        if (data && data->token.empty() && need_auth())
             return true;
 
         if (data && !data->sha256sum.empty())
@@ -94,7 +99,7 @@ namespace powerloader
 
         auto& cbdata = path_cb_map[split_path];
 
-        if (cbdata->token.empty())
+        if (cbdata->token.empty() && need_auth())
         {
             std::string auth_url = get_auth_url(split_path, scope);
             handle.url(auth_url);
@@ -190,6 +195,8 @@ namespace powerloader
 
     std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path)
     {
+        if (username.empty() && password.empty())
+            return {};
         auto [split_path, _] = split_path_tag(path);
         auto& data = path_cb_map[split_path];
         return { fmt::format("Authorization: Bearer {}", data->token) };
