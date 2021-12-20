@@ -758,12 +758,16 @@ namespace powerloader
             }
 
             if (transfer_err)
+            {
+                std::ifstream debug(current_target->temp_file);
+                std::cout << debug.rdbuf() << std::endl;
                 goto transfer_error;
+            }
 
-                // preserve timestamp?
+            // preserve timestamp?
 
-                // check checksums ...
-                // validate download
+            // check checksums ...
+            // validate download
 
 #ifdef WITH_ZCHUNK
             if (current_target->target->is_zchunk)
