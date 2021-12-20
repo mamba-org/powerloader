@@ -1,16 +1,10 @@
 import sys, socket, pytest, py, pathlib
 from xprocess import ProcessStarter
-import shutil, yaml, copy, math
-from pathlib import Path
-import subprocess
-import platform
-import datetime
 import os
-import hashlib
 import time
 import json
 from urllib.request import urlopen
-import glob
+from helpers import *
 
 
 @pytest.fixture
@@ -185,14 +179,6 @@ def mock_server_password(xprocess, checksums):
                            uname="user", pwd="secret")
 
 
-def yml_content(path):
-    with open(path, "r") as stream:
-        try:
-            return yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-
-
 def add_names(file, target):
     yml_cont = yml_content(file[target])
     names = []
@@ -203,10 +189,6 @@ def add_names(file, target):
     return content
 
 
-def path_to_name(path):
-    return path.split("/")[-1]
-
-
 @pytest.fixture
 def mirrors_with_names(file):
     return add_names(file, target="mirrors")
@@ -215,26 +197,6 @@ def mirrors_with_names(file):
 @pytest.fixture
 def sparse_mirrors_with_names(file):
     return add_names(file, target="local_mirrors")
-
-
-def get_files(file):
-    return glob.glob(str(file["tmp_path"]) + "/*")
-
-
-def remove_all(file):
-    Path(file["output_path"]).unlink(missing_ok=True)
-    Path(file["output_path_pdpart"]).unlink(missing_ok=True)
-
-    for fle in get_files(file):
-        (file["tmp_path"] / Path(fle)).unlink()
-
-
-def calculate_sha256(file):
-    with open(file, "rb") as f:
-        # read entire file as bytes
-        b = f.read()
-        readable_hash = hashlib.sha256(b).hexdigest();
-        return readable_hash
 
 
 def filter_broken(file_list, pdp):
@@ -384,11 +346,16 @@ class TestAll:
                         or os.environ.get("AWS_ACCESS_KEY") == ""
                         or os.environ.get("AWS_SECRET_KEY") is None
                         or os.environ.get("AWS_SECRET_KEY") == ""
+                        or os.environ.get("GHA_USER") is None
+                        or os.environ.get("GHA_USER") == ""
                         or os.environ.get("AWS_DEFAULT_REGION") is None
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_yml_s3_mirror(self, file, checksums, powerloader_binary):
         remove_all(file)
+
+        print("-f " + str(file["pw_format_three"]))
+        print("-d " + str(file["tmp_path"]))
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["pw_format_three"],
                                        "-d", file["tmp_path"]])
@@ -400,53 +367,26 @@ class TestAll:
                         or os.environ.get("AWS_ACCESS_KEY") == ""
                         or os.environ.get("AWS_SECRET_KEY") is None
                         or os.environ.get("AWS_SECRET_KEY") == ""
+                        or os.environ.get("GHA_USER") is None
+                        or os.environ.get("GHA_USER") == ""
+                        or os.environ.get("AWS_DEFAULT_REGION") is None
+                        or os.environ.get("AWS_DEFAULT_REGION") == "",
+                        reason="Environment variable(s) not defined")
+    def test_s3_mirror_up_and_down(self, file, checksums, powerloader_binary):
+        s3_up_and_down(file, powerloader_binary)
+
+
+    @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
+                        or os.environ.get("AWS_ACCESS_KEY") == ""
+                        or os.environ.get("AWS_SECRET_KEY") is None
+                        or os.environ.get("AWS_SECRET_KEY") == ""
+                        or os.environ.get("GHA_USER") is None
+                        or os.environ.get("GHA_USER") == ""
                         or os.environ.get("AWS_DEFAULT_REGION") is None
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_s3_upload(self, file, powerloader_binary):
-        remove_all(file)
-
-        # Generate a unique file
-        upload_path = str(file["tmp_path"] / Path(str(platform.system()) + "_test.txt"))
-        with open(upload_path, "w+") as f:
-            f.write("Content: " + str(datetime.datetime.now()))
-        f.close()
-
-        # Store the checksum for later
-        hash_before_upload = calculate_sha256(upload_path)
-
-        # Upload the file
-        name_on_server = path_to_name(upload_path)
-        proc = subprocess.Popen([powerloader_binary, "upload",
-                                       upload_path + ":" + name_on_server,
-                                       "-m", file["s3_upload_location"]],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        # assert proc.returncode == 0  # Check that the error code is one
-
-        # Delete the file
-        Path(upload_path).unlink()
-
-        # Generate a YML file for the download
-        aws_template = yml_content(file["s3_yml_template"])
-        aws_template["targets"] = [aws_template["targets"][0].replace("__filename__", name_on_server)]
-        print(str(aws_template))
-
-        tmp_yaml = file["tmp_path"] / Path("tmp.yml")
-        with open(str(tmp_yaml), 'w') as outfile:
-            yaml.dump(aws_template, outfile, default_flow_style=False)
-
-        # Download using this YML file
-        proc = subprocess.Popen([powerloader_binary, "download",
-                                       "-f", str(tmp_yaml),
-                                       "-d", str(file["tmp_path"])],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        assert proc.returncode == 0
-
-        # Check that the downloaded file is the same as the uploaded file
-        hash_after_upload = calculate_sha256(upload_path)
-        assert hash_before_upload == hash_after_upload
+        s3_up_and_down(file, powerloader_binary)
 
     # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,

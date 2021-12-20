@@ -97,6 +97,7 @@ jobs:
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
+          export GHA_PAT=$GITHUB_TOKEN
           # Download the packages from conda forge
           server_path="test/conda_mock/static/packages"
           powerloader_path="build/powerloader"
