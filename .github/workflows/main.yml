@@ -74,7 +74,7 @@ jobs:
 
       - name: Setup minio
         run: |
-          docker run -d -p 9000:9000 --name minio \
+          sudo docker start minio || docker run -d -p 9000:9000 --name minio \
                      -e "MINIO_ACCESS_KEY=minioadmin" \
                      -e "MINIO_SECRET_KEY=minioadmin" \
                      -v /tmp/data:/data \
@@ -87,7 +87,6 @@ jobs:
 
           # Populate minIO
           # https://docs.min.io/docs/aws-cli-with-minio.html
-          sudo docker start minio
           aws --endpoint-url $AWS_S3_ENDPOINT s3 mb s3://testbucket
 
       - name: powerloader python based tests
