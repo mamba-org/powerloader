@@ -45,6 +45,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["pw_format_two"] = file_map["test_path"] / Path("passwd_format_two.yml")
     file_map["pw_format_three"] = file_map["test_path"] / Path("s3test.yml")
     file_map["s3_upload_location"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
+    file_map["s3_mock_upload_location"] = "s3://127.0.0.1:9000"
     file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
 
     try:
@@ -55,7 +56,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
         print("Successfully created the directory %s " % file_map["tmp_path"])
 
     yield file_map
-
+    raise Exception("Stop here!")
     shutil.rmtree(file_map["tmp_path"])
 
 
@@ -373,7 +374,35 @@ class TestAll:
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_s3_mirror_up_and_down(self, file, checksums, powerloader_binary):
-        s3_up_and_down(file, powerloader_binary)
+        uplocation = file["s3_mock_upload_location"]
+
+        remove_all(file)
+
+        # Generate a unique file
+        upload_path = str(file["tmp_path"] / Path(str(platform.system()) + "_test.txt"))
+        with open(upload_path, "w+") as f:
+            f.write("Content: " + str(datetime.datetime.now()))
+        f.close()
+
+        # Store the checksum for later
+        hash_before_upload = calculate_sha256(upload_path)
+
+
+        # Upload the file
+        name_on_server = path_to_name(upload_path)
+        up_path = upload_path + ":" + name_on_server
+        print("uppath: " + str(up_path))
+        print("uplocation: " + str(up_path))
+        proc = subprocess.Popen([powerloader_binary, "upload",
+                                 up_path,
+                                 "-m", uplocation],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc.communicate()
+        print("OUT: " + str(out))
+        print("ERR: " + str(err))
+        # assert proc.returncode == 0  # Check that the error code is one
+
+        # s3_up_and_down(file, powerloader_binary, file["s3_mock_upload_location"])
 
 
     @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
@@ -386,7 +415,7 @@ class TestAll:
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_s3_upload(self, file, powerloader_binary):
-        s3_up_and_down(file, powerloader_binary)
+        s3_up_and_down(file, powerloader_binary, file["s3_upload_location"])
 
     # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
