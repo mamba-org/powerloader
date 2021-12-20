@@ -220,6 +220,16 @@ namespace powerloader
         return val;
     }
 
+    inline std::string get_env(const char* var, const std::string& default_value)
+    {
+        const char* val = getenv(var);
+        if (!val)
+        {
+            return default_value;
+        }
+        return val;
+    }
+
     inline std::vector<std::string> split(const std::string_view& input,
                                           const std::string_view& sep,
                                           std::size_t max_split = SIZE_MAX)

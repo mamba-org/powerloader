@@ -33,6 +33,7 @@ struct MirrorCredentials
 };
 
 static bool show_progress_bars = true;
+static bool no_https = false;
 
 int
 progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
@@ -133,7 +134,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
         kof = KindOf::kOCI;
 
     if (kof != KindOf::kHTTP)
-        url.set_scheme("https");
+        url.set_scheme(no_https ? "http" : "https");
 
     spdlog::info("URL: {}", url.url());
 
@@ -150,8 +151,8 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
                 spdlog::error("For OCI upload we need file:destname:tag");
                 return 1;
             }
-            std::string GH_SECRET = get_env("GHA_PAT");
-            std::string GH_USER = get_env("GHA_USER");
+            std::string GH_SECRET = get_env("GHA_PAT", "");
+            std::string GH_USER = get_env("GHA_USER", "");
 
             OCIMirror mirror(url.url(), GH_USER, "push", GH_USER, GH_SECRET);
             oci_upload(mirror, dest, elems[2], elems[0]);
@@ -367,7 +368,7 @@ parse_mirrors(const YAML::Node& node)
             }
 
             if (kof != KindOf::kHTTP)
-                creds.url.set_scheme("https");
+                creds.url.set_scheme(no_https ? "http" : "https");
 
             if (kof == KindOf::kS3)
             {
@@ -447,7 +448,10 @@ main(int argc, char** argv)
     s_dl->add_option("--zck-header-size",
                      dl_meta.zck_header_size,
                      "Header size for zchunk header (find with zck_read_header)");
-    s_dl->add_option("-k", disable_ssl, "Disable SSL verification");
+    s_dl->add_flag("-k", disable_ssl, "Disable SSL verification");
+    s_ul->add_flag("-k", disable_ssl, "Disable SSL verification");
+    s_ul->add_flag("--plain-http", no_https, "Use plain HTTP instead of HTTPS");
+    s_dl->add_flag("--plain-http", no_https, "Use plain HTTP instead of HTTPS");
 
     CLI11_PARSE(app, argc, argv);
 
