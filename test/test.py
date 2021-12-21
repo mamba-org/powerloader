@@ -120,7 +120,6 @@ def mock_server(xprocess, name, port, pkgs, error_type,
                 error = True
             finally:
                 s.close()
-
             return (not error)
 
     # ensure process is running and return its logfile
@@ -215,6 +214,8 @@ def get_prev_headers(mock_server_working):
 
 
 class TestAll:
+    sec_key, acc_key = 0, 0
+
     @classmethod
     def setup_class(cls):
         pass
@@ -267,7 +268,7 @@ class TestAll:
                                            "--sha", "broken_checksum",
                                            "-o", file["output_path"]])
         except subprocess.CalledProcessError as e:
-            print(e)
+            pass   # print(e)
         assert not Path(file["output_path_pdpart"]).exists()
         assert not Path(file["output_path"]).exists()
 
@@ -281,8 +282,7 @@ class TestAll:
                                            "-o", file["output_path"]
                                            ])
         except subprocess.CalledProcessError as e:
-            print(e)
-
+            pass  # print(e)
         assert not Path(file["output_path_pdpart"]).exists()
         assert not Path(file["output_path"]).exists()
 
@@ -354,6 +354,7 @@ class TestAll:
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_yml_s3_mirror(self, file, checksums, powerloader_binary):
+        self.s3_mock_keys_set()
         remove_all(file)
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["pw_format_three"], "--plain-http",
@@ -361,6 +362,15 @@ class TestAll:
 
         for fp in get_files(file):
             assert calculate_sha256(fp) == checksums[str(path_to_name(fp))]
+        self.s3_mock_keys_reset()
+
+    def s3_mock_keys_set(self):
+        self.acc_key, self.sec_key = os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY']
+        os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY'] = \
+            os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY']
+
+    def s3_mock_keys_reset(self):
+        os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY'] = self.acc_key, self.sec_key
 
     @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
                         or os.environ.get("AWS_ACCESS_KEY") == ""
@@ -376,39 +386,16 @@ class TestAll:
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_s3_mirror_up_and_down(self, file, checksums, powerloader_binary):
-        acc_key, sec_key = os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY']
-        uplocation = file["s3_mock_upload_location"]
-
-        os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY'] = \
-            os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY']
-
-        """
-        proc = subprocess.Popen(
-            ["aws --endpoint-url $AWS_S3_ENDPOINT s3 rm s3://testbucket/linuxtest.txt"],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        """
-
+        self.s3_mock_keys_set()
         remove_all(file)
-
-        # Generate a unique file
-        upload_path = str(file["tmp_path"] / unique_filename())
-        with open(upload_path, "w+") as f:
-            f.write("Content: " + str(datetime.datetime.now()))
-        f.close()
+        upload_path = generate_unique_file(file)
 
         # Store the checksum for later
         hash_before_upload = calculate_sha256(upload_path)
 
         # Upload the file
-        name_on_server = path_to_name(upload_path)
-        up_path = upload_path + ":" + str(file["s3_bucketname"] / Path(name_on_server))
-        proc = subprocess.Popen([powerloader_binary, "upload",
-                                 up_path, "-k", "--plain-http",
-                                 "-m", file["s3_mock_upload_location"]],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        assert proc.returncode == 0  # Check that the error code is one
-        # s3_up_and_down(file, powerloader_binary, file["s3_mock_upload_location"])
+        up_path = upload_path + ":" + str(file["s3_bucketname"] / Path(path_to_name(upload_path)))
+        upload_the_file(powerloader_binary, up_path, server=file["s3_mock_upload_location"], plain_http=True)
 
         # Delete the file
         Path(upload_path).unlink()
@@ -416,9 +403,8 @@ class TestAll:
         # Generate a YML file for the download
         aws_template = yml_content(file["s3_yml_template"])
         aws_template["targets"] = \
-            [aws_template["targets"][0].replace("__filename__", str(file["s3_bucketname"]) + "/" + name_on_server)]
+            [aws_template["targets"][0].replace("__filename__", str(file["s3_bucketname"]) + "/" + path_to_name(upload_path))]
         aws_template["mirrors"]["s3test"][0]["url"] = file["s3_mock_upload_location"]
-        print(str(aws_template))
 
         tmp_yaml = file["tmp_path"] / Path("tmp.yml")
         with open(str(tmp_yaml), 'w') as outfile:
@@ -436,7 +422,7 @@ class TestAll:
         hash_after_upload = calculate_sha256(upload_path)
         assert hash_before_upload == hash_after_upload
 
-        os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY'] = acc_key, sec_key
+        self.s3_mock_keys_reset()
 
     @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
                         or os.environ.get("AWS_ACCESS_KEY") == ""
