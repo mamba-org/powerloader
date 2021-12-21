@@ -369,11 +369,20 @@ class TestAll:
                         or os.environ.get("AWS_SECRET_KEY") == ""
                         or os.environ.get("GHA_USER") is None
                         or os.environ.get("GHA_USER") == ""
+                        or os.environ.get("AWS_ACCESS_KEY_ID") is None
+                        or os.environ.get("AWS_ACCESS_KEY_ID") == ""
+                        or os.environ.get("AWS_SECRET_ACCESS_KEY") is None
+                        or os.environ.get("AWS_SECRET_ACCESS_KEY") == ""
                         or os.environ.get("AWS_DEFAULT_REGION") is None
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_s3_mirror_up_and_down(self, file, checksums, powerloader_binary):
+        acc_key, sec_key = os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY']
         uplocation = file["s3_mock_upload_location"]
+
+        os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY'] = \
+            os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY']
+
 
         """
         proc = subprocess.Popen(
@@ -428,6 +437,8 @@ class TestAll:
         # Check that the downloaded file is the same as the uploaded file
         hash_after_upload = calculate_sha256(upload_path)
         assert hash_before_upload == hash_after_upload
+
+        os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY'] = acc_key, sec_key
 
     @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
                         or os.environ.get("AWS_ACCESS_KEY") == ""
