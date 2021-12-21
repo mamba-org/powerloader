@@ -409,6 +409,46 @@ class TestAll:
         download_s3_file(powerloader_binary, file, plain_http=True)
 
         # Check that the downloaded file is the same as the uploaded file
+        assert hash_before_upload == calculate_sha256(upload_path)
+
+        self.s3_mock_keys_reset()
+
+    @pytest.mark.skipif(os.environ.get("AWS_ACCESS_KEY") is None
+                        or os.environ.get("AWS_ACCESS_KEY") == ""
+                        or os.environ.get("AWS_SECRET_KEY") is None
+                        or os.environ.get("AWS_SECRET_KEY") == ""
+                        or os.environ.get("GHA_USER") is None
+                        or os.environ.get("GHA_USER") == ""
+                        or os.environ.get("AWS_ACCESS_KEY_ID") is None
+                        or os.environ.get("AWS_ACCESS_KEY_ID") == ""
+                        or os.environ.get("AWS_SECRET_ACCESS_KEY") is None
+                        or os.environ.get("AWS_SECRET_ACCESS_KEY") == ""
+                        or os.environ.get("AWS_DEFAULT_REGION") is None
+                        or os.environ.get("AWS_DEFAULT_REGION") == "",
+                        reason="Environment variable(s) not defined")
+    def test_s3_mock_mod_txt(self, file, powerloader_binary):
+        self.s3_mock_keys_set()
+        remove_all(file)
+        upload_path = generate_unique_file(file, with_txt=True)
+
+        # Store the checksum for later
+        hash_before_upload = calculate_sha256(upload_path)
+
+        # Upload the file
+        up_path = upload_path + ":" + str(file["s3_bucketname"] / Path(path_to_name(upload_path)))
+        upload_s3_file(powerloader_binary, up_path, server=file["s3_mock_server"], plain_http=True)
+
+        # Delete the file
+        Path(upload_path).unlink()
+
+        # Generate a YML file for the download
+        filename = str(file["s3_bucketname"]) + "/" + path_to_name(upload_path)
+        generate_s3_download_yml(file, file["s3_mock_server"], filename)
+
+        # Download using this YML file
+        download_s3_file(powerloader_binary, file, plain_http=True)
+
+        # Check that the downloaded file is the same as the uploaded file
         hash_after_upload = calculate_sha256(upload_path)
         assert hash_before_upload == hash_after_upload
 
@@ -427,7 +467,7 @@ class TestAll:
                         or os.environ.get("AWS_DEFAULT_REGION") is None
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
-    def test_s3_mock_yml_mod(self, file, powerloader_binary):
+    def test_s3_mock_yml_mod_loc(self, file, powerloader_binary):
         self.s3_mock_keys_set()
         remove_all(file)
         upload_path = generate_unique_file(file)
