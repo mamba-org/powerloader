@@ -104,7 +104,7 @@ jobs:
           wget https://beta.mamba.pm/get/conda-forge/osx-arm64/xtensor-0.24.0-hc021e02_0.tar.bz2 \
               -O ./test/conda_mock/static/packages/xtensor-0.24.0-hc021e02_0.tar.bz2
           $powerloader_path download -f test/remote_mirrors.yml -d $server_path
-
+          
           aws --endpoint-url $AWS_S3_ENDPOINT s3 cp $server_path/boa-0.8.1.tar.gz s3://testbucket/
           # aws --endpoint-url $AWS_S3_ENDPOINT s3 ls s3://testbucket
 
