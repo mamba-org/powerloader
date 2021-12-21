@@ -199,5 +199,33 @@ namespace powerloader
                 ec.assign(errno, std::generic_category());
             }
         }
+
+        inline int error()
+        {
+            return ::ferror(m_fs);
+        }
+
+        void replace_contents_with(const FileIO& other, std::error_code& ec)
+        {
+            const int bufsize = 32'768;
+            char buf[bufsize];
+            size_t size;
+
+            other.seek(0, SEEK_SET);
+            seek(0, SEEK_SET);
+
+            while ((size = other.read(buf, 1, bufsize)) > 0)
+            {
+                if (this->write(buf, 1, size) == size)
+                {
+                    ec.assign(error(), std::generic_category());
+                }
+            }
+            if (ec)
+                return;
+
+            truncate(other.seek(0, SEEK_END), ec);
+            seek(0, SEEK_SET);
+        }
     };
 }

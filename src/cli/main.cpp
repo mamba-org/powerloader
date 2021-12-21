@@ -202,6 +202,7 @@ handle_download(const std::vector<std::string>& urls,
     // the format for URLs is: <mirror>:<path> (e.g. conda-forge:linux-64/xtensor-123.tar.bz2) or
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2
     std::vector<std::shared_ptr<DownloadTarget>> targets;
+
     auto& ctx = Context::instance();
 
     for (auto& x : urls)
@@ -218,11 +219,11 @@ handle_download(const std::vector<std::string>& urls,
             std::string mirror_url = url.substr(0, url.size() - path.size());
             std::string dst
                 = metadata.outfile.empty() ? rsplit(uh.path(), "/", 1).back() : metadata.outfile;
+
             if (ctx.mirror_map.find(host) == ctx.mirror_map.end())
             {
                 ctx.mirror_map[host] = std::vector<std::shared_ptr<Mirror>>();
             }
-            spdlog::info("Downloading: {} to {}", url, dst, host);
             ctx.mirror_map[host].push_back(std::make_shared<Mirror>(mirror_url));
             targets.emplace_back(new DownloadTarget(path.substr(1, std::string::npos), host, dst));
         }
@@ -254,7 +255,6 @@ handle_download(const std::vector<std::string>& urls,
             targets.back()->checksums.push_back(Checksum{ ChecksumType::kSHA256, metadata.sha256 });
         if (metadata.filesize > 0)
             targets.back()->expected_size = metadata.filesize;
-
             // TODO we should have two different fields for those two
 #ifdef WITH_ZCHUNK
         if (!metadata.zck_header_sha256.empty())
@@ -463,6 +463,7 @@ main(int argc, char** argv)
     Context::instance().disable_ssl = disable_ssl;
 
     std::vector<Mirror> mlist;
+    spdlog::info("Loading file.");
     if (!file.empty())
     {
         spdlog::info("Loading file {}", file);
@@ -483,10 +484,6 @@ main(int argc, char** argv)
     }
     if (app.got_subcommand("download"))
     {
-        for (auto& x: du_files)
-        {
-            std::cout << "DL File: " << x << std::endl;
-        }
         return handle_download(du_files, mirrors, resume, outdir, dl_meta, do_zck_extract);
     }
 

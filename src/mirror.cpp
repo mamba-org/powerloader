@@ -25,8 +25,7 @@ namespace powerloader
 
     std::string Mirror::format_url(Target* target)
     {
-        // return fmt::format("{}/{}", url, target->target->path);
-        return url + "/" + target->target->path;
+        return fmt::format("{}/{}", url, target->target->path);
     }
 
     std::vector<std::string> Mirror::get_auth_headers(const std::string& path)

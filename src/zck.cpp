@@ -232,42 +232,46 @@ namespace powerloader
                     continue;
                 }
 
-                // int chk_fd = open(file.c_str(), O_RDONLY);
-                int chk_fd = -1;
-                if (chk_fd < 0)
+                std::error_code ec;
+                FileIO chk_file(file, FileIO::read_binary, ec);
+                if (ec)
                 {
-                    // spdlog::info("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
-                    spdlog::warn("zck: Unable to open {}", file.string());
+                    spdlog::warn("zck: unable to open {}", file.string());
                     continue;
                 }
+
                 bool valid_header = false;
                 try
                 {
-                    valid_header = zck_valid_header(target->target, chk_fd);
+                    valid_header = zck_valid_header(target->target, chk_file.fd());
                 }
                 catch (zchunk_error& e)
                 {
-                    spdlog::info("zck: no valid header {}", e.what());
+                    spdlog::info("zck: no valid header found in {}: {}", file.string(), e.what());
                 };
 
                 if (valid_header)
                 {
-                    spdlog::info("zchunk: Found file with same header at ", file.string());
-                    // if (lr_copy_content(chk_fd, fd) == 0
-                    //     && ftruncate(fd, lseek(chk_fd, 0, SEEK_END)) >= 0
-                    //     && lseek(fd, 0, SEEK_SET) == 0
-                    //     && (zck = zck_init_read(target->target, chk_fd)))
-                    // {
-                    //     found = true;
-                    //     break;
-                    // }
-                    // else
-                    // {
-                    //     spdlog::error("Error copying file");
-                    //     // g_clear_error(&tmp_err);
-                    // }
+                    spdlog::info("zchunk: found file with same header in ", file.string());
+                    target->target->outfile->replace_contents_with(chk_file, ec);
+                    if (ec)
+                    {
+                        spdlog::error(
+                            "Problem copying {} to {}", file.string(), target->temp_file.string());
+                        continue;
+                    }
+                    zck = zck_init_read(target->target, target->target->outfile->fd());
+                    if (zck)
+                    {
+                        found = true;
+                        break;
+                    }
+                    else
+                    {
+                        spdlog::error("zck: could not copy file");
+                        ec.clear();
+                    }
                 }
-                close(chk_fd);
             }
         }
         else
@@ -614,7 +618,8 @@ namespace powerloader
         spdlog::info("zck: extracting from {} to {}", source.string(), dst.string());
         zckCtx* zck = zck_create();
         std::error_code ec;
-        FileIO sf(source.string() + ".pdpart", FileIO::read_binary, ec), of(dst, FileIO::write_update_binary, ec);
+        FileIO sf(source.string() + ".pdpart", FileIO::read_binary, ec),
+            of(dst, FileIO::write_update_binary, ec);
 
         if (!zck_init_read(zck, sf.fd()))
         {

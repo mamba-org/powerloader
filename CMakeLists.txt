@@ -69,10 +69,14 @@ if (WITH_ZCHUNK)
 endif()
 
 find_package(spdlog REQUIRED)
-
+if (MSVC)
+    set(SPDLOG_TARGET spdlog::spdlog_header_only)
+else()
+    set(SPDLOG_TARGET spdlog::spdlog)
+endif()
 target_link_libraries(libpowerloader
                       ${CURL_LIBRARIES}
-                      spdlog::spdlog_header_only
+                      ${SPDLOG_TARGET}
                       ${ZCK_LIBRARY}
                       ${OPENSSL_LIBRARIES}
                       ${YAML_CPP_LIBRARIES})
