@@ -44,10 +44,11 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["pw_format_one"] = file_map["test_path"] / Path("passwd_format_one.yml")
     file_map["pw_format_two"] = file_map["test_path"] / Path("passwd_format_two.yml")
     file_map["pw_format_three"] = file_map["test_path"] / Path("s3test.yml")
-    file_map["s3_upload_location"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
-    file_map["s3_mock_upload_location"] = "s3://127.0.0.1:9000"
+    file_map["s3_server"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
+    file_map["s3_mock_server"] = "s3://127.0.0.1:9000"
     file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
     file_map["s3_bucketname"] = Path("testbucket")
+    file_map["tmp_yml"] = file_map["tmp_path"] / Path("tmp.yml")
 
     try:
         os.mkdir(file_map["tmp_path"])
@@ -385,7 +386,7 @@ class TestAll:
                         or os.environ.get("AWS_DEFAULT_REGION") is None
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
-    def test_s3_mirror_up_and_down(self, file, checksums, powerloader_binary):
+    def test_s3_mock(self, file, checksums, powerloader_binary):
         self.s3_mock_keys_set()
         remove_all(file)
         upload_path = generate_unique_file(file)
@@ -395,28 +396,17 @@ class TestAll:
 
         # Upload the file
         up_path = upload_path + ":" + str(file["s3_bucketname"] / Path(path_to_name(upload_path)))
-        upload_the_file(powerloader_binary, up_path, server=file["s3_mock_upload_location"], plain_http=True)
+        upload_s3_file(powerloader_binary, up_path, server=file["s3_mock_server"], plain_http=True)
 
         # Delete the file
         Path(upload_path).unlink()
 
         # Generate a YML file for the download
-        aws_template = yml_content(file["s3_yml_template"])
-        aws_template["targets"] = \
-            [aws_template["targets"][0].replace("__filename__", str(file["s3_bucketname"]) + "/" + path_to_name(upload_path))]
-        aws_template["mirrors"]["s3test"][0]["url"] = file["s3_mock_upload_location"]
-
-        tmp_yaml = file["tmp_path"] / Path("tmp.yml")
-        with open(str(tmp_yaml), 'w') as outfile:
-            yaml.dump(aws_template, outfile, default_flow_style=False)
+        filename = str(file["s3_bucketname"]) + "/" + path_to_name(upload_path)
+        generate_s3_download_yml(file, file["s3_mock_server"], filename)
 
         # Download using this YML file
-        proc = subprocess.Popen([powerloader_binary, "download",
-                                 "-f", str(tmp_yaml), "-k", "--plain-http",
-                                 "-d", str(file["tmp_path"])],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        # assert proc.returncode == 0
+        download_s3_file(powerloader_binary, file, plain_http=True)
 
         # Check that the downloaded file is the same as the uploaded file
         hash_after_upload = calculate_sha256(upload_path)
@@ -433,8 +423,29 @@ class TestAll:
                         or os.environ.get("AWS_DEFAULT_REGION") is None
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
-    def test_s3_upload(self, file, powerloader_binary):
-        s3_up_and_down(file, powerloader_binary, file["s3_upload_location"])
+    def test_s3_server(self, file, powerloader_binary):
+        remove_all(file)
+        upload_path = generate_unique_file(file)
+
+        # Store the checksum for later
+        hash_before_upload = calculate_sha256(upload_path)
+
+        # Upload the file
+        up_path = upload_path + ":" + path_to_name(upload_path)
+        upload_s3_file(powerloader_binary, up_path, server=file["s3_server"], plain_http=False)
+
+        # Delete the file
+        Path(upload_path).unlink()
+
+        # Generate a YML file for the download
+        generate_s3_download_yml(file, file["s3_server"], path_to_name(upload_path))
+
+        # Download using this YML file
+        download_s3_file(powerloader_binary, file)
+
+        # Check that the downloaded file is the same as the uploaded file
+        hash_after_upload = calculate_sha256(upload_path)
+        assert hash_before_upload == hash_after_upload
 
     # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
