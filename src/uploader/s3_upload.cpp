@@ -12,7 +12,7 @@ namespace powerloader
 
         URLHandler uh(fmt::format("{}/{}", mirror.url, path));
 
-        S3CanonicalRequest request("PUT", uh.url_without_path(), uh.path(), digest);
+        S3CanonicalRequest request("PUT", uh, digest);
         request.hashed_payload = digest;
 
         // this is enough to make a file completely public

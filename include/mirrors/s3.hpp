@@ -20,15 +20,19 @@ namespace powerloader
         std::chrono::system_clock::time_point date;
 
         inline S3CanonicalRequest(const std::string& http_verb,
-                                  const std::string& bucket_url,
-                                  const std::string& resource = "",
+                                  const URLHandler& uh,
                                   const std::string& sha256sum = "")
             : http_verb(http_verb)
-            , bucket_url(bucket_url)
-            , resource(resource)
             , hashed_payload(sha256sum.empty() ? EMPTY_SHA : sha256sum)
             , date(std::chrono::system_clock::now())
         {
+            bucket_url = uh.url_without_path();
+            resource = uh.path();
+            if (resource.size() >= 1 && resource[0] == '/')
+            {
+                resource = resource.substr(1, std::string::npos);
+            }
+
             init_default_headers();
         }
 
