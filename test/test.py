@@ -432,36 +432,27 @@ class TestAll:
         remove_all(file)
         upload_path = generate_unique_file(file)
 
-        print("ping1")
         # Store the checksum for later
         hash_before_upload = calculate_sha256(upload_path)
 
         # Upload the file
-        print("ping2")
         up_path = upload_path + ":" + str(file["s3_bucketname"] / Path(path_to_name(upload_path)))
-        print("ping3")
         upload_s3_file(powerloader_binary, up_path, server=file["s3_mock_server"], plain_http=True)
-        print("ping4")
 
         # Delete the file
         Path(upload_path).unlink()
 
-        print("ping5")
         # Generate a YML file for the download
         server = file["s3_mock_server"] + "/" + str(file["s3_bucketname"])
         generate_s3_download_yml(file, server, path_to_name(upload_path))
-        print("ping6")
 
         # Download using this YML file
+        print("ping6")
         download_s3_file(powerloader_binary, file, plain_http=True)
         print("ping7")
 
         # Check that the downloaded file is the same as the uploaded file
-        print("ping8")
-        hash_after_upload = calculate_sha256(upload_path)
-        print("ping9")
-        assert hash_before_upload == hash_after_upload
-        print("ping10")
+        assert hash_before_upload == calculate_sha256(upload_path)
 
         self.s3_mock_keys_reset()
 
@@ -495,8 +486,7 @@ class TestAll:
         download_s3_file(powerloader_binary, file)
 
         # Check that the downloaded file is the same as the uploaded file
-        hash_after_upload = calculate_sha256(upload_path)
-        assert hash_before_upload == hash_after_upload
+        assert hash_before_upload == calculate_sha256(upload_path)
 
     # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(self, file, sparse_mirrors_with_names, checksums, powerloader_binary,
