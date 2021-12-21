@@ -355,9 +355,8 @@ class TestAll:
                         reason="Environment variable(s) not defined")
     def test_yml_s3_mirror(self, file, checksums, powerloader_binary):
         remove_all(file)
-
         out = subprocess.check_output([powerloader_binary, "download",
-                                       "-f", file["pw_format_three"],
+                                       "-f", file["pw_format_three"], "--plain-http",
                                        "-d", file["tmp_path"]])
 
         for fp in get_files(file):
@@ -382,7 +381,6 @@ class TestAll:
 
         os.environ['AWS_ACCESS_KEY'], os.environ['AWS_SECRET_KEY'] = \
             os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY']
-
 
         """
         proc = subprocess.Popen(
