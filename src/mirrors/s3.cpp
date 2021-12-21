@@ -179,7 +179,7 @@ namespace powerloader
     std::vector<std::string> S3Mirror::get_auth_headers(const std::string& path)
     {
         URLHandler uh(fmt::format("{}/{}", bucket_url, path));
-        S3CanonicalRequest req_data("GET", uh.url_without_path(), uh.path());
+        S3CanonicalRequest req_data("GET", uh);
         return get_auth_headers(req_data);
     }
 }
