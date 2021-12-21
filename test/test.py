@@ -57,7 +57,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
         print("Successfully created the directory %s " % file_map["tmp_path"])
 
     yield file_map
-    raise Exception("Stop here!")
+
     shutil.rmtree(file_map["tmp_path"])
 
 
@@ -356,8 +356,6 @@ class TestAll:
     def test_yml_s3_mirror(self, file, checksums, powerloader_binary):
         remove_all(file)
 
-        print("-f " + str(file["pw_format_three"]))
-        print("-d " + str(file["tmp_path"]))
         out = subprocess.check_output([powerloader_binary, "download",
                                        "-f", file["pw_format_three"],
                                        "-d", file["tmp_path"]])
@@ -411,9 +409,8 @@ class TestAll:
         # Generate a YML file for the download
         aws_template = yml_content(file["s3_yml_template"])
         aws_template["targets"] = \
-            [aws_template["targets"][0].replace("__filename__", str(Path(name_on_server)))]
-        aws_template["mirrors"]["s3test"][0]["url"] = \
-            str(file["s3_mock_upload_location"] + "/" + str(file["s3_bucketname"]))
+            [aws_template["targets"][0].replace("__filename__", str(file["s3_bucketname"]) + "/" + name_on_server)]
+        aws_template["mirrors"]["s3test"][0]["url"] = file["s3_mock_upload_location"]
         print(str(aws_template))
 
         tmp_yaml = file["tmp_path"] / Path("tmp.yml")
@@ -422,7 +419,7 @@ class TestAll:
 
         # Download using this YML file
         proc = subprocess.Popen([powerloader_binary, "download",
-                                 "-f", str(tmp_yaml),
+                                 "-f", str(tmp_yaml), "-k", "--plain-http",
                                  "-d", str(file["tmp_path"])],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
