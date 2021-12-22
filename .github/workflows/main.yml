@@ -103,11 +103,9 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
+          pytest ./test/test_s3minio.py
 
-          # Run tests
-          # pytest ./test/s3minio.py
-
-      - name: Run python based tests for S3
+      - name: Run other python based tests
         shell: bash -l -eo pipefail {0}
         if: runner.os != 'Windows'
         env:
@@ -116,5 +114,4 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           # Run tests
-          # pytest ./test/s3minio.py
-          pytest ./test/test.py
+          pytest ./test/test_other.py

@@ -1,9 +1,0 @@
-mirrors:
-  s3test:
-    - url: s3://127.0.0.1:9000
-      user: env:AWS_ACCESS_KEY
-      password: env:AWS_SECRET_KEY
-      region: env:AWS_DEFAULT_REGION
-
-targets:
-  - s3test:testbucket/xtensor-0.23.9-hc021e02_1.tar.bz2
