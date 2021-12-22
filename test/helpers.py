@@ -6,6 +6,7 @@ import sys, socket, pathlib
 from pathlib import Path
 import json, os
 
+
 def mock_server(xprocess, name, port, pkgs, error_type,
                 uname=None, pwd=None):
     curdir = pathlib.Path(__file__).parent
@@ -64,6 +65,7 @@ def get_pkgs(port, checksums, num_servers=3):
     ub = min(ub, len(files) - 1)
     return set(files[lb:ub])
 
+
 def yml_content(path):
     with open(path, "r") as stream:
         try:
@@ -84,6 +86,10 @@ def add_names(file, target):
 
 def path_to_name(path):
     return str(path).split("/")[-1]
+
+
+def ifnone(var):
+    return (var == None) or (var == "")
 
 
 def get_files(file):
@@ -166,12 +172,10 @@ def get_prev_headers(mock_server_working):
     with urlopen(f"{mock_server_working}/prev_headers") as fi:
         return json.loads(fi.read().decode('utf-8'))
 
+
 def get_percentage(delta_size):
     dsize_list = delta_size.decode('utf-8').split(" ")
     of_idx = [i for i, val in enumerate(dsize_list) if val == "of"]
-    # print("index(es): " + str(of_idx))
     portion_bytes = 100 * float(dsize_list[of_idx[0] - 1]) / float(dsize_list[of_idx[0] + 1])
     portion_chunks = 100 * float(dsize_list[of_idx[1] - 1]) / float(dsize_list[of_idx[1] + 1])
-    #print(dsize_list[of_idx - 1])
-    #print(dsize_list[of_idx + 1])
     return portion_bytes, portion_chunks, dsize_list[of_idx[1] + 1]

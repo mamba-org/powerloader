@@ -18,14 +18,6 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     name: test
-    env:
-      AWS_S3_BUCKET: testbucket
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_S3_ENDPOINT: http://127.0.0.1:9000
-      AWS_EC2_METADATA_DISABLED: true
-      GHA_PAT: $GITHUB_TOKEN
-
     steps:
       - uses: actions/checkout@v2
       - name: install mamba
@@ -75,10 +67,18 @@ jobs:
           ninja test
 
       - name: Setup minio
+        env:
+          AWS_S3_BUCKET: testbucket
+          AWS_ACCESS_KEY_ID: minioadmin
+          AWS_SECRET_ACCESS_KEY: minioadmin
+          AWS_S3_ENDPOINT: http://127.0.0.1:9000
+          AWS_EC2_METADATA_DISABLED: true
+          # TODO: Use ${{ secrets.AWS_ACCESS_KEY_ID }} rather than the defaults
+        if: runner.os == 'Linux'
         run: |
-          sudo docker start minio || docker run -d -p 9000:9000 --name minio \
-                     -e "MINIO_ACCESS_KEY=minioadmin" \
-                     -e "MINIO_SECRET_KEY=minioadmin" \
+          sudo docker start minio || sudo docker run -d -p 9000:9000 --name minio \
+                     -e MINIO_ACCESS_KEY=$AWS_ACCESS_KEY_ID \
+                     -e MINIO_SECRET_KEY=$AWS_SECRET_ACCESS_KEY \
                      -v /tmp/data:/data \
                      -v /tmp/config:/root/.minio \
                      minio/minio server /data
@@ -88,6 +88,13 @@ jobs:
           aws --endpoint-url $AWS_S3_ENDPOINT s3 mb s3://testbucket
 
       - name: Download packages and place in bucket
+        env:
+          AWS_S3_BUCKET: testbucket
+          AWS_ACCESS_KEY_ID: minioadmin
+          AWS_SECRET_ACCESS_KEY: minioadmin
+          AWS_S3_ENDPOINT: http://127.0.0.1:9000
+          AWS_EC2_METADATA_DISABLED: true
+        if: runner.os == 'Linux'
         run: |
           server_path="test/conda_mock/static/packages"
           powerloader_path="build/powerloader"
@@ -95,23 +102,28 @@ jobs:
           aws --endpoint-url $AWS_S3_ENDPOINT s3 cp $server_path/xtensor-0.23.9-hc021e02_1.tar.bz2 s3://testbucket/
           # aws --endpoint-url $AWS_S3_ENDPOINT s3 ls s3://testbucket
 
-      - name: Run python based tests for S3
-        shell: bash -l -eo pipefail {0}
-        if: runner.os != 'Windows'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-        run: |
-          pytest ./test/test_s3minio.py
-
       - name: Run other python based tests
         shell: bash -l -eo pipefail {0}
-        if: runner.os != 'Windows'
+        if: runner.os == 'Linux'
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           # Run tests
+          # TODO: Fix s3server and use secrets.AWS_ACCESS_KEY in minio aswell.
+          # pytest ./test/test_s3server.py
           pytest ./test/test_other.py
+
+      - name: Run python based tests for S3
+        shell: bash -l -eo pipefail {0}
+        env:
+          AWS_S3_BUCKET: testbucket
+          AWS_ACCESS_KEY_ID: minioadmin
+          AWS_SECRET_ACCESS_KEY: minioadmin
+          AWS_S3_ENDPOINT: http://127.0.0.1:9000
+          AWS_EC2_METADATA_DISABLED: true
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+        if: runner.os == 'Linux'
+        run: |
+          pytest ./test/test_s3mock.py

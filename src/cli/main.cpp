@@ -165,8 +165,8 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
                 return 1;
             }
 
-            std::string aws_ackey = get_env("AWS_ACCESS_KEY");
-            std::string aws_sekey = get_env("AWS_SECRET_KEY");
+            std::string aws_ackey = get_env("AWS_ACCESS_KEY_ID");
+            std::string aws_sekey = get_env("AWS_SECRET_ACCESS_KEY");
             std::string aws_region = get_env("AWS_DEFAULT_REGION");
 
             std::string url_ = url.url();
@@ -340,12 +340,13 @@ parse_mirrors(const YAML::Node& node)
                 creds.url = URLHandler(cred["url"].as<std::string>());
                 if (cred["password"])
                 {
-                    creds.password
-                        = get_env_from_str(cred["password"].as<std::string>(), "AWS_SECRET_KEY");
+                    creds.password = get_env_from_str(cred["password"].as<std::string>(),
+                                                      "AWS_SECRET_ACCESS_KEY");
                 }
                 if (cred["user"])
                 {
-                    creds.user = get_env_from_str(cred["user"].as<std::string>(), "AWS_ACCESS_KEY");
+                    creds.user
+                        = get_env_from_str(cred["user"].as<std::string>(), "AWS_ACCESS_KEY_ID");
                 }
                 if (cred["region"])
                 {
