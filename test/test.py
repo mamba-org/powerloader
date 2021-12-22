@@ -41,10 +41,9 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["output_path_pdpart"] = file_map["tmp_path"] / Path(str(file_map["name"]) + ".pdpart")
     file_map["mirrors"] = file_map["test_path"] / Path("mirrors.yml")
     file_map["local_mirrors"] = file_map["test_path"] / Path("local_static_mirrors.yml")
-    file_map["pw_format_one"] = file_map["test_path"] / Path("passwd_format_one.yml")
-    file_map["pw_format_two"] = file_map["test_path"] / Path("passwd_format_two.yml")
-    file_map["pw_format_three"] = file_map["test_path"] / Path("s3test.yml")
-    file_map["s3_upload_location"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
+    file_map["authentication"] = file_map["test_path"] / Path("passwd_format_one.yml")
+    file_map["s3test"] = file_map["test_path"] / Path("s3test.yml")
+    file_map["amazon_server"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
     file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
 
     try:
@@ -260,7 +259,7 @@ class TestAll:
         remove_all(file)
 
         out = subprocess.check_output([powerloader_binary, "download",
-                                       "-f", file["pw_format_one"],
+                                       "-f", file["authentication"],
                                        "-d", file["tmp_path"]])
 
         for fn in sparse_mirrors_with_names["names"]:
@@ -276,7 +275,7 @@ class TestAll:
     def test_yml_s3_mirror(self, file, checksums, powerloader_binary):
         remove_all(file)
         out = subprocess.check_output([powerloader_binary, "download",
-                                       "-f", file["pw_format_three"],
+                                       "-f", file["s3test"],
                                        "-d", file["tmp_path"]])
 
         for fp in get_files(file):
@@ -305,7 +304,7 @@ class TestAll:
         name_on_server = path_to_name(upload_path)
         proc = subprocess.Popen([powerloader_binary, "upload",
                                        upload_path + ":" + name_on_server,
-                                       "-m", file["s3_upload_location"]],
+                                       "-m", file["amazon_server"]],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         # assert proc.returncode == 0  # Check that the error code is one
@@ -380,6 +379,47 @@ class TestAll:
         assert (Path('lorem.txt.zck').exists())
         Path('lorem.txt.zck').unlink()
 
+    def test_zchunk_basic_extract(file, powerloader_binary, mock_server_working):
+        # Download the expected file
+        assert (not Path('lorem.txt.zck').exists())
+        assert (not Path('lorem.txt').exists())
+
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server_working}/static/zchunk/lorem.txt.zck",
+                                       "-x", "--zck-header-size", "257",
+                                       "--zck-header-sha",
+                                       "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b"])
+
+        assert (Path('lorem.txt.zck').exists())
+        assert (Path('lorem.txt').exists())
+        Path('lorem.txt.zck').unlink()
+        Path('lorem.txt').unlink()
+
+    def test_zchunk_aws(file, powerloader_binary, mock_server_working):
+        # Download the expected file
+        assert (not Path('lorem.txt.zck').exists())
+        assert (not Path('lorem.txt').exists())
+
+        out = subprocess.check_output([powerloader_binary,
+                                       "download",
+                                       f"{mock_server_working}/static/zchunk/lorem.txt.zck",
+                                       "-x", "--zck-header-size", "257",
+                                       "--zck-header-sha",
+                                       "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b"])
+
+        assert (Path('lorem.txt.zck').exists())
+        assert (Path('lorem.txt').exists())
+        Path('lorem.txt.zck').unlink()
+        Path('lorem.txt').unlink()
+
+    """
+    def test_zchunk_aws(file, powerloader_binary, mock_server_working):
+        raise Exception("Stop here")
+
+    def test_zchunk_oci(file, powerloader_binary, mock_server_working):
+        raise Exception("Stop here")
+    """
 
     def test_zchunk_random_file(self, file):
         remove_all(file)
