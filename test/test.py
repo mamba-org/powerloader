@@ -43,7 +43,8 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["local_mirrors"] = file_map["test_path"] / Path("local_static_mirrors.yml")
     file_map["authentication"] = file_map["test_path"] / Path("passwd_format_one.yml")
     file_map["s3test"] = file_map["test_path"] / Path("s3test.yml")
-    file_map["amazon_server"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
+    file_map["s3_server"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
+    file_map["s3_mock_server"] = "s3://127.0.0.1:9000"
     file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
     file_map["s3_bucketname"] = Path("testbucket")
     file_map["tmp_yml"] = file_map["tmp_path"] / Path("tmp.yml")
@@ -411,9 +412,7 @@ class TestAll:
         generate_s3_download_yml(file, server, path_to_name(upload_path))
 
         # Download using this YML file
-        print("ping6")
         download_s3_file(powerloader_binary, file, plain_http=True)
-        print("ping7")
 
         # Check that the downloaded file is the same as the uploaded file
         assert hash_before_upload == calculate_sha256(upload_path)
@@ -430,25 +429,32 @@ class TestAll:
                         or os.environ.get("AWS_DEFAULT_REGION") == "",
                         reason="Environment variable(s) not defined")
     def test_s3_server(self, file, powerloader_binary):
+        print("ping1")
         remove_all(file)
         upload_path = generate_unique_file(file)
 
+        print("ping2")
         # Store the checksum for later
         hash_before_upload = calculate_sha256(upload_path)
 
+        print("ping3")
         # Upload the file
         up_path = upload_path + ":" + path_to_name(upload_path)
         upload_s3_file(powerloader_binary, up_path, server=file["s3_server"], plain_http=False)
 
+        print("ping4")
         # Delete the file
         Path(upload_path).unlink()
 
+        print("ping5")
         # Generate a YML file for the download
         generate_s3_download_yml(file, file["s3_server"], path_to_name(upload_path))
 
+        print("ping6")
         # Download using this YML file
         download_s3_file(powerloader_binary, file)
 
+        print("ping7")
         # Check that the downloaded file is the same as the uploaded file
         assert hash_before_upload == calculate_sha256(upload_path)
 
