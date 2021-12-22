@@ -1,11 +1,10 @@
+import platform, glob, datetime, hashlib, subprocess
+import shutil, yaml, copy, math
 from xprocess import ProcessStarter
 from urllib.request import urlopen
 import sys, socket, pathlib
 from pathlib import Path
-import math, copy, yaml
-import hashlib, os
-import json
-import glob
+import json, os
 
 def mock_server(xprocess, name, port, pkgs, error_type,
                 uname=None, pwd=None):
@@ -107,12 +106,60 @@ def calculate_sha256(file):
         return readable_hash
 
 
+def unique_filename(with_txt=False):
+    if with_txt == False:
+        return Path(str(platform.system()).lower().replace("_", "") + "test")
+    else:
+        return Path(str(platform.system()).lower().replace("_", "") + "test.txt")
+
+
+# Generate a unique file
+def generate_unique_file(file, with_txt=False):
+    upload_path = str(file["tmp_path"] / unique_filename(with_txt))
+    with open(upload_path, "w+") as f:
+        f.write("Content: " + str(datetime.datetime.now()))
+    f.close()
+    return upload_path
+
+
 def filter_broken(file_list, pdp):
     broken = []
     for file in file_list:
         if file.endswith(pdp):
             broken.append(file)
     return broken
+
+
+def upload_s3_file(powerloader_binary, up_path, server, plain_http=False):
+    command = [powerloader_binary, "upload", up_path]
+    if (plain_http != False):
+        command.extend(["-k", "--plain-http"])
+    command.append("-m")
+    command.append(server)
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate()
+    assert proc.returncode == 0
+
+
+def generate_s3_download_yml(file, server, filename):
+    aws_template = yml_content(file["s3_yml_template"])
+    aws_template["targets"] = \
+        [aws_template["targets"][0].replace("__filename__", filename)]
+    aws_template["mirrors"]["s3test"][0]["url"] = \
+        aws_template["mirrors"]["s3test"][0]["url"].replace("__server__", server)
+
+    with open(str(file["tmp_yml"]), 'w') as outfile:
+        yaml.dump(aws_template, outfile, default_flow_style=False)
+
+
+def download_s3_file(powerloader_binary, file, plain_http=False):
+    command = [powerloader_binary, "download", "-f", str(file["tmp_yml"])]
+    if (plain_http != False):
+        command.extend(["-k", "--plain-http"])
+    command.extend(["-d", str(file["tmp_path"])])
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate()
+    assert proc.returncode == 0
 
 
 def get_prev_headers(mock_server_working):

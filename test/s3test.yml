@@ -1,9 +1,9 @@
 mirrors:
   s3test:
-    - url: s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com
+    - url: s3://127.0.0.1:9000   # TODO: ignore path at the end
       user: env:AWS_ACCESS_KEY
       password: env:AWS_SECRET_KEY
       region: env:AWS_DEFAULT_REGION
 
 targets:
-  - s3test:boa-0.8.1.tar.gz
+  - s3test:testbucket/xtensor-0.23.9-hc021e02_1.tar.bz2
