@@ -2,6 +2,7 @@ mirrors:
   conda-forge:
     - https://conda.anaconda.org/conda-forge
     - https://repo.mamba.pm/conda-forge
+    - https://beta.mamba.pm/get/conda-forge
 
 targets:
   - conda-forge:linux-64/python-3.9.7-hb7a2778_1_cpython.tar.bz2
@@ -14,3 +15,4 @@ targets:
   - conda-forge:linux-aarch64/xtensor-0.23.9-hd62202e_1.tar.bz2
   - conda-forge:linux-ppc64le/xtensor-0.23.9-h2acdbc0_1.tar.bz2
   - conda-forge:osx-arm64/xtensor-0.23.9-hc021e02_1.tar.bz2
+  - conda-forge:osx-arm64/xtensor-0.24.0-hc021e02_0.tar.bz2
