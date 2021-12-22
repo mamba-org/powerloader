@@ -191,31 +191,6 @@ class TestAll:
         Path('lorem.txt.zck').unlink()
         Path('lorem.txt').unlink()
 
-    def test_zchunk_aws(file, powerloader_binary, mock_server_working):
-        # Download the expected file
-        assert (not Path('lorem.txt.zck').exists())
-        assert (not Path('lorem.txt').exists())
-
-        out = subprocess.check_output([powerloader_binary,
-                                       "download",
-                                       f"{mock_server_working}/static/zchunk/lorem.txt.zck",
-                                       "-x", "--zck-header-size", "257",
-                                       "--zck-header-sha",
-                                       "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b"])
-
-        assert (Path('lorem.txt.zck').exists())
-        assert (Path('lorem.txt').exists())
-        Path('lorem.txt.zck').unlink()
-        Path('lorem.txt').unlink()
-
-    """
-    def test_zchunk_aws(file, powerloader_binary, mock_server_working):
-        raise Exception("Stop here")
-
-    def test_zchunk_oci(file, powerloader_binary, mock_server_working):
-        raise Exception("Stop here")
-    """
-
     def test_zchunk_random_file(self, file):
         remove_all(file)
         name = "_random_file"
