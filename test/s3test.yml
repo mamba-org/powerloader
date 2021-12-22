@@ -1,6 +1,6 @@
 mirrors:
   s3test:
-    - url: s3://127.0.0.1:9000   # TODO: ignore path at the end
+    - url: s3://127.0.0.1:9000
       user: env:AWS_ACCESS_KEY
       password: env:AWS_SECRET_KEY
       region: env:AWS_DEFAULT_REGION

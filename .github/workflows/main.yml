@@ -24,6 +24,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: minioadmin
       AWS_S3_ENDPOINT: http://127.0.0.1:9000
       AWS_EC2_METADATA_DISABLED: true
+      GHA_PAT: $GITHUB_TOKEN
 
     steps:
       - uses: actions/checkout@v2
@@ -94,8 +95,7 @@ jobs:
           aws --endpoint-url $AWS_S3_ENDPOINT s3 cp $server_path/xtensor-0.23.9-hc021e02_1.tar.bz2 s3://testbucket/
           # aws --endpoint-url $AWS_S3_ENDPOINT s3 ls s3://testbucket
 
-
-      - name: Run python based tests for powerloader
+      - name: Run python based tests for S3
         shell: bash -l -eo pipefail {0}
         if: runner.os != 'Windows'
         env:
@@ -103,8 +103,18 @@ jobs:
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
-          export GHA_PAT=$GITHUB_TOKEN
-          
+
+          # Run tests
+          # pytest ./test/s3minio.py
+
+      - name: Run python based tests for S3
+        shell: bash -l -eo pipefail {0}
+        if: runner.os != 'Windows'
+        env:
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+        run: |
           # Run tests
           # pytest ./test/s3minio.py
           pytest ./test/test.py
