@@ -527,6 +527,8 @@ class TestAll:
                     + name_on_server + ":" + tag, "-m", file["oci_upload_location"]]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
+        print("out: " + str(out))
+        print("err: " + str(err))
         assert proc.returncode == 0
 
         # Delete the file locally
