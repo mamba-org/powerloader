@@ -1,0 +1,6 @@
+mirrors:
+  ocitest:
+    - oci://ghcr.io/chGoodchild
+
+targets:
+  - ocitest:__filename__

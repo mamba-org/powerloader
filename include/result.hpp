@@ -284,8 +284,8 @@ namespace RESULT_NAMESPACE_INTERNAL
             template <bool B, typename Fn, typename... Args>
             struct invoke_result_impl
             {
-                using type = decltype(
-                    RESULT_NS_IMPL::detail::invoke(std::declval<Fn>(), std::declval<Args>()...));
+                using type = decltype(RESULT_NS_IMPL::detail::invoke(std::declval<Fn>(),
+                                                                     std::declval<Args>()...));
             };
             template <typename Fn, typename... Args>
             struct invoke_result_impl<false, Fn, Args...>
@@ -3829,8 +3829,8 @@ RESULT_NS_IMPL::swap(failure<E>& lhs, failure<E>& rhs)
 //-----------------------------------------------------------------------------
 
 template <typename T, typename E, bool IsTrivial>
-inline RESULT_INLINE_VISIBILITY RESULT_NS_IMPL::detail::result_union<T, E, IsTrivial>::result_union(
-    unit) noexcept
+inline RESULT_INLINE_VISIBILITY
+RESULT_NS_IMPL::detail::result_union<T, E, IsTrivial>::result_union(unit) noexcept
     : m_empty{}
 {
     // m_has_value intentionally not set
@@ -3876,8 +3876,8 @@ RESULT_NS_IMPL::detail::result_union<T, E, IsTrivial>::destroy() const noexcept 
 //-----------------------------------------------------------------------------
 
 template <typename T, typename E>
-inline RESULT_INLINE_VISIBILITY RESULT_NS_IMPL::detail::result_union<T, E, false>::result_union(
-    unit) noexcept
+inline RESULT_INLINE_VISIBILITY
+RESULT_NS_IMPL::detail::result_union<T, E, false>::result_union(unit) noexcept
     : m_empty{}
 {
     // m_has_value intentionally not set
@@ -3941,7 +3941,7 @@ RESULT_NS_IMPL::detail::result_union<T, E, false>::destroy() -> void
 
 template <typename T, typename E>
 inline RESULT_INLINE_VISIBILITY
-    RESULT_NS_IMPL::detail::result_construct_base<T, E>::result_construct_base(unit) noexcept
+RESULT_NS_IMPL::detail::result_construct_base<T, E>::result_construct_base(unit) noexcept
     : storage{ unit{} }
 {
 }

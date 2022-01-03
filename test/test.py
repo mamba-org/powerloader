@@ -521,11 +521,21 @@ class TestAll:
         # Delete the file locally
         Path(upload_path).unlink()
 
+        print("Ping1")
         # Generate yaml file
         oci_template = yml_content(file["oci_template"])
+        print("Ping2")
         newname = name_on_server + "-" + tag
+        print("Ping3")
+
+        print("new name path: " + str(Path(newname)))
+        print("file path: " + str(file["tmp_path"]))
+
         newpath = file["tmp_path"] / Path(newname)
+        print("oci template: " + str(oci_template))
+        print("Ping4: " + str(oci_template["targets"][0]))
         oci_template["targets"] = [oci_template["targets"][0].replace("__filename__", newname)]
+        print("Ping5")
 
         tmp_yaml = file["tmp_path"] / Path("tmp.yml")
         with open(str(tmp_yaml), 'w') as outfile:
