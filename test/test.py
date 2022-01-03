@@ -499,9 +499,7 @@ class TestAll:
         Path('lorem.txt.zck').unlink()
 
     @pytest.mark.skipif(os.environ.get("GHA_PAT") is None
-                        or os.environ.get("GHA_PAT") == ""
-                        or os.environ.get("GHA_USER") is None
-                        or os.environ.get("GHA_USER") == "",
+                        or os.environ.get("GHA_PAT") == "",
                         reason="Environment variable(s) not defined")
     def test_oci_fixes(self, file, powerloader_binary):
         # Generate a unique file
@@ -512,7 +510,7 @@ class TestAll:
 
         # Upload the file
         tag = "321"
-        username = os.environ.get("GHA_USER")
+        username = "mamba-org" # os.environ.get("GHA_USER"), will only work on main
         name_on_server = path_to_name(upload_path)
         command = [powerloader_binary, "upload", upload_path + ":"
                     + name_on_server + ":" + tag, "-m", file["oci_upload_location"]]
@@ -541,6 +539,9 @@ class TestAll:
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         assert proc.returncode == 0
+
+        print("out: " + str(out))
+        print("err: " + str(err))
 
         # Check that the downloaded file is the same as the uploaded file
         assert hash_before_upload == calculate_sha256(newpath)
