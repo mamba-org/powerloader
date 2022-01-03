@@ -514,37 +514,38 @@ class TestAll:
                         or os.environ.get("GHA_PAT") == "",
                         reason="Environment variable(s) not defined")
     def test_oci_fixes(self, file, powerloader_binary):
-        # Generate a unique file
-        upload_path = generate_unique_file(file)
-
-        # Store the checksum for later
-        hash_before_upload = calculate_sha256(upload_path)
-
-        # Upload the file
-        tag = "321"
-        name_on_server = path_to_name(upload_path)
-        command = [powerloader_binary, "upload", upload_path + ":"
-                    + name_on_server + ":" + tag, "-m", file["oci_upload_location"]]
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        print("out: " + str(out))
-        print("err: " + str(err))
-        assert proc.returncode == 0
-
-        # Delete the file locally
-        Path(upload_path).unlink()
-
-        # Generate yaml file
-        oci_template = yml_content(file["oci_template"])
-        newname = name_on_server + "-" + tag
-        newpath = file["tmp_path"] / Path(newname)
-        oci_template["targets"][0] = oci_template["targets"][0].replace("__filename__", newname)
-
         if self.username_exists() or self.get_git_branch(file) == "main":
             if self.username_exists():
                 username = os.environ.get("GHA_USER")
             else:
-                username = "mamba-org" # will only work on main branch
+                username = "mamba-org"              # GHA_PAT is only available on the main branch
+                os.environ["GHA_USER"] = username   # GHA_USER must also be set
+
+            # Generate a unique file
+            upload_path = generate_unique_file(file)
+
+            # Store the checksum for later
+            hash_before_upload = calculate_sha256(upload_path)
+
+            # Upload the file
+            tag = "321"
+            name_on_server = path_to_name(upload_path)
+            command = [powerloader_binary, "upload", upload_path + ":"
+                        + name_on_server + ":" + tag, "-m", file["oci_upload_location"]]
+            proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = proc.communicate()
+            print("out: " + str(out))
+            print("err: " + str(err))
+            assert proc.returncode == 0
+
+            # Delete the file locally
+            Path(upload_path).unlink()
+
+            # Generate yaml file
+            oci_template = yml_content(file["oci_template"])
+            newname = name_on_server + "-" + tag
+            newpath = file["tmp_path"] / Path(newname)
+            oci_template["targets"][0] = oci_template["targets"][0].replace("__filename__", newname)
 
             oci_template["mirrors"]["ocitest"][0] = oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
 
