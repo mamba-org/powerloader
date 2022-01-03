@@ -498,6 +498,11 @@ class TestAll:
         assert (Path('lorem.txt.zck').exists())
         Path('lorem.txt.zck').unlink()
 
+    @pytest.mark.skipif(os.environ.get("GHA_PAT") is None
+                        or os.environ.get("GHA_PAT") == ""
+                        or os.environ.get("GHA_USER") is None
+                        or os.environ.get("GHA_USER") == "",
+                        reason="Environment variable(s) not defined")
     def test_oci_fixes(self, file, powerloader_binary):
         # Generate a unique file
         upload_path = generate_unique_file(file)
