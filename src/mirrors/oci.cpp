@@ -115,7 +115,8 @@ namespace powerloader
                 handle.setopt(CURLOPT_PASSWORD, password.c_str());
             }
 
-            auto end_callback = [this, &cbdata](const Response& response) {
+            auto end_callback = [this, &cbdata](const Response& response)
+            {
                 if (!response.ok())
                     return CbReturnCode::kERROR;
 
@@ -140,7 +141,8 @@ namespace powerloader
                 .add_headers(get_auth_headers(path))
                 .add_header("Accept: application/vnd.oci.image.manifest.v1+json");
 
-            auto finalize_manifest_callback = [this, &cbdata](const Response& response) {
+            auto finalize_manifest_callback = [this, &cbdata](const Response& response)
+            {
                 if (!response.ok())
                     return CbReturnCode::kERROR;
                 auto j = response.json();
