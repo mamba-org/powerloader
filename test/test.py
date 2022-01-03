@@ -510,6 +510,8 @@ class TestAll:
         return not ((os.environ.get("GHA_USER") is None) or (os.environ.get("GHA_USER") == ""))
 
 
+    # Download a file that's always there...
+
     @pytest.mark.skipif(os.environ.get("GHA_PAT") is None
                         or os.environ.get("GHA_PAT") == "",
                         reason="Environment variable(s) not defined")
