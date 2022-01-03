@@ -112,7 +112,7 @@ jobs:
         run: |
           # Run tests
           # TODO: Fix s3server and use secrets.AWS_ACCESS_KEY in minio aswell.
-          # pytest ./test/test_s3server.py
+          pytest ./test/test_s3server.py
           pytest ./test/test_other.py
 
       - name: Run python based tests for S3
