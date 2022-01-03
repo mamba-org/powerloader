@@ -73,6 +73,8 @@ jobs:
           AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          GHA_PAT: $GITHUB_TOKEN
+          GHA_USER: $GITHUB_USER
         run: |
           # There is probably a better way of doing this...
           server_path="test/conda_mock/static/packages"
