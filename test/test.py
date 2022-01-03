@@ -1,9 +1,11 @@
 import sys, socket, pytest, py, pathlib
 from xprocess import ProcessStarter
 import shutil, yaml, copy, math
+from pygit2 import Repository
 from pathlib import Path
 import subprocess
 import platform
+import warnings
 import datetime
 import os
 import hashlib
@@ -498,6 +500,16 @@ class TestAll:
         assert (Path('lorem.txt.zck').exists())
         Path('lorem.txt.zck').unlink()
 
+    def get_git_branch(self, file):
+        repo = Repository(file["location"])
+        head = repo.lookup_reference('HEAD').resolve()
+        head = str(head.name).split("/")[-1]
+        return head
+
+    def username_exists(self):
+        return not ((os.environ.get("GHA_USER") is None) or (os.environ.get("GHA_USER") == ""))
+
+
     @pytest.mark.skipif(os.environ.get("GHA_PAT") is None
                         or os.environ.get("GHA_PAT") == "",
                         reason="Environment variable(s) not defined")
@@ -510,7 +522,6 @@ class TestAll:
 
         # Upload the file
         tag = "321"
-        username = "mamba-org" # os.environ.get("GHA_USER"), will only work on main
         name_on_server = path_to_name(upload_path)
         command = [powerloader_binary, "upload", upload_path + ":"
                     + name_on_server + ":" + tag, "-m", file["oci_upload_location"]]
@@ -526,25 +537,31 @@ class TestAll:
         newname = name_on_server + "-" + tag
         newpath = file["tmp_path"] / Path(newname)
         oci_template["targets"][0] = oci_template["targets"][0].replace("__filename__", newname)
-        oci_template["mirrors"]["ocitest"][0] = oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
 
-        tmp_yaml = file["tmp_path"] / Path("tmp.yml")
-        with open(str(tmp_yaml), 'w') as outfile:
-            yaml.dump(oci_template, outfile, default_flow_style=False)
+        if self.username_exists() or self.get_git_branch(file) == "main":
+            if self.username_exists():
+                username = os.environ.get("GHA_USER")
+            else:
+                username = "mamba-org" # will only work on main branch
 
-        # Download using this YML file
-        proc = subprocess.Popen([powerloader_binary, "download",
-                                       "-f", str(tmp_yaml),
-                                       "-d", str(file["tmp_path"])],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        assert proc.returncode == 0
+            oci_template["mirrors"]["ocitest"][0] = oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
 
-        print("out: " + str(out))
-        print("err: " + str(err))
+            tmp_yaml = file["tmp_path"] / Path("tmp.yml")
+            with open(str(tmp_yaml), 'w') as outfile:
+                yaml.dump(oci_template, outfile, default_flow_style=False)
 
-        # Check that the downloaded file is the same as the uploaded file
-        assert hash_before_upload == calculate_sha256(newpath)
+            # Download using this YML file
+            proc = subprocess.Popen([powerloader_binary, "download",
+                                        "-f", str(tmp_yaml),
+                                        "-d", str(file["tmp_path"])],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = proc.communicate()
+            assert proc.returncode == 0
+
+            # Check that the downloaded file is the same as the uploaded file
+            assert hash_before_upload == calculate_sha256(newpath)
+        else:
+            warnings.warn("Will only work on the main branch")
 
         # TODO: Delete OCI from server
         # Need to figure out what the package id is

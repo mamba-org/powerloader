@@ -1,7 +1,6 @@
 mirrors:
   ocitest:
     - oci://ghcr.io/__username__
-    # mamba-org hardcode, will only work on main...
-    # Docker registry für, same like minio...
+
 targets:
   - ocitest:__filename__
