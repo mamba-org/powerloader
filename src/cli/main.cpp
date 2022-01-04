@@ -466,6 +466,8 @@ main(int argc, char** argv)
 
     std::vector<Mirror> mlist;
     spdlog::info("Loading file.");
+
+
     if (!file.empty())
     {
         spdlog::info("Loading file {}", file);
