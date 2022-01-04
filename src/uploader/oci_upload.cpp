@@ -65,6 +65,7 @@ namespace powerloader
             .add_headers(mirror.get_auth_headers(reference))
             .add_header("Content-Type: application/octet-stream")
             .upload(ufile);
+        auto upload_res = chandle.perform();
 
         // On certain registries, we also need to push the empty config
         upload_url = format_upload_url(
@@ -82,6 +83,8 @@ namespace powerloader
             .upload(emptyfile);
         auto cres = chandle_config.perform();
         **/
+
+
 
         // Now we need to upload the manifest for OCI servers
         std::string manifest_url = mirror.get_manifest_url(reference, tag);
