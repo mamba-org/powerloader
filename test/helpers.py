@@ -2,10 +2,10 @@ import platform, glob, datetime, hashlib, subprocess
 import shutil, yaml, copy, math
 from xprocess import ProcessStarter
 from urllib.request import urlopen
+from pygit2 import Repository
 import sys, socket, pathlib
 from pathlib import Path
 import json, os
-
 
 def mock_server(xprocess, name, port, pkgs, error_type,
                 uname=None, pwd=None):

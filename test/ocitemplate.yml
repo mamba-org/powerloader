@@ -1,0 +1,6 @@
+mirrors:
+  ocitest:
+    - oci://ghcr.io/__username__
+
+targets:
+  - ocitest:__filename__

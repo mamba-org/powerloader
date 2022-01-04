@@ -49,6 +49,8 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["tmp_yml"] = file_map["tmp_path"] / Path("tmp.yml")
     file_map["xtensor_path"] = file_map["test_path"] / \
                                Path("conda_mock/static/packages/xtensor-0.23.9-hc021e02_1.tar.bz2")
+    file_map["oci_template"] = file_map["test_path"] / Path("ocitemplate.yml")
+    file_map["oci_upload_location"] = "oci://ghcr.io"
 
     try:
         os.mkdir(file_map["tmp_path"])
@@ -58,6 +60,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
         print("Successfully created the directory %s " % file_map["tmp_path"])
 
     yield file_map
+    raise Exception("Stop here!")
     shutil.rmtree(file_map["tmp_path"])
 
 

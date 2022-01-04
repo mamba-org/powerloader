@@ -1,6 +1,6 @@
 from fixtures import *
 
-class OCImock:
+class TestOCImock:
     @classmethod
     def setup_class(cls):
         pass
@@ -9,11 +9,11 @@ class OCImock:
     def teardown_class(cls):
         pass
 
-    def test_upload():
+    def test_upload(self):
         pass
 
-    def test_download_permanent():
+    def test_download_permanent(self):
         pass
 
-    def test_upload_and_download():
+    def test_upload_and_download(self):
         pass
