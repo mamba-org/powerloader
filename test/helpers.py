@@ -164,6 +164,7 @@ def download_s3_file(powerloader_binary, file, plain_http=False):
         command.extend(["-k", "--plain-http"])
     command.extend(["-d", str(file["tmp_path"])])
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print("command: " + str(command))
     out, err = proc.communicate()
     assert proc.returncode == 0
 

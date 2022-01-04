@@ -23,13 +23,15 @@ class TestS3Mock:
     def teardown_class(cls):
         pass
 
+
+
     @pytest.mark.skipif(ifnone("AWS_SECRET_ACCESS_KEY")
                         or ifnone("AWS_ACCESS_KEY_ID")
                         or ifnone("GHA_USER")
                         or ifnone("AWS_DEFAULT_REGION"),
                         reason="Environment variable(s) not defined")
     def test_s3_mock(self, file, powerloader_binary):
-        self.s3_mock_keys_set()
+        # self.s3_mock_keys_set()
         remove_all(file)
         upload_path = generate_unique_file(file)
 
@@ -52,7 +54,8 @@ class TestS3Mock:
 
         # Check that the downloaded file is the same as the uploaded file
         assert hash_before_upload == calculate_sha256(upload_path)
-        self.s3_mock_keys_reset()
+        # self.s3_mock_keys_reset()
+
 
     @pytest.mark.skipif(ifnone("AWS_SECRET_ACCESS_KEY")
                         or ifnone("AWS_ACCESS_KEY_ID")
@@ -60,7 +63,7 @@ class TestS3Mock:
                         or ifnone("AWS_DEFAULT_REGION"),
                         reason="Environment variable(s) not defined")
     def test_s3_mock_mod_txt(self, file, powerloader_binary):
-        self.s3_mock_keys_set()
+        # self.s3_mock_keys_set()
         remove_all(file)
         upload_path = generate_unique_file(file, with_txt=True)
 
@@ -84,7 +87,7 @@ class TestS3Mock:
         # Check that the downloaded file is the same as the uploaded file
         hash_after_upload = calculate_sha256(upload_path)
         assert hash_before_upload == hash_after_upload
-        self.s3_mock_keys_reset()
+        # self.s3_mock_keys_reset()
 
 
     @pytest.mark.skipif(ifnone("AWS_SECRET_ACCESS_KEY")
@@ -93,7 +96,7 @@ class TestS3Mock:
                         or ifnone("AWS_DEFAULT_REGION"),
                         reason="Environment variable(s) not defined")
     def test_s3_mock_yml_mod_loc(self, file, powerloader_binary):
-        self.s3_mock_keys_set()
+        # self.s3_mock_keys_set()
         remove_all(file)
         upload_path = generate_unique_file(file)
 
@@ -116,7 +119,7 @@ class TestS3Mock:
 
         # Check that the downloaded file is the same as the uploaded file
         assert hash_before_upload == calculate_sha256(upload_path)
-        self.s3_mock_keys_reset()
+        # self.s3_mock_keys_reset()
 
     @pytest.mark.skipif(ifnone("AWS_SECRET_ACCESS_KEY")
                         or ifnone("AWS_ACCESS_KEY_ID")
@@ -124,7 +127,7 @@ class TestS3Mock:
                         or ifnone("AWS_DEFAULT_REGION"),
                         reason="Environment variable(s) not defined")
     def test_yml_s3_mock_mirror(self, file, checksums, powerloader_binary):
-        self.s3_mock_keys_set()
+        # self.s3_mock_keys_set()
         remove_all(file)
 
         # Generate a YML file for the download
@@ -138,4 +141,4 @@ class TestS3Mock:
 
         for fp in get_files(file):
             assert calculate_sha256(fp) == checksums[str(path_to_name(fp))]
-        self.s3_mock_keys_reset()
+        # self.s3_mock_keys_reset()
