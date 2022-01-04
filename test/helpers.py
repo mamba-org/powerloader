@@ -2,10 +2,10 @@ import platform, glob, datetime, hashlib, subprocess
 import shutil, yaml, copy, math
 from xprocess import ProcessStarter
 from urllib.request import urlopen
+from pygit2 import Repository
 import sys, socket, pathlib
 from pathlib import Path
 import json, os
-
 
 def mock_server(xprocess, name, port, pkgs, error_type,
                 uname=None, pwd=None):
@@ -164,6 +164,7 @@ def download_s3_file(powerloader_binary, file, plain_http=False):
         command.extend(["-k", "--plain-http"])
     command.extend(["-d", str(file["tmp_path"])])
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print("command: " + str(command))
     out, err = proc.communicate()
     assert proc.returncode == 0
 

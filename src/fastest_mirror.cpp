@@ -243,8 +243,9 @@ namespace powerloader
         // sort
         std::sort(mirrors.begin(),
                   mirrors.end(),
-                  [](detail::InternalMirror& m1, detail::InternalMirror& m2)
-                  { return m1.plain_connect_time < m2.plain_connect_time; });
+                  [](detail::InternalMirror& m1, detail::InternalMirror& m2) {
+                      return m1.plain_connect_time < m2.plain_connect_time;
+                  });
         return true;
     }
 }

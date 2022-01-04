@@ -68,11 +68,13 @@ jobs:
 
       - name: Setup minio
         env:
-          AWS_S3_BUCKET: testbucket
-          AWS_ACCESS_KEY_ID: minioadmin
-          AWS_SECRET_ACCESS_KEY: minioadmin
-          AWS_S3_ENDPOINT: http://127.0.0.1:9000
-          AWS_EC2_METADATA_DISABLED: true
+          AWS_S3_BUCKET: ${{testbucket}}
+          # AWS_ACCESS_KEY_ID: ${{minioadmin}}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          # AWS_SECRET_ACCESS_KEY: ${{minioadmin}}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{http://127.0.0.1:9000}}
+          AWS_EC2_METADATA_DISABLED: ${{true}}
           # TODO: Use ${{ secrets.AWS_ACCESS_KEY_ID }} rather than the defaults
         if: runner.os == 'Linux'
         run: |
@@ -86,14 +88,15 @@ jobs:
           # Populate minIO
           # https://docs.min.io/docs/aws-cli-with-minio.html
           aws --endpoint-url $AWS_S3_ENDPOINT s3 mb s3://testbucket
+          export bucket_exists=true
 
       - name: Download packages and place in bucket
         env:
-          AWS_S3_BUCKET: testbucket
-          AWS_ACCESS_KEY_ID: minioadmin
-          AWS_SECRET_ACCESS_KEY: minioadmin
-          AWS_S3_ENDPOINT: http://127.0.0.1:9000
-          AWS_EC2_METADATA_DISABLED: true
+          AWS_S3_BUCKET: ${{testbucket}}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{http://127.0.0.1:9000}}
+          AWS_EC2_METADATA_DISABLED: ${{true}}
         if: runner.os == 'Linux'
         run: |
           server_path="test/conda_mock/static/packages"
@@ -101,29 +104,31 @@ jobs:
           $powerloader_path download -f test/remote_mirrors.yml -d $server_path
           aws --endpoint-url $AWS_S3_ENDPOINT s3 cp $server_path/xtensor-0.23.9-hc021e02_1.tar.bz2 s3://testbucket/
           # aws --endpoint-url $AWS_S3_ENDPOINT s3 ls s3://testbucket
+          export file_in_bucket=true
 
       - name: Run other python based tests
         shell: bash -l -eo pipefail {0}
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && github.event_name != 'pull_request'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           # Run tests
-          # TODO: Fix s3server and use secrets.AWS_ACCESS_KEY in minio aswell.
-          pytest ./test/test_s3server.py
-          pytest ./test/test_other.py
+          pytest ./test/test_s3main_branch.py
+          pytest ./test/test_OCImain_branch.py
 
       - name: Run python based tests for S3
         shell: bash -l -eo pipefail {0}
         env:
-          AWS_S3_BUCKET: testbucket
-          AWS_ACCESS_KEY_ID: minioadmin
-          AWS_SECRET_ACCESS_KEY: minioadmin
-          AWS_S3_ENDPOINT: http://127.0.0.1:9000
-          AWS_EC2_METADATA_DISABLED: true
+          AWS_S3_BUCKET: ${{testbucket}}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_ENDPOINT: ${{http://127.0.0.1:9000}}
+          AWS_EC2_METADATA_DISABLED: ${{true}}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         if: runner.os == 'Linux'
         run: |
+          pytest ./test/test_other.py
           pytest ./test/test_s3mock.py
+          pytest ./test/test_OCImock.py
