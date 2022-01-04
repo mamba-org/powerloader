@@ -86,7 +86,7 @@ class TestOCIServer:
         # Check that the downloaded file is the same as the uploaded file
         assert hash_before_upload == calculate_sha256(newpath)
 
-    # TODO: Delete OCI from server
-    # Need to figure out what the package id is
-    # Delete: https://stackoverflow.com/questions/59103177/how-to-delete-remove-unlink-unversion-a-package-from-the-github-package-registry
-    # https://github.com/actions/delete-package-versions
+        # TODO: Delete OCI from server
+        # Need to figure out what the package id is
+        # Delete: https://stackoverflow.com/questions/59103177/how-to-delete-remove-unlink-unversion-a-package-from-the-github-package-registry
+        # https://github.com/actions/delete-package-versions

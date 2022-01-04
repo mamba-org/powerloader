@@ -308,8 +308,7 @@ parse_mirrors(const YAML::Node& node)
     assert(node.IsMap());
     std::map<std::string, std::vector<std::shared_ptr<Mirror>>> res;
 
-    auto get_env_from_str = [](const std::string& s, const std::string default_val)
-    {
+    auto get_env_from_str = [](const std::string& s, const std::string default_val) {
         if (starts_with(s, "env:"))
         {
             return get_env(s.substr(4).c_str());
