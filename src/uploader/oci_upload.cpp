@@ -73,18 +73,18 @@ namespace powerloader
         upload_url = fmt::format("{}{}?digest={}", mirror.url, temp_upload_location, digest);
 
         spdlog::info("Upload url: {}", upload_url);
-        /**
-         * TODO: Doesn't work with ghcr.io
-        CURLHandle chandle_config(upload_url);
-        std::istringstream emptyfile;
-        chandle_config.setopt(CURLOPT_UPLOAD, 1L)
-            .add_headers(mirror.get_auth_headers(reference))
-            .add_header("Content-Type: application/vnd.unknown.config.v1+json")
-            .upload(emptyfile);
-        auto cres = chandle_config.perform();
-        **/
 
-
+        // On certain registries, we also need to push the empty config
+        if (!contains(upload_url, "ghcr.io"))
+        {
+            CURLHandle chandle_config(upload_url);
+            std::istringstream emptyfile;
+            chandle_config.setopt(CURLOPT_UPLOAD, 1L)
+                .add_headers(mirror.get_auth_headers(reference))
+                .add_header("Content-Type: application/vnd.unknown.config.v1+json")
+                .upload(emptyfile);
+            auto cres = chandle_config.perform();
+        }
 
         // Now we need to upload the manifest for OCI servers
         std::string manifest_url = mirror.get_manifest_url(reference, tag);

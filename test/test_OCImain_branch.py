@@ -33,36 +33,37 @@ class TestOCIServer:
         print("hash before upload: " + str(hash_before_upload))
 
         # Upload the file
-        tag = "321"
-        name_on_server = path_to_name(upload_path)
-        command = [powerloader_binary, "upload", upload_path + ":"
-                    + name_on_server + ":" + tag, "-m", file["oci_upload_location"]]
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        print("command: " + str(command))
-        print("out: " + str(out))
-        print("err: " + str(err))
-        assert proc.returncode == 0
+        tag, name_on_server = upload_oci(upload_path, powerloader_binary, file["oci_upload_location"])
 
+    def test_download_permanent(self, file, powerloader_binary, checksums):
+        # Delete the file locally
+        # Path(upload_path).unlink()
 
-    def test_download_permanent(self):
-        pass
+        # Generate yaml file
+        nos = "artifact"
+        newpath, tmp_yaml = generate_oci_download_yml(file, tag="1.0", name_on_server=nos, username="wolfv")
+        # Download using this YML file
+        download_oci_file(powerloader_binary, tmp_yaml, file)
 
-    def test_upload_and_download(self):
-        pass
+        # raise Exception("Stop here!")
+        # Check that the downloaded file is the same as the uploaded file
+        assert checksums[nos] == calculate_sha256(newpath)
 
-    # Download a file that's always there...
-    @pytest.mark.skipif(os.environ.get("GHA_PAT") is None
-                        or os.environ.get("GHA_PAT") == "",
-                        reason="Environment variable(s) not defined")
-    def test_oci_fixes(self, file, powerloader_binary):
+    def set_username(self):
         username = ""
         if self.username_exists():
             username = os.environ.get("GHA_USER")
         else:
             username = "mamba-org"              # GHA_PAT is only available on the main branch
             os.environ["GHA_USER"] = username   # GHA_USER must also be set
-        self.username = username
+        return username
+
+    # Download a file that's always there...
+    @pytest.mark.skipif(os.environ.get("GHA_PAT") is None
+                        or os.environ.get("GHA_PAT") == "",
+                        reason="Environment variable(s) not defined")
+    def test_upload_and_download(self, file, powerloader_binary):
+        username = self.set_username()
 
         # Generate a unique file
         upload_path = generate_unique_file(file)
@@ -71,36 +72,16 @@ class TestOCIServer:
         hash_before_upload = calculate_sha256(upload_path)
 
         # Upload the file
-        tag = "321"
-        name_on_server = path_to_name(upload_path)
-        command = [powerloader_binary, "upload", upload_path + ":"
-                    + name_on_server + ":" + tag, "-m", file["oci_upload_location"]]
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        assert proc.returncode == 0
+        tag, name_on_server = upload_oci(upload_path, powerloader_binary, file["oci_upload_location"])
 
         # Delete the file locally
         Path(upload_path).unlink()
 
         # Generate yaml file
-        oci_template = yml_content(file["oci_template"])
-        newname = name_on_server + "-" + tag
-        newpath = file["tmp_path"] / Path(newname)
-        oci_template["targets"][0] = oci_template["targets"][0].replace("__filename__", newname)
-
-        oci_template["mirrors"]["ocitest"][0] = oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
-
-        tmp_yaml = file["tmp_path"] / Path("tmp.yml")
-        with open(str(tmp_yaml), 'w') as outfile:
-            yaml.dump(oci_template, outfile, default_flow_style=False)
+        newpath, tmp_yaml = generate_oci_download_yml(file, tag, name_on_server, username)
 
         # Download using this YML file
-        proc = subprocess.Popen([powerloader_binary, "download",
-                                    "-f", str(tmp_yaml),
-                                    "-d", str(file["tmp_path"])],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-        assert proc.returncode == 0
+        download_oci_file(powerloader_binary, tmp_yaml, file)
 
         # Check that the downloaded file is the same as the uploaded file
         assert hash_before_upload == calculate_sha256(newpath)

@@ -60,7 +60,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
         print("Successfully created the directory %s " % file_map["tmp_path"])
 
     yield file_map
-    raise Exception("Stop here!")
+    #raise Exception("Stop here!")
     shutil.rmtree(file_map["tmp_path"])
 
 
@@ -91,6 +91,7 @@ def checksums():
         "404a2e4664a1cbf94f5f98deaf568b267b7474c4e1267deb367b8c758fe71ed2"
     cksums["boa-0.8.1.tar.gz"] = \
         "b824237d80155efd97b79469534d602637b40a2a27c4f71417d5e6977238ff74"
+    cksums["artifact"] = "c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4"
     return cksums
 
 

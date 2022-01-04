@@ -136,6 +136,17 @@ def filter_broken(file_list, pdp):
     return broken
 
 
+def upload_oci(upload_path, powerloader_binary, uploc):
+    tag = "321"
+    srv_name = path_to_name(upload_path)
+    command = [powerloader_binary, "upload", upload_path + ":"
+                + srv_name + ":" + tag, "-m", uploc]
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate()
+    assert proc.returncode == 0
+    return tag, srv_name
+
+
 def upload_s3_file(powerloader_binary, up_path, server, plain_http=False):
     command = [powerloader_binary, "upload", up_path]
     if (plain_http != False):
@@ -147,6 +158,20 @@ def upload_s3_file(powerloader_binary, up_path, server, plain_http=False):
     assert proc.returncode == 0
 
 
+def generate_oci_download_yml(file, tag, name_on_server, username):
+    oci_template = yml_content(file["oci_template"])
+    newname = name_on_server + "-" + tag
+    newpath = file["tmp_path"] / Path(newname)
+    oci_template["targets"][0] = oci_template["targets"][0].replace("__filename__", newname)
+
+    oci_template["mirrors"]["ocitest"][0] = oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
+
+    tmp_yaml = file["tmp_path"] / Path("tmp.yml")
+    with open(str(tmp_yaml), 'w') as outfile:
+        yaml.dump(oci_template, outfile, default_flow_style=False)
+    return newpath, tmp_yaml
+
+
 def generate_s3_download_yml(file, server, filename):
     aws_template = yml_content(file["s3_yml_template"])
     aws_template["targets"] = \
@@ -156,6 +181,15 @@ def generate_s3_download_yml(file, server, filename):
 
     with open(str(file["tmp_yml"]), 'w') as outfile:
         yaml.dump(aws_template, outfile, default_flow_style=False)
+
+
+def download_oci_file(powerloader_binary, tmp_yaml, file):
+    proc = subprocess.Popen([powerloader_binary, "download",
+                            "-f", str(tmp_yaml),
+                            "-d", str(file["tmp_path"])],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate()
+    assert proc.returncode == 0
 
 
 def download_s3_file(powerloader_binary, file, plain_http=False):
