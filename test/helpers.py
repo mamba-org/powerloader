@@ -143,6 +143,8 @@ def upload_oci(upload_path, powerloader_binary, uploc):
                 + srv_name + ":" + tag, "-m", uploc]
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
+    assert out == ""
+    assert err == ""
     assert proc.returncode == 0
     return tag, srv_name
 
@@ -155,6 +157,8 @@ def upload_s3_file(powerloader_binary, up_path, server, plain_http=False):
     command.append(server)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
+    assert out == ""
+    assert err == ""
     assert proc.returncode == 0
 
 def oci_path_resolver(file, tag=None, name_on_server=None, username=None):
@@ -210,10 +214,8 @@ def download_oci_file(powerloader_binary, tmp_yaml, file):
                             "-d", str(file["tmp_path"])],
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-
-    print("out: " + str(out))
-    print("err: " + str(err))
-
+    assert out == ""
+    assert err == ""
     assert proc.returncode == 0
 
 
@@ -225,6 +227,8 @@ def download_s3_file(powerloader_binary, file, plain_http=False):
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     print("command: " + str(command))
     out, err = proc.communicate()
+    assert out == ""
+    assert err == ""
     assert proc.returncode == 0
 
 

@@ -30,7 +30,6 @@ class TestOCIServer:
 
         # Store the checksum for later
         hash_before_upload = calculate_sha256(upload_path)
-        print("hash before upload: " + str(hash_before_upload))
 
         # Upload the file
         tag, name_on_server = upload_oci(upload_path, powerloader_binary, file["oci_upload_location"])
