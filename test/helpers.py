@@ -2,7 +2,6 @@ import platform, glob, datetime, hashlib, subprocess
 import shutil, yaml, copy, math
 from xprocess import ProcessStarter
 from urllib.request import urlopen
-from pygit2 import Repository
 import sys, socket, pathlib
 from pathlib import Path
 import json, os
@@ -39,15 +38,13 @@ def mock_server(xprocess, name, port, pkgs, error_type,
 
             return (not error)
 
-    # ensure process is running and return its logfile
     logfile = xprocess.ensure(name, Starter)
 
     if authenticate:
-        yield f"http://{uname}:{pwd}@localhost:{port}"  # True
+        yield f"http://{uname}:{pwd}@localhost:{port}"
     else:
-        yield f"http://localhost:{port}"  # True
+        yield f"http://localhost:{port}"
 
-    # clean up whole process tree afterwards
     xprocess.getinfo(name).terminate()
 
 
@@ -106,7 +103,6 @@ def remove_all(file):
 
 def calculate_sha256(file):
     with open(file, "rb") as f:
-        # read entire file as bytes
         b = f.read()
         readable_hash = hashlib.sha256(b).hexdigest();
         return readable_hash
@@ -119,7 +115,6 @@ def unique_filename(with_txt=False):
         return Path(str(platform.system()).lower().replace("_", "") + "test.txt")
 
 
-# Generate a unique file
 def generate_unique_file(file, with_txt=False):
     upload_path = str(file["tmp_path"] / unique_filename(with_txt))
     with open(upload_path, "w+") as f:
@@ -137,12 +132,12 @@ def filter_broken(file_list, pdp):
 
 
 def upload_oci(upload_path, powerloader_binary, uploc):
-    tag = "321"
-    srv_name = path_to_name(upload_path)
+    srv_name, tag = path_to_name(upload_path), "321"
     command = [powerloader_binary, "upload", upload_path + ":"
                 + srv_name + ":" + tag, "-m", uploc]
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
+    assert err == "".encode('ascii')
     assert proc.returncode == 0
     return tag, srv_name
 
@@ -155,6 +150,7 @@ def upload_s3_file(powerloader_binary, up_path, server, plain_http=False):
     command.append(server)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
+    assert err == "".encode('ascii')
     assert proc.returncode == 0
 
 def oci_path_resolver(file, tag=None, name_on_server=None, username=None):
@@ -210,10 +206,8 @@ def download_oci_file(powerloader_binary, tmp_yaml, file):
                             "-d", str(file["tmp_path"])],
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-
     print("out: " + str(out))
-    print("err: " + str(err))
-
+    assert err == "".encode('ascii')
     assert proc.returncode == 0
 
 
@@ -225,6 +219,7 @@ def download_s3_file(powerloader_binary, file, plain_http=False):
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     print("command: " + str(command))
     out, err = proc.communicate()
+    assert err == "".encode('ascii')
     assert proc.returncode == 0
 
 

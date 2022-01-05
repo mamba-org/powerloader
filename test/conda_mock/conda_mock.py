@@ -5,8 +5,8 @@ import hashlib, base64
 from .config import AUTH_USER, AUTH_PASS
 
 def file_path(path):
-    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
-    return p
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+
 
 failure_count = 0
 prev_headers = None

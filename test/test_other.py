@@ -220,15 +220,11 @@ class TestAll:
         dsize1 = subprocess.check_output(["zck_delta_size", path1 + ".zck", path3 + ".zck"])
         dsize2 = subprocess.check_output(["zck_delta_size", path2 + ".zck", path3 + ".zck"])
 
-        print(dsize1)
-
         pf_1, pch_1, num_chunks_1 = get_percentage(dsize1)
         pf_2, pch_2, num_chunks_2 = get_percentage(dsize2)
 
         print("Will download " + str(round(pf_1)) + "% of file1, that's " + str(round(pch_1)) + "% of chunks. Total: " + str(num_chunks_1) + " chunks.")
         print("Will download " + str(round(pf_2)) + "% of file2, that's " + str(round(pch_2)) + "% of chunks. Total: " + str(num_chunks_2) + " chunks.")
 
-        # Compute zchunk of path1
-        # path3 = Concatunate path1 & path2
-        # compute zchunk of path3
-        # zck_delta_size: confirm that the difference is 2**16 bytes in size
+        assert round(pf_1) < 65
+        assert round(pf_2) < 65

@@ -73,7 +73,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: minioadmin
           AWS_S3_ENDPOINT: http://127.0.0.1:9000
           AWS_EC2_METADATA_DISABLED: true
-          # TODO: Use ${{ secrets.AWS_ACCESS_KEY_ID }} rather than the defaults
         if: runner.os == 'Linux'
         run: |
           sudo docker start minio || sudo docker run -d -p 9000:9000 --name minio \

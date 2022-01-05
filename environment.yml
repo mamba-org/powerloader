@@ -20,4 +20,3 @@ dependencies:
   - pyyaml
   - pip:
     - pytest-xprocess
-    - pygit2
