@@ -37,17 +37,15 @@ class TestOCIServer:
 
     def test_download_permanent(self, file, powerloader_binary, checksums):
         # Delete the file locally
-        # Path(upload_path).unlink()
+        Path(get_oci_path(file=file)[1]).unlink(missing_ok=True)
 
         # Generate yaml file
-        nos = "artifact"
-        newpath, tmp_yaml = generate_oci_download_yml(file, tag="1.0", name_on_server=nos, username="wolfv")
+        newpath, tmp_yaml = generate_oci_download_yml(file)
         # Download using this YML file
         download_oci_file(powerloader_binary, tmp_yaml, file)
 
-        # raise Exception("Stop here!")
         # Check that the downloaded file is the same as the uploaded file
-        assert checksums[nos] == calculate_sha256(newpath)
+        assert checksums[file["name_on_server"]] == calculate_sha256(newpath)
 
     def set_username(self):
         username = ""

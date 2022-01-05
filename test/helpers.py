@@ -157,14 +157,35 @@ def upload_s3_file(powerloader_binary, up_path, server, plain_http=False):
     out, err = proc.communicate()
     assert proc.returncode == 0
 
+def oci_path_resolver(file, tag=None, name_on_server=None, username=None):
+    if tag == None: t = file["tag"]
+    else: t = tag
 
-def generate_oci_download_yml(file, tag, name_on_server, username):
-    oci_template = yml_content(file["oci_template"])
+    if name_on_server == None: nos = file["name_on_server"]
+    else: nos = name_on_server
+
+    if username == None: un = file["username"]
+    else: un = username
+
+    return t, nos, un
+
+def get_oci_path(file, tin=None, nosin=None):
+    tag, name_on_server, username = \
+        oci_path_resolver(file, tag=tin, name_on_server=nosin)
     newname = name_on_server + "-" + tag
     newpath = file["tmp_path"] / Path(newname)
-    oci_template["targets"][0] = oci_template["targets"][0].replace("__filename__", newname)
+    return newname, newpath
 
-    oci_template["mirrors"]["ocitest"][0] = oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
+def generate_oci_download_yml(file, tin=None, nosin=None, unin=None):
+    tag, name_on_server, username = \
+        oci_path_resolver(file, tag=tin, name_on_server=nosin, username=unin)
+    oci_template = yml_content(file["oci_template"])
+    newname, newpath = get_oci_path(file, tag, name_on_server)
+    oci_template["targets"][0] = \
+        oci_template["targets"][0].replace("__filename__", newname)
+
+    oci_template["mirrors"]["ocitest"][0] = \
+        oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
 
     tmp_yaml = file["tmp_path"] / Path("tmp.yml")
     with open(str(tmp_yaml), 'w') as outfile:
@@ -189,6 +210,10 @@ def download_oci_file(powerloader_binary, tmp_yaml, file):
                             "-d", str(file["tmp_path"])],
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
+
+    print("out: " + str(out))
+    print("err: " + str(err))
+
     assert proc.returncode == 0
 
 

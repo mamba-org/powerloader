@@ -87,6 +87,9 @@ jobs:
           # https://docs.min.io/docs/aws-cli-with-minio.html
           aws --endpoint-url $AWS_S3_ENDPOINT s3 mb s3://testbucket
 
+          sudo docker run -d -p 5000:5000 --restart=always --name registry registry:2
+          # oci://localhost:5000
+
       - name: Download packages and place in bucket
         env:
           AWS_S3_BUCKET: testbucket
