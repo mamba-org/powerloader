@@ -7,6 +7,7 @@ from .config import AUTH_USER, AUTH_PASS
 def file_path(path):
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
+
 failure_count = 0
 prev_headers = None
 BYTE_RANGE_RE = re.compile(r'bytes=(\d+)-(\d+)?$')
@@ -156,7 +157,6 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
 
         def get_filename(self):
             filename = self.path.split("/")[-1]
-            print(filename)
             return filename
 
         def serve_static(self):

@@ -188,7 +188,6 @@ namespace powerloader
             checksum = &data->sha256sum;
         }
         auto [split_path, split_tag] = split_path_tag(target->target->path);
-
         // https://ghcr.io/v2/wolfv/artifact/blobs/sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4
         return fmt::format("{}/v2/{}/blobs/sha256:{}", url, get_repo(split_path), *checksum);
     }
