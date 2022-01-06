@@ -2,6 +2,7 @@ mirrors:
   conda-forge:
     - https://conda.anaconda.org/conda-forge
     - https://repo.mamba.pm/conda-forge
+    - https://beta.mamba.pm/get/conda-forge
 
 targets:
   - conda-forge:linux-64/python-3.9.7-hb7a2778_1_cpython.tar.bz2

@@ -5,7 +5,8 @@ import hashlib, base64
 from .config import AUTH_USER, AUTH_PASS
 
 def file_path(path):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+    return p
 
 
 failure_count = 0

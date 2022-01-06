@@ -101,8 +101,15 @@ jobs:
           server_path="test/conda_mock/static/packages"
           powerloader_path="build/powerloader"
           $powerloader_path download -f test/remote_mirrors.yml -d $server_path
+
+          # Upload file to AWS mock
           aws --endpoint-url $AWS_S3_ENDPOINT s3 cp $server_path/xtensor-0.23.9-hc021e02_1.tar.bz2 s3://testbucket/
           # aws --endpoint-url $AWS_S3_ENDPOINT s3 ls s3://testbucket
+
+          # Upload file to OCI mock: https://docs.docker.com/engine/reference/commandline/tag/
+          echo "artifact" > /tmp/artifact
+          ./build/powerloader upload /tmp/artifact:artifact:321 -m oci://localhost:5000
+
 
 
       - name: Python based tests that require secrets
