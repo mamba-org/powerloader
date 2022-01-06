@@ -54,8 +54,6 @@ namespace powerloader
         std::string temp_upload_location = response.header["location"];
 
         auto upload_url = format_upload_url(mirror.url, temp_upload_location, digest);
-        // std::string upload_url = fmt::format("{}{}?digest={}", mirror.url, temp_upload_location,
-        // digest);
         spdlog::info("Upload url: {}", upload_url);
 
         CURLHandle chandle(upload_url);
