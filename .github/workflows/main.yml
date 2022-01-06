@@ -107,10 +107,12 @@ jobs:
           # aws --endpoint-url $AWS_S3_ENDPOINT s3 ls s3://testbucket
 
           # Upload file to OCI mock: https://docs.docker.com/engine/reference/commandline/tag/
-          echo "artifact" > /tmp/artifact
+          mkdir test/tmp
+          echo "artifact" > test/tmp/artifact
           ./build/powerloader upload /tmp/artifact:artifact:321 -m oci://localhost:5000
 
-
+          oras push localhost:5000/artifact:v1 --manifest-config \
+                                  /dev/null:application/vnd.acme.rocket.config ./artifact
 
       - name: Python based tests that require secrets
         shell: bash -l -eo pipefail {0}

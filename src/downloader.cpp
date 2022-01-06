@@ -185,6 +185,7 @@ namespace powerloader
             // Check HTTP(S) code / or FTP
             if (code / 100 != 2)
             {
+                std::cout << "ping, curl_easy_getinfo" << std::endl;
                 throw download_error(fmt::format(
                     "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
             }
@@ -715,7 +716,7 @@ namespace powerloader
             }
 
             char* tmp_effective_url;
-
+            std::cout << "check_msgs" << std::endl;
             curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &tmp_effective_url);
 
             // Make the effective url persistent to survive the curl_easy_cleanup()
@@ -728,12 +729,18 @@ namespace powerloader
             bool transfer_err = false, serious_err = false, fatal_err = false;
             bool fail_fast_err = false;
 
+            std::cout << "ping1" << std::endl;
+
             try
             {
+                std::cout << "ping2" << std::endl;
+                std::cout << "msg: " << msg << std::endl;
+                std::cout << "current_target: " << current_target << std::endl;
                 transfer_check = check_finished_transfer_status(msg, current_target);
             }
             catch (const download_error& e)
             {
+                std::cout << "ping3" << std::endl;
                 // non-fatal download error
                 spdlog::warn(e.what());
                 transfer_err = true;
@@ -741,6 +748,7 @@ namespace powerloader
             }
             catch (const fatal_download_error& e)
             {
+                std::cout << "ping4" << std::endl;
                 // fatal download error
                 spdlog::error(e.what());
                 transfer_err = true;
@@ -756,6 +764,8 @@ namespace powerloader
             {
                 current_target->target->outfile->flush();
             }
+
+            std::cout << "ping5" << std::endl;
 
             if (transfer_err)
                 goto transfer_error;

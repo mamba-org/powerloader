@@ -201,12 +201,9 @@ def generate_s3_download_yml(file, server, filename):
 
 
 def download_oci_file(powerloader_binary, tmp_yaml, file):
-    proc = subprocess.Popen([powerloader_binary, "download",
-                            "-f", str(tmp_yaml),
-                            "-d", str(file["tmp_path"])],
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    command = [powerloader_binary, "download", "-f", str(tmp_yaml), "-d", str(file["tmp_path"])]
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-    print("out: " + str(out))
     assert err == "".encode('ascii')
     assert proc.returncode == 0
 
@@ -217,7 +214,6 @@ def download_s3_file(powerloader_binary, file, plain_http=False):
         command.extend(["-k", "--plain-http"])
     command.extend(["-d", str(file["tmp_path"])])
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print("command: " + str(command))
     out, err = proc.communicate()
     assert err == "".encode('ascii')
     assert proc.returncode == 0

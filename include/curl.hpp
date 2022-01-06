@@ -148,6 +148,7 @@ namespace powerloader
             set_default_callbacks();
             // TODO error handling
             int curl_result = curl_easy_perform(handle());
+            std::cout << "perform: " << std::endl;
             finalize_transfer(*response);
             return std::move(*response.release());
         }
@@ -168,11 +169,15 @@ namespace powerloader
         template <class T>
         inline void finalize_transfer(T& response)
         {
+            std::cout << "finalize transfer1" << std::endl;
+
             auto cres = curl_easy_getinfo(m_handle, CURLINFO_SPEED_DOWNLOAD_T, &response.avg_speed);
             if (cres != CURLE_OK)
             {
                 response.avg_speed = 0;
             }
+
+            std::cout << "finalize transfer2" << std::endl;
 
             char* tmp_effective_url;
             // TODO error handling?!
@@ -181,6 +186,9 @@ namespace powerloader
             curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &response.downloaded_size);
 
             response.effective_url = tmp_effective_url;
+
+            std::cout << "finalize transfer3, effective_url: " << std::string(tmp_effective_url)
+                      << std::endl;
 
             if (!response.ok())
                 spdlog::error("Received {}: {}", response.http_status, response.content.str());

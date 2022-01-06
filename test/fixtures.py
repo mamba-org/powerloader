@@ -64,6 +64,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
         print("Successfully created the directory %s " % file_map["tmp_path"])
 
     yield file_map
+    raise Exception("Stop here!")
     shutil.rmtree(file_map["tmp_path"])
 
 

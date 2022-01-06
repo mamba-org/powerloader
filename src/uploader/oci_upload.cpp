@@ -54,6 +54,7 @@ namespace powerloader
         std::string temp_upload_location = response.header["location"];
 
         auto upload_url = format_upload_url(mirror.url, temp_upload_location, digest);
+
         spdlog::info("Upload url: {}", upload_url);
 
         CURLHandle chandle(upload_url);
@@ -68,7 +69,6 @@ namespace powerloader
         // On certain registries, we also need to push the empty config
         upload_url = format_upload_url(
             mirror.url, temp_upload_location, fmt::format("sha256:{}", EMPTY_SHA));
-        upload_url = fmt::format("{}{}?digest={}", mirror.url, temp_upload_location, digest);
 
         spdlog::info("Upload url: {}", upload_url);
 
