@@ -42,7 +42,12 @@ namespace powerloader
         CURLHandle auth_handle;
         if (mirror.need_auth() && mirror.prepare(reference, auth_handle))
         {
-            auth_handle.perform();
+            auto auth_res = auth_handle.perform();
+            if (!auth_res.ok())
+            {
+                spdlog::error("Could not authenticate to OCI Registry");
+                return auth_res;
+            }
         }
 
         std::string preupload_url = mirror.get_preupload_url(reference);
@@ -50,6 +55,9 @@ namespace powerloader
                             .setopt(CURLOPT_CUSTOMREQUEST, "POST")
                             .add_headers(mirror.get_auth_headers(reference))
                             .perform();
+
+        if (!response.ok())
+            return response;
 
         std::string temp_upload_location = response.header["location"];
 
@@ -64,6 +72,8 @@ namespace powerloader
             .add_header("Content-Type: application/octet-stream")
             .upload(ufile);
         auto upload_res = chandle.perform();
+        if (!upload_res.ok())
+            return upload_res;
 
 
         // On certain registries, we also need to push the empty config
@@ -74,6 +84,8 @@ namespace powerloader
                                 .setopt(CURLOPT_CUSTOMREQUEST, "POST")
                                 .add_headers(mirror.get_auth_headers(reference))
                                 .perform();
+            if (!response.ok())
+                return response;
 
             std::string temp_upload_location = response.header["location"];
 
@@ -90,7 +102,10 @@ namespace powerloader
                 .add_headers(mirror.get_auth_headers(reference))
                 .add_header("Content-Type: application/vnd.unknown.config.v1+json")
                 .upload(emptyfile);
+
             auto cres = chandle_config.perform();
+            if (!cres.ok())
+                return cres;
         }
 
         // Now we need to upload the manifest for OCI servers
