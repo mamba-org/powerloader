@@ -109,9 +109,9 @@ jobs:
           # Upload file to OCI mock: https://docs.docker.com/engine/reference/commandline/tag/
           mkdir test/tmp
           echo "artifact" > test/tmp/artifact
-          ./build/powerloader upload test/tmp/artifact:artifact:321 -m oci://localhost:5000
+          ./build/powerloader upload test/tmp/artifact:artifact:321 -m oci://localhost:5000 -k -v --plain-http
 
-          oras push localhost:5000/artifact:v1 --manifest-config \
+          oras push localhost:5000/artifact:1.0 --manifest-config \
                                   /dev/null:application/vnd.acme.rocket.config test/tmp/artifact
 
       - name: Python based tests that require secrets
