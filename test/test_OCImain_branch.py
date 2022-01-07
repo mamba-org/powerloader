@@ -1,3 +1,4 @@
+from os import name
 from fixtures import *
 
 """
@@ -13,8 +14,6 @@ from fixtures import *
 
 """
 class TestOCIServer:
-    def username_exists(self):
-        return not ((os.environ.get("GHA_USER") is None) or (os.environ.get("GHA_USER") == ""))
 
     @classmethod
     def setup_class(cls):
@@ -30,14 +29,15 @@ class TestOCIServer:
         tag, name_on_server = upload_oci(upload_path, powerloader_binary, file["oci_upload_location"])
 
     def test_download_permanent(self, file, powerloader_binary, checksums):
-        Path(get_oci_path(file=file)[1]).unlink(missing_ok=True)
-        newpath, tmp_yaml = generate_oci_download_yml(file)
+        tag, name_on_server, username = oci_path_resolver(file)
+        Path(get_oci_path(file, name_on_server, tag)[1]).unlink(missing_ok=True)
+        newpath, tmp_yaml = generate_oci_download_yml(file, tag, name_on_server, username)
         download_oci_file(powerloader_binary, tmp_yaml, file)
         assert checksums[file["name_on_server"]] == calculate_sha256(newpath)
 
     def set_username(self):
         username = ""
-        if self.username_exists():
+        if gha_credentials_exist():
             username = os.environ.get("GHA_USER")
         else:
             username = "mamba-org"              # GHA_PAT is only available on the main branch

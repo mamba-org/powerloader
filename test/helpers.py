@@ -5,6 +5,7 @@ from urllib.request import urlopen
 import sys, socket, pathlib
 from pathlib import Path
 import json, os
+import requests
 
 def mock_server(xprocess, name, port, pkgs, error_type,
                 uname=None, pwd=None):
@@ -122,7 +123,6 @@ def generate_unique_file(file, with_txt=False):
     f.close()
     return upload_path
 
-
 def filter_broken(file_list, pdp):
     broken = []
     for file in file_list:
@@ -130,15 +130,39 @@ def filter_broken(file_list, pdp):
             broken.append(file)
     return broken
 
+def gha_credentials_exist():
+    user = not ((os.environ.get("GHA_USER") is None) or (os.environ.get("GHA_USER") == ""))
+    pwd = not ((os.environ.get("GHA_PAT") is None) or (os.environ.get("GHA_PAT") == ""))
+    return user and pwd
+
+def oci_check_present(uploc, srvname, tag, expect=True):
+    if gha_credentials_exist():
+        # Github doesn't support `/v2/_catalog` yet
+        # https://github.community/t/ghcr-io-docker-http-api/130121/3
+        pass
+    else:
+        oci_file_presence(uploc, srvname, tag, expect)
+        if expect == True:
+            path = uploc.replace("oci://", "http://")
+            path += "/v2/" + srvname + "/tags/list"
+            tags = requests.get(path).json()
+            assert tag in set(tags["tags"])
+
+
+def oci_file_presence(uploc, srvname, tag, expect):
+    path = uploc.replace("oci://", "http://") + "/v2/_catalog"
+    repos = requests.get(path).json()
+    assert (srvname in set(repos["repositories"])) == expect
 
 def upload_oci(upload_path, powerloader_binary, uploc, plain_http=False):
-    srv_name, tag = path_to_name(upload_path), "321"
+    srv_name, tag = path_to_name(upload_path), "1.0"
     command = [powerloader_binary, "upload", upload_path + ":"
                 + srv_name + ":" + tag, "-m", uploc]
     if (plain_http != False):
         command.extend(["-k", "-v", "--plain-http"])
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
+    oci_check_present(uploc, srv_name, tag, expect=True)
     assert "error" not in str(out.decode('ascii'))
     err_ok = ("localhost:5000" in str(out.decode('ascii')))
     assert (err == "".encode('ascii')) or err_ok
@@ -166,8 +190,6 @@ def oci_path_resolver(file, tag=None, name_on_server=None, username=None):
 
     if username == None: un = file["username"]
     else: un = username
-
-    print("t: " + str(t))
     return t, nos, un
 
 def get_oci_path(file, name_on_server, tag):
@@ -213,8 +235,6 @@ def download_oci_file(powerloader_binary, tmp_yaml, file, plain_http=False):
         command.extend(["-k", "-v", "--plain-http"])
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-    print("err: " + str(err.decode('ascii')))
-    # raise Exception("Stop here!")
     err_ok = ("localhost:5000" in str(out.decode('ascii')))
     assert (err == "".encode('ascii')) or err_ok
     assert proc.returncode == 0
@@ -245,6 +265,7 @@ def get_percentage(delta_size):
 
 
 def env_vars_absent():
-    user_absent = not os.environ.get("GHA_USER") is None and os.environ.get("GHA_USER") == ""
-    passwd_absent = not os.environ.get("GHA_PAT") is None and os.environ.get("GHA_PAT") == ""
+    user_absent = os.environ.get("GHA_USER") == None or os.environ.get("GHA_USER") == ""
+    passwd_absent = os.environ.get("GHA_PAT") == None or os.environ.get("GHA_PAT") == ""
+
     return user_absent and passwd_absent

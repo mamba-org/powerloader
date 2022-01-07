@@ -52,6 +52,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["oci_template"] = file_map["test_path"] / Path("ocitemplate.yml")
     file_map["oci_upload_location"] = "oci://ghcr.io"
     file_map["oci_mock_server"] = "oci://localhost:5000"
+    file_map["name_on_mock_server"] = "mock_artifact"
     file_map["name_on_server"] = "artifact"
     file_map["tag"] = "1.0"
     file_map["username"] = "wolfv"
@@ -95,6 +96,7 @@ def checksums():
     cksums["boa-0.8.1.tar.gz"] = \
         "b824237d80155efd97b79469534d602637b40a2a27c4f71417d5e6977238ff74"
     cksums["artifact"] = "c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4"
+    cksums["mock_artifact"] = "5b3513f580c8397212ff2c8f459c199efc0c90e4354a5f3533adf0a3fff3a530"
     return cksums
 
 
