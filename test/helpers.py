@@ -206,7 +206,6 @@ def download_oci_file(powerloader_binary, tmp_yaml, file):
                             "-d", str(file["tmp_path"])],
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-    print("out: " + str(out))
     assert err == "".encode('ascii')
     assert proc.returncode == 0
 
@@ -217,7 +216,6 @@ def download_s3_file(powerloader_binary, file, plain_http=False):
         command.extend(["-k", "--plain-http"])
     command.extend(["-d", str(file["tmp_path"])])
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print("command: " + str(command))
     out, err = proc.communicate()
     assert err == "".encode('ascii')
     assert proc.returncode == 0
@@ -234,3 +232,10 @@ def get_percentage(delta_size):
     portion_bytes = 100 * float(dsize_list[of_idx[0] - 1]) / float(dsize_list[of_idx[0] + 1])
     portion_chunks = 100 * float(dsize_list[of_idx[1] - 1]) / float(dsize_list[of_idx[1] + 1])
     return portion_bytes, portion_chunks, dsize_list[of_idx[1] + 1]
+
+
+def env_vars_absent():
+    user_absent = not os.environ.get("GHA_USER") is None and os.environ.get("GHA_USER") == ""
+    passwd_absent = not os.environ.get("GHA_PAT") is None and os.environ.get("GHA_PAT") == ""
+    return user_absent and passwd_absent
+

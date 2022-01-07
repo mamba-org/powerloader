@@ -1,9 +1,6 @@
 from fixtures import *
 
 class TestOCImock:
-    def username_exists(self):
-        return not ((os.environ.get("GHA_USER") is None) or (os.environ.get("GHA_USER") == ""))
-
     @classmethod
     def setup_class(cls):
         pass
@@ -12,10 +9,11 @@ class TestOCImock:
     def teardown_class(cls):
         pass
 
+    @pytest.mark.skipif(env_vars_absent(), reason="Environment variable(s) should not be defined")
     def test_upload(self, file, powerloader_binary):
         upload_path = generate_unique_file(file)
         hash_before_upload = calculate_sha256(upload_path)
-        tag, name_on_server = upload_oci(upload_path, powerloader_binary, file["oci_upload_location"])
+        tag, name_on_server = upload_oci(upload_path, powerloader_binary, file["oci_mock_server"])
 
     def test_download_permanent(self, file, powerloader_binary, checksums):
         Path(get_oci_path(file=file)[1]).unlink(missing_ok=True)
