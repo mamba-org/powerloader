@@ -131,13 +131,17 @@ def filter_broken(file_list, pdp):
     return broken
 
 
-def upload_oci(upload_path, powerloader_binary, uploc):
+def upload_oci(upload_path, powerloader_binary, uploc, plain_http=False):
     srv_name, tag = path_to_name(upload_path), "321"
     command = [powerloader_binary, "upload", upload_path + ":"
                 + srv_name + ":" + tag, "-m", uploc]
+    if (plain_http != False):
+        command.extend(["-k", "-v", "--plain-http"])
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-    assert err == "".encode('ascii')
+    assert "error" not in str(out.decode('ascii'))
+    err_ok = ("localhost:5000" in str(out.decode('ascii')))
+    assert (err == "".encode('ascii')) or err_ok
     assert proc.returncode == 0
     return tag, srv_name
 
@@ -163,22 +167,24 @@ def oci_path_resolver(file, tag=None, name_on_server=None, username=None):
     if username == None: un = file["username"]
     else: un = username
 
+    print("t: " + str(t))
     return t, nos, un
 
-def get_oci_path(file, tin=None, nosin=None):
-    tag, name_on_server, username = \
-        oci_path_resolver(file, tag=tin, name_on_server=nosin)
+def get_oci_path(file, name_on_server, tag):
     newname = name_on_server + "-" + tag
     newpath = file["tmp_path"] / Path(newname)
     return newname, newpath
 
-def generate_oci_download_yml(file, tin=None, nosin=None, unin=None):
-    tag, name_on_server, username = \
-        oci_path_resolver(file, tag=tin, name_on_server=nosin, username=unin)
+def generate_oci_download_yml(file, tag, name_on_server, username, local=False):
     oci_template = yml_content(file["oci_template"])
-    newname, newpath = get_oci_path(file, tag, name_on_server)
+    newname, newpath = get_oci_path(file, name_on_server, tag)
     oci_template["targets"][0] = \
         oci_template["targets"][0].replace("__filename__", newname)
+
+    if local:
+        oci_template["mirrors"]["ocitest"][0] = \
+            oci_template["mirrors"]["ocitest"][0].replace(file["oci_upload_location"],
+                                                          file["oci_mock_server"])
 
     oci_template["mirrors"]["ocitest"][0] = \
         oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
@@ -200,13 +206,17 @@ def generate_s3_download_yml(file, server, filename):
         yaml.dump(aws_template, outfile, default_flow_style=False)
 
 
-def download_oci_file(powerloader_binary, tmp_yaml, file):
-    proc = subprocess.Popen([powerloader_binary, "download",
-                            "-f", str(tmp_yaml),
-                            "-d", str(file["tmp_path"])],
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+def download_oci_file(powerloader_binary, tmp_yaml, file, plain_http=False):
+    command = [powerloader_binary, "download", "-f", str(tmp_yaml),
+                            "-d", str(file["tmp_path"])]
+    if (plain_http != False):
+        command.extend(["-k", "-v", "--plain-http"])
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-    assert err == "".encode('ascii')
+    print("err: " + str(err.decode('ascii')))
+    # raise Exception("Stop here!")
+    err_ok = ("localhost:5000" in str(out.decode('ascii')))
+    assert (err == "".encode('ascii')) or err_ok
     assert proc.returncode == 0
 
 
@@ -238,4 +248,3 @@ def env_vars_absent():
     user_absent = not os.environ.get("GHA_USER") is None and os.environ.get("GHA_USER") == ""
     passwd_absent = not os.environ.get("GHA_PAT") is None and os.environ.get("GHA_PAT") == ""
     return user_absent and passwd_absent
-

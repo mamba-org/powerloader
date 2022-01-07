@@ -363,9 +363,9 @@ parse_mirrors(const YAML::Node& node)
             {
                 kof = KindOf::kOCI;
                 if (creds.user.empty())
-                    creds.user = get_env("GHA_USER");
+                    creds.user = get_env("GHA_USER", "");
                 if (creds.password.empty())
-                    creds.password = get_env("GHA_PAT");
+                    creds.password = get_env("GHA_PAT", "");
             }
 
             if (kof != KindOf::kHTTP)
