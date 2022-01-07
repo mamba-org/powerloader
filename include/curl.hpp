@@ -146,8 +146,12 @@ namespace powerloader
         inline Response perform()
         {
             set_default_callbacks();
-            // TODO error handling
-            int curl_result = curl_easy_perform(handle());
+            CURLcode curl_result = curl_easy_perform(handle());
+            if (curl_result != CURLE_OK)
+            {
+                throw curl_error(
+                    fmt::format("{} [{}]", curl_easy_strerror(curl_result), errorbuffer));
+            }
             finalize_transfer(*response);
             return std::move(*response.release());
         }
@@ -183,7 +187,9 @@ namespace powerloader
             response.effective_url = tmp_effective_url;
 
             if (!response.ok())
+            {
                 spdlog::error("Received {}: {}", response.http_status, response.content.str());
+            }
             if (end_callback)
             {
                 end_callback(response);

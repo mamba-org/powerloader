@@ -155,7 +155,26 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
             std::string GH_USER = get_env("GHA_USER", "");
 
             OCIMirror mirror(url.url(), GH_USER, "push", GH_USER, GH_SECRET);
-            oci_upload(mirror, dest, elems[2], elems[0]);
+            try
+            {
+                auto res = oci_upload(mirror, dest, elems[2], elems[0]);
+                if (res.ok())
+                {
+                    std::cout << "Finished upload for " << f << " to OCI Registry at " << url.url()
+                              << std::endl;
+                }
+                else
+                {
+                    std::cout << "Could not upload " << f << " to OCI Registry at " << url.url()
+                              << std::endl;
+                    return 1;
+                }
+            }
+            catch (std::exception& e)
+            {
+                spdlog::critical("Could not upload: {}", e.what());
+                return 1;
+            }
         }
         else if (kof == KindOf::kS3)
         {
@@ -174,7 +193,16 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
                 url_ = url_.substr(0, url_.size() - 1);
 
             S3Mirror s3mirror(url_, aws_region, aws_ackey, aws_sekey);
-            s3_upload(s3mirror, elems[1], elems[0]);
+            try
+            {
+                s3_upload(s3mirror, elems[1], elems[0]);
+                std::cout << "Finished upload for " << f << " to S3 bucket at" << url_ << std::endl;
+            }
+            catch (std::exception& e)
+            {
+                spdlog::critical("Could not upload: {}", e.what());
+                return 1;
+            }
         }
     }
 
