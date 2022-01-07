@@ -33,7 +33,6 @@ class TestOCIServer:
         Path(get_oci_path(file=file)[1]).unlink(missing_ok=True)
         newpath, tmp_yaml = generate_oci_download_yml(file)
         download_oci_file(powerloader_binary, tmp_yaml, file)
-        raise Exception("Stop here!")
         assert checksums[file["name_on_server"]] == calculate_sha256(newpath)
 
     def set_username(self):

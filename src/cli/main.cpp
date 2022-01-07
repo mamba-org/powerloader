@@ -151,6 +151,7 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
                 spdlog::error("For OCI upload we need file:destname:tag");
                 return 1;
             }
+
             std::string GH_SECRET = get_env("GHA_PAT", "");
             std::string GH_USER = get_env("GHA_USER", "");
 
@@ -465,7 +466,6 @@ main(int argc, char** argv)
 
     std::vector<Mirror> mlist;
     spdlog::info("Loading file.");
-
 
     if (!file.empty())
     {

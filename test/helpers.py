@@ -137,6 +137,7 @@ def upload_oci(upload_path, powerloader_binary, uploc):
                 + srv_name + ":" + tag, "-m", uploc]
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
+    print("command: " + str(command))
     assert err == "".encode('ascii')
     assert proc.returncode == 0
     return tag, srv_name
@@ -230,3 +231,9 @@ def get_percentage(delta_size):
     portion_bytes = 100 * float(dsize_list[of_idx[0] - 1]) / float(dsize_list[of_idx[0] + 1])
     portion_chunks = 100 * float(dsize_list[of_idx[1] - 1]) / float(dsize_list[of_idx[1] + 1])
     return portion_bytes, portion_chunks, dsize_list[of_idx[1] + 1]
+
+
+def env_vars_absent():
+    user_absent = not os.environ.get("GHA_USER") is None and os.environ.get("GHA_USER") == ""
+    passwd_absent = not os.environ.get("GHA_PAT") is None and os.environ.get("GHA_PAT") == ""
+    return user_absent and passwd_absent

@@ -54,7 +54,6 @@ namespace powerloader
         std::string temp_upload_location = response.header["location"];
 
         auto upload_url = format_upload_url(mirror.url, temp_upload_location, digest);
-
         spdlog::info("Upload url: {}", upload_url);
 
         CURLHandle chandle(upload_url);
@@ -67,14 +66,23 @@ namespace powerloader
         auto upload_res = chandle.perform();
 
         // On certain registries, we also need to push the empty config
-        upload_url = format_upload_url(
-            mirror.url, temp_upload_location, fmt::format("sha256:{}", EMPTY_SHA));
-
-        spdlog::info("Upload url: {}", upload_url);
-
-        // On certain registries, we also need to push the empty config
         if (!contains(upload_url, "ghcr.io"))
         {
+            std::string preupload_url = mirror.get_preupload_url(reference);
+            auto response = CURLHandle(preupload_url)
+                                .setopt(CURLOPT_CUSTOMREQUEST, "POST")
+                                .add_headers(mirror.get_auth_headers(reference))
+                                .perform();
+
+            std::string temp_upload_location = response.header["location"];
+
+            // On certain registries, we also need to push the empty config
+            upload_url = format_upload_url(
+                mirror.url, temp_upload_location, fmt::format("sha256:{}", EMPTY_SHA));
+
+            spdlog::info("Upload url: {}", upload_url);
+
+            spdlog::info("Uploading empty config file");
             CURLHandle chandle_config(upload_url);
             std::istringstream emptyfile;
             chandle_config.setopt(CURLOPT_UPLOAD, 1L)
