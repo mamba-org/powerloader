@@ -7,8 +7,8 @@ from pathlib import Path
 import json, os
 import requests
 
-def mock_server(xprocess, name, port, pkgs, error_type,
-                uname=None, pwd=None):
+
+def mock_server(xprocess, name, port, pkgs, error_type, uname=None, pwd=None):
     curdir = pathlib.Path(__file__).parent
     print("Starting mock_server")
     authenticate = (uname is not None) and (pwd is not None)
@@ -18,26 +18,36 @@ def mock_server(xprocess, name, port, pkgs, error_type,
         pattern = "Server started!"
         terminate_on_interrupt = True
 
-        args = [sys.executable, "-u", curdir / 'server.py',
-                '-p', str(port), "-e", error_type,
-                "--pkgs", pkgs]
+        args = [
+            sys.executable,
+            "-u",
+            curdir / "server.py",
+            "-p",
+            str(port),
+            "-e",
+            error_type,
+            "--pkgs",
+            pkgs,
+        ]
 
         if authenticate:
             args.extend(["-u", uname, "--pwd", pwd])
 
         def startup_check(self):
             s = socket.socket()
-            address = 'localhost'
+            address = "localhost"
             error = False
             try:
                 s.connect((address, port))
             except Exception as e:
-                print("something's wrong with %s:%d. Exception is %s" % (address, port, e))
+                print(
+                    "something's wrong with %s:%d. Exception is %s" % (address, port, e)
+                )
                 error = True
             finally:
                 s.close()
 
-            return (not error)
+            return not error
 
     logfile = xprocess.ensure(name, Starter)
 
@@ -50,7 +60,7 @@ def mock_server(xprocess, name, port, pkgs, error_type,
 
 
 def generate_random_file(path, size):
-    with open(path, 'wb') as fout:
+    with open(path, "wb") as fout:
         fout.write(os.urandom(size))
 
 
@@ -83,7 +93,7 @@ def add_names(file, target):
 
 
 def path_to_name(path):
-    return str(path).split("/")[-1]
+    return Path(path).name
 
 
 def ifnone(var):
@@ -105,7 +115,7 @@ def remove_all(file):
 def calculate_sha256(file):
     with open(file, "rb") as f:
         b = f.read()
-        readable_hash = hashlib.sha256(b).hexdigest();
+        readable_hash = hashlib.sha256(b).hexdigest()
         return readable_hash
 
 
@@ -123,6 +133,7 @@ def generate_unique_file(file, with_txt=False):
     f.close()
     return upload_path
 
+
 def filter_broken(file_list, pdp):
     broken = []
     for file in file_list:
@@ -130,137 +141,83 @@ def filter_broken(file_list, pdp):
             broken.append(file)
     return broken
 
+
 def gha_credentials_exist():
-    user = not ((os.environ.get("GHA_USER") is None) or (os.environ.get("GHA_USER") == ""))
+    user = not (
+        (os.environ.get("GHA_USER") is None) or (os.environ.get("GHA_USER") == "")
+    )
     pwd = not ((os.environ.get("GHA_PAT") is None) or (os.environ.get("GHA_PAT") == ""))
     return user and pwd
-
-def oci_check_present(uploc, srvname, tag, expect=True):
-    if gha_credentials_exist():
-        # Github doesn't support `/v2/_catalog` yet
-        # https://github.community/t/ghcr-io-docker-http-api/130121/3
-        pass
-    else:
-        oci_file_presence(uploc, srvname, tag, expect)
-        if expect == True:
-            path = uploc.replace("oci://", "http://")
-            path += "/v2/" + srvname + "/tags/list"
-            tags = requests.get(path).json()
-            assert tag in set(tags["tags"])
-
-
-def oci_file_presence(uploc, srvname, tag, expect):
-    path = uploc.replace("oci://", "http://") + "/v2/_catalog"
-    repos = requests.get(path).json()
-    assert (srvname in set(repos["repositories"])) == expect
-
-def upload_oci(upload_path, powerloader_binary, uploc, plain_http=False):
-    srv_name, tag = path_to_name(upload_path), "1.0"
-    command = [powerloader_binary, "upload", upload_path + ":"
-                + srv_name + ":" + tag, "-m", uploc]
-    if (plain_http != False):
-        command.extend(["-k", "-v", "--plain-http"])
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = proc.communicate()
-    oci_check_present(uploc, srv_name, tag, expect=True)
-    assert "error" not in str(out.decode('ascii'))
-    err_ok = ("localhost:5000" in str(out.decode('ascii')))
-    assert (err == "".encode('ascii')) or err_ok
-    assert proc.returncode == 0
-    return tag, srv_name
 
 
 def upload_s3_file(powerloader_binary, up_path, server, plain_http=False):
     command = [powerloader_binary, "upload", up_path]
-    if (plain_http != False):
+    if plain_http != False:
         command.extend(["-k", "--plain-http"])
     command.append("-m")
     command.append(server)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-    assert err == "".encode('ascii')
+    assert err == "".encode("utf-8")
     assert proc.returncode == 0
 
+
 def oci_path_resolver(file, tag=None, name_on_server=None, username=None):
-    if tag == None: t = file["tag"]
-    else: t = tag
+    if tag == None:
+        t = file["tag"]
+    else:
+        t = tag
 
-    if name_on_server == None: nos = file["name_on_server"]
-    else: nos = name_on_server
+    if name_on_server == None:
+        nos = file["name_on_server"]
+    else:
+        nos = name_on_server
 
-    if username == None: un = file["username"]
-    else: un = username
+    if username == None:
+        un = file["username"]
+    else:
+        un = username
     return t, nos, un
-
-def get_oci_path(file, name_on_server, tag):
-    newname = name_on_server + "-" + tag
-    newpath = file["tmp_path"] / Path(newname)
-    return newname, newpath
-
-def generate_oci_download_yml(file, tag, name_on_server, username, local=False):
-    oci_template = yml_content(file["oci_template"])
-    newname, newpath = get_oci_path(file, name_on_server, tag)
-    oci_template["targets"][0] = \
-        oci_template["targets"][0].replace("__filename__", newname)
-
-    if local:
-        oci_template["mirrors"]["ocitest"][0] = \
-            oci_template["mirrors"]["ocitest"][0].replace(file["oci_upload_location"],
-                                                          file["oci_mock_server"])
-
-    oci_template["mirrors"]["ocitest"][0] = \
-        oci_template["mirrors"]["ocitest"][0].replace("__username__", username)
-
-    tmp_yaml = file["tmp_path"] / Path("tmp.yml")
-    with open(str(tmp_yaml), 'w') as outfile:
-        yaml.dump(oci_template, outfile, default_flow_style=False)
-    return newpath, tmp_yaml
 
 
 def generate_s3_download_yml(file, server, filename):
     aws_template = yml_content(file["s3_yml_template"])
-    aws_template["targets"] = \
-        [aws_template["targets"][0].replace("__filename__", filename)]
-    aws_template["mirrors"]["s3test"][0]["url"] = \
-        aws_template["mirrors"]["s3test"][0]["url"].replace("__server__", server)
+    aws_template["targets"] = [
+        aws_template["targets"][0].replace("__filename__", filename)
+    ]
+    aws_template["mirrors"]["s3test"][0]["url"] = aws_template["mirrors"]["s3test"][0][
+        "url"
+    ].replace("__server__", server)
 
-    with open(str(file["tmp_yml"]), 'w') as outfile:
+    with open(str(file["tmp_yml"]), "w") as outfile:
         yaml.dump(aws_template, outfile, default_flow_style=False)
-
-
-def download_oci_file(powerloader_binary, tmp_yaml, file, plain_http=False):
-    command = [powerloader_binary, "download", "-f", str(tmp_yaml),
-                            "-d", str(file["tmp_path"])]
-    if (plain_http != False):
-        command.extend(["-k", "-v", "--plain-http"])
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = proc.communicate()
-    err_ok = ("localhost:5000" in str(out.decode('ascii')))
-    assert (err == "".encode('ascii')) or err_ok
-    assert proc.returncode == 0
 
 
 def download_s3_file(powerloader_binary, file, plain_http=False):
     command = [powerloader_binary, "download", "-f", str(file["tmp_yml"])]
-    if (plain_http != False):
+    if plain_http != False:
         command.extend(["-k", "--plain-http"])
     command.extend(["-d", str(file["tmp_path"])])
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
-    assert err == "".encode('ascii')
+    assert err == "".encode("utf-8")
     assert proc.returncode == 0
 
 
 def get_prev_headers(mock_server_working):
     with urlopen(f"{mock_server_working}/prev_headers") as fi:
-        return json.loads(fi.read().decode('utf-8'))
+        return json.loads(fi.read().decode("utf-8"))
 
 
 def get_percentage(delta_size):
-    dsize_list = delta_size.decode('utf-8').split(" ")
+    dsize_list = delta_size.decode("utf-8").split(" ")
     of_idx = [i for i, val in enumerate(dsize_list) if val == "of"]
-    portion_bytes = 100 * float(dsize_list[of_idx[0] - 1]) / float(dsize_list[of_idx[0] + 1])
-    portion_chunks = 100 * float(dsize_list[of_idx[1] - 1]) / float(dsize_list[of_idx[1] + 1])
+    portion_bytes = (
+        100 * float(dsize_list[of_idx[0] - 1]) / float(dsize_list[of_idx[0] + 1])
+    )
+    portion_chunks = (
+        100 * float(dsize_list[of_idx[1] - 1]) / float(dsize_list[of_idx[1] + 1])
+    )
     return portion_bytes, portion_chunks, dsize_list[of_idx[1] + 1]
 
 
