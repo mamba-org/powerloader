@@ -1,11 +1,13 @@
 from http.server import HTTPServer
 from argparse import ArgumentParser
+
 # from optparse import OptionParser
 
 try:
     from conda_mock.conda_mock import conda_mock_handler
 except (ValueError, ImportError):
     from .conda_mock.conda_mock import conda_mock_handler
+
 
 def start_server(port, broken, err_type, username, pwd, host="127.0.0.1"):
     handler = conda_mock_handler(port, broken, err_type, username, pwd)
@@ -16,7 +18,8 @@ def start_server(port, broken, err_type, username, pwd, host="127.0.0.1"):
         server.serve_forever()
     print("ended")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     parser = ArgumentParser()
 
     parser.add_argument("-p", "--port", default=5555, type=int)
@@ -24,7 +27,11 @@ if __name__ == '__main__':
     parser.add_argument("-e", "--error_type", default="404")
     parser.add_argument("-u", "--username", default="")
     parser.add_argument("--pwd", default="")
-    parser.add_argument('--pkgs', metavar='N', type=str, nargs='+', help='broken pkgs', default=[])
+    parser.add_argument(
+        "--pkgs", metavar="N", type=str, nargs="+", help="broken pkgs", default=[]
+    )
 
     args = parser.parse_args()
-    start_server(args.port, set(args.pkgs), args.error_type, args.username, args.pwd, args.host)
+    start_server(
+        args.port, set(args.pkgs), args.error_type, args.username, args.pwd, args.host
+    )
