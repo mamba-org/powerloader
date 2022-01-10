@@ -50,6 +50,7 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["s3_mock_server"] = "s3://127.0.0.1:9000"
     file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
     file_map["s3_bucketname"] = Path("testbucket")
+    file_map["tmp_yml"] = file_map["tmp_path"] / Path("tmp.yml")
     file_map["xtensor_path"] = file_map["test_path"] / Path(
         "conda_mock/static/packages/xtensor-0.23.9-hc021e02_1.tar.bz2"
     )
