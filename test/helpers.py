@@ -2,6 +2,7 @@ import platform, glob, datetime, hashlib, subprocess
 import shutil, yaml, copy, math
 from xprocess import ProcessStarter
 from urllib.request import urlopen
+import os, subprocess, shutil
 import sys, socket, pathlib
 from pathlib import Path
 import json, os
@@ -226,3 +227,13 @@ def env_vars_absent():
     passwd_absent = os.environ.get("GHA_PAT") == None or os.environ.get("GHA_PAT") == ""
 
     return user_absent and passwd_absent
+
+def get_header_map(filepath):
+    print("filepath: " + str(filepath))
+    new_header = subprocess.check_output(["zck_read_header", str(filepath)]).decode("utf-8")
+    new_header = new_header.splitlines()
+    header = {}
+    for elem in new_header:
+        key, value = elem.split(": ")
+        header[key] = value
+    return header

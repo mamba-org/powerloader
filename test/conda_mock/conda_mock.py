@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, HTTPServer
 import os, sys, time, re, json
 import hashlib, base64
+from growing_file import *
 
 from .config import AUTH_USER, AUTH_PASS
 
@@ -80,6 +81,11 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
             if keyword_expected:
                 return keyword, path
             return path
+
+        def serve_growing_file(self):
+            self.gf.add_content()
+            keyword, path = self.parse_path('', keyword_expected=True)
+            return self.serve_file(path, harm_keyword=keyword)
 
         def serve_harm_checksum(self):
             """Append two newlines to content of a file (from the static dir) with
@@ -199,6 +205,10 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
 
             if self.path.startswith("/harm_checksum/static/"):
                 return self.serve_harm_checksum()
+
+            if self.path.startswith('/static/zchunk/growing_file/'):
+                return self.serve_growing_file()
+
 
             return self.serve_static()
 

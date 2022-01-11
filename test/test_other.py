@@ -1,7 +1,16 @@
 from fixtures import *
-
+from growing_file import *
 
 class TestAll:
+
+    @classmethod
+    def setup_class(cls):
+        pass
+
+    @classmethod
+    def teardown_class(cls):
+        pass
+
     # Download the expected file
     def test_working_download(
         self, file, powerloader_binary, mock_server_working, checksums
@@ -242,13 +251,8 @@ class TestAll:
         remove_all(file)
         out = subprocess.check_output(
             [
-                powerloader_binary,
-                "download",
-                "-f",
-                file["local_mirrors"],
-                "-d",
-                file["tmp_path"],
-                "-v",
+                powerloader_binary, "download", "-f", file["local_mirrors"],
+                "-d", file["tmp_path"], "-v",
             ]
         )
 
@@ -304,6 +308,8 @@ class TestAll:
         assert not Path("lorem.txt.zck").exists()
         assert not Path("lorem.txt").exists()
 
+        # TODO: zck_read_header ./test/conda_mock/static/zchunk/lorem.txt.zck
+        # Use `Header size` and `Header checksum` rather than hard coding it into the script...
         out = subprocess.check_output(
             [
                 powerloader_binary,
@@ -316,6 +322,7 @@ class TestAll:
                 "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b",
             ]
         )
+        raise Exception("Stop here!")
 
         assert Path("lorem.txt.zck").exists()
         assert Path("lorem.txt").exists()
@@ -385,3 +392,27 @@ class TestAll:
 
         assert round(pf_1) < 65
         assert round(pf_2) < 65
+
+
+    def test_growing_file(self, file, powerloader_binary, mock_server_working):
+        remove_all(file)
+
+        name = Path("static/zchunk/growing_file/gf" + str(platform.system()))
+        filepath = file["test_path"] / Path("conda_mock") / name
+
+        headers = get_header_map(str(filepath) + ".zck")
+
+        command = [powerloader_binary, "download", f"{mock_server_working}/" + str(name) + ".zck",
+                                       "--zck-header-size", headers["Header size"],
+                                       "--zck-header-sha", headers["Data checksum"]]
+
+        print("Command: " + str(command))
+        out = subprocess.check_output(command)
+
+        """
+        for i in range(100):
+            success, percentage = gf.add_content()
+            print(percentage)
+            if success == False:
+                raise Exception("Stop here!")
+        """
