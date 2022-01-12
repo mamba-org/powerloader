@@ -59,6 +59,8 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["name_on_server"] = "artifact"
     file_map["tag"] = "1.0"
     file_map["username"] = "wolfv"
+    file_map["lorem_zck"] = file_map["test_path"] / Path("conda_mock/static/zchunk/")
+    # file_map["lorem_zck"] = Path("static/zchunk/")
 
     try:
         os.mkdir(file_map["tmp_path"])

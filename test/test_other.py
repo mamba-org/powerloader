@@ -289,50 +289,40 @@ class TestAll:
         for fn in sparse_mirrors_with_names["names"]:
             assert calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
-    def test_zchunk_basic(file, powerloader_binary, mock_server_working):
+    def test_zchunk_basic(self, file, powerloader_binary, mock_server_working):
         # Download the expected file
-        assert not Path("lorem.txt.zck").exists()
+        name = Path("lorem.txt.zck")
+        localpath = file["tmp_path"] / name
 
-        out = subprocess.check_output(
-            [
-                powerloader_binary,
-                "download",
-                f"{mock_server_working}/static/zchunk/lorem.txt.zck",
-                "--zck-header-size",
-                "257",
-                "--zck-header-sha",
-                "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b",
-            ]
+        assert not localpath.exists()
+        filepath = file["lorem_zck"] / name
+        get_zchunk(
+            file,
+            filepath,
+            "static/zchunk/" + str(name),
+            powerloader_binary,
+            mock_server_working,
+            outpath=localpath,
         )
+        assert localpath.exists()
+        localpath.unlink()
 
-        assert Path("lorem.txt.zck").exists()
-        Path("lorem.txt.zck").unlink()
-
-    def test_zchunk_basic_extract(file, powerloader_binary, mock_server_working):
+    def test_zchunk_exact(self, file, powerloader_binary, mock_server_working):
         # Download the expected file
-        assert not Path("lorem.txt.zck").exists()
-        assert not Path("lorem.txt").exists()
-
-        # TODO: zck_read_header ./test/conda_mock/static/zchunk/lorem.txt.zck
-        # Use `Header size` and `Header checksum` rather than hard coding it into the script...
-        out = subprocess.check_output(
-            [
-                powerloader_binary,
-                "download",
-                f"{mock_server_working}/static/zchunk/lorem.txt.zck",
-                "-x",
-                "--zck-header-size",
-                "257",
-                "--zck-header-sha",
-                "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b",
-            ]
+        name = Path("lorem.txt.zck")
+        localpath = file["tmp_path"] / name
+        filepath = file["lorem_zck"] / name
+        get_zchunk(
+            file,
+            filepath,
+            "static/zchunk/" + str(name),
+            powerloader_binary,
+            mock_server_working,
+            outpath=localpath,
+            extra_params=["-x"],
         )
-        raise Exception("Stop here!")
-
-        assert Path("lorem.txt.zck").exists()
-        assert Path("lorem.txt").exists()
-        Path("lorem.txt.zck").unlink()
-        Path("lorem.txt").unlink()
+        assert localpath.exists()
+        localpath.unlink()
 
     def test_zchunk_random_file(self, file):
         remove_all(file)
@@ -373,60 +363,45 @@ class TestAll:
             ["zck_delta_size", path2 + ".zck", path3 + ".zck"]
         )
 
-        pf_1, pch_1, num_chunks_1 = get_percentage(dsize1)
-        pf_2, pch_2, num_chunks_2 = get_percentage(dsize2)
+        map1 = get_percentage(dsize1, get_header_map(path1 + ".zck"))
+        map2 = get_percentage(dsize2, get_header_map(path2 + ".zck"))
 
+        """
         print(
             "Will download "
-            + str(round(pf_1))
+            + str(round(map1["percentage to download"]))
             + "% of file1, that's "
-            + str(round(pch_1))
-            + "% of chunks. Total: "
-            + str(num_chunks_1)
-            + " chunks."
+            + str(round(map2["percentage matched chunks"]))
+            + "% of chunks."
         )
         print(
             "Will download "
-            + str(round(pf_2))
+            + str(round(map2["percentage to download"]))
             + "% of file2, that's "
-            + str(round(pch_2))
-            + "% of chunks. Total: "
-            + str(num_chunks_2)
-            + " chunks."
+            + str(round(map2["percentage matched chunks"]))
+            + "% of chunks."
         )
+        """
 
-        assert round(pf_1) < 65
-        assert round(pf_2) < 65
+        assert map1["percentage to download"] < 65
+        assert map2["percentage to download"] < 65
 
     def test_growing_file(self, file, powerloader_binary, mock_server_working):
         remove_all(file)
 
-        name = Path("static/zchunk/growing_file/gf" + str(platform.system()))
+        name = Path("static/zchunk/growing_file/gf" + str(platform.system()) + ".zck")
         filepath = file["test_path"] / Path("conda_mock") / name
+        outpath = file["tmp_path"] / name.name
 
-        headers = get_header_map(str(filepath) + ".zck")
-
-        print("Headers: " + str(headers))
-
-        command = [
-            powerloader_binary,
-            "download",
-            f"{mock_server_working}/" + str(name) + ".zck",
-            "--zck-header-size",
-            headers["Header size"],
-            "--zck-header-sha",
-            headers["Header checksum"],
-        ]
-
-        # print("Command: " + str(command))
-        # time.sleep(10000)
-        # raise Exception("Stop here!")
-        out = subprocess.check_output(command)
-
-        """
-        for i in range(100):
-            success, percentage = gf.add_content()
-            print(percentage)
-            if success == False:
-                raise Exception("Stop here!")
-        """
+        for i in range(1):
+            get_zchunk(
+                file, filepath, name, powerloader_binary, mock_server_working, outpath
+            )
+            resize_zchunk(powerloader_binary, mock_server_working)
+            percentage_map = get_zck_percent_delta(outpath)
+            if percentage_map != False:
+                # print("percentage_map: " + str(percentage_map))
+                if percentage_map["header size / data size"] >= (1 * 10 ** -2):
+                    assert percentage_map["percentage to download"] > 50
+                elif percentage_map["header size / data size"] <= (6 * 10 ** -4):
+                    assert percentage_map["percentage to download"] < 50

@@ -210,18 +210,6 @@ def get_prev_headers(mock_server_working):
         return json.loads(fi.read().decode("utf-8"))
 
 
-def get_percentage(delta_size):
-    dsize_list = delta_size.decode("utf-8").split(" ")
-    of_idx = [i for i, val in enumerate(dsize_list) if val == "of"]
-    portion_bytes = (
-        100 * float(dsize_list[of_idx[0] - 1]) / float(dsize_list[of_idx[0] + 1])
-    )
-    portion_chunks = (
-        100 * float(dsize_list[of_idx[1] - 1]) / float(dsize_list[of_idx[1] + 1])
-    )
-    return portion_bytes, portion_chunks, dsize_list[of_idx[1] + 1]
-
-
 def env_vars_absent():
     user_absent = os.environ.get("GHA_USER") == None or os.environ.get("GHA_USER") == ""
     passwd_absent = os.environ.get("GHA_PAT") == None or os.environ.get("GHA_PAT") == ""
@@ -239,3 +227,78 @@ def get_header_map(filepath):
         key, value = elem.split(": ")
         header[key] = value
     return header
+
+
+def get_zchunk(
+    file,
+    filepath,
+    name,
+    powerloader_binary,
+    mock_server_working,
+    outpath,
+    extra_params=[],
+):
+    headers = get_header_map(str(filepath))
+
+    command = [
+        powerloader_binary,
+        "download",
+        f"{mock_server_working}/" + str(name),
+    ]
+
+    command += extra_params
+    command += [
+        "--zck-header-size",
+        headers["Header size"],
+        "--zck-header-sha",
+        headers["Header checksum"],
+        "-o",
+        str(outpath),
+    ]
+
+    print("command: " + str(command))
+    out = subprocess.check_output(command)
+
+
+def resize_zchunk(powerloader_binary, mock_server_working):
+    command = [
+        powerloader_binary,
+        "download",
+        f"{mock_server_working}/add_content",
+    ]
+    out = subprocess.check_output(command)
+
+
+def get_percentage(delta_size, header_map):
+    map = {}
+    dsize_list = delta_size.decode("utf-8").split(" ")
+    of_idx = [i for i, val in enumerate(dsize_list) if val == "of"]
+    map["percentage to download"] = round(
+        100 * float(dsize_list[of_idx[0] - 1]) / float(dsize_list[of_idx[0] + 1])
+    )
+    map["percentage matched chunks"] = round(
+        100 * float(dsize_list[of_idx[1] - 1]) / float(dsize_list[of_idx[1] + 1])
+    )
+
+    if False:
+        map["header size"] = header_map["Header size"]
+        map["data size"] = header_map["Data size"]
+    else:
+        map["header size / data size"] = round(
+            float(header_map["Header size"]) / float(header_map["Data size"]), 5
+        )
+    return map
+
+
+def get_zck_percent_delta(path):
+    percentage = False
+    try:
+        delta = subprocess.check_output(
+            ["zck_delta_size", str(path), str(path).replace(".zck", "_old.ck")]
+        )
+        header_map = get_header_map(str(path))
+        percentage = get_percentage(delta, header_map)
+    except Exception as e:
+        print("Exception: " + str(e))
+    shutil.copy(str(path), str(path).replace(".zck", "_old.ck"))
+    return percentage
