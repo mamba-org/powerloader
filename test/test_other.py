@@ -1,8 +1,8 @@
 from fixtures import *
 from growing_file import *
 
-class TestAll:
 
+class TestAll:
     @classmethod
     def setup_class(cls):
         pass
@@ -251,8 +251,13 @@ class TestAll:
         remove_all(file)
         out = subprocess.check_output(
             [
-                powerloader_binary, "download", "-f", file["local_mirrors"],
-                "-d", file["tmp_path"], "-v",
+                powerloader_binary,
+                "download",
+                "-f",
+                file["local_mirrors"],
+                "-d",
+                file["tmp_path"],
+                "-v",
             ]
         )
 
@@ -393,7 +398,6 @@ class TestAll:
         assert round(pf_1) < 65
         assert round(pf_2) < 65
 
-
     def test_growing_file(self, file, powerloader_binary, mock_server_working):
         remove_all(file)
 
@@ -402,11 +406,21 @@ class TestAll:
 
         headers = get_header_map(str(filepath) + ".zck")
 
-        command = [powerloader_binary, "download", f"{mock_server_working}/" + str(name) + ".zck",
-                                       "--zck-header-size", headers["Header size"],
-                                       "--zck-header-sha", headers["Data checksum"]]
+        print("Headers: " + str(headers))
 
-        print("Command: " + str(command))
+        command = [
+            powerloader_binary,
+            "download",
+            f"{mock_server_working}/" + str(name) + ".zck",
+            "--zck-header-size",
+            headers["Header size"],
+            "--zck-header-sha",
+            headers["Header checksum"],
+        ]
+
+        # print("Command: " + str(command))
+        # time.sleep(10000)
+        # raise Exception("Stop here!")
         out = subprocess.check_output(command)
 
         """

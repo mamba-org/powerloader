@@ -35,6 +35,13 @@ def parse_byte_range(byte_range):
 
 def conda_mock_handler(port, pkgs, err_type, username, pwd):
     class CondaMockHandler(BaseHTTPRequestHandler):
+        name = "gf" + str(platform.system())
+        filepath = (
+            Path(os.path.dirname(os.path.abspath(__file__)))
+            / Path("static/zchunk/growing_file/")
+            / Path(name)
+        )
+        gf = GrowingFile(path=filepath, initial_exponent=10)
         _port, _pkgs, _err_type = port, pkgs, err_type
         _username, _pwd = username, pwd
         count_thresh = 3
@@ -82,10 +89,15 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
                 return keyword, path
             return path
 
-        def serve_growing_file(self):
+        def grow_file(self):
             self.gf.add_content()
-            keyword, path = self.parse_path('', keyword_expected=True)
-            return self.serve_file(path, harm_keyword=keyword)
+            self.send_response(200)
+            self.end_headers()
+
+        def serve_growing_file(self):
+            # self.gf.add_content()
+            path = self.parse_path()
+            return self.serve_file(path)
 
         def serve_harm_checksum(self):
             """Append two newlines to content of a file (from the static dir) with
@@ -206,9 +218,11 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
             if self.path.startswith("/harm_checksum/static/"):
                 return self.serve_harm_checksum()
 
-            if self.path.startswith('/static/zchunk/growing_file/'):
+            if self.path.startswith("/static/zchunk/growing_file"):
                 return self.serve_growing_file()
 
+            if self.path.startswith("/add_content"):
+                return self.grow_file()
 
             return self.serve_static()
 

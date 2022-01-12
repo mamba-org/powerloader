@@ -228,9 +228,11 @@ def env_vars_absent():
 
     return user_absent and passwd_absent
 
+
 def get_header_map(filepath):
-    print("filepath: " + str(filepath))
-    new_header = subprocess.check_output(["zck_read_header", str(filepath)]).decode("utf-8")
+    new_header = subprocess.check_output(["zck_read_header", str(filepath)]).decode(
+        "utf-8"
+    )
     new_header = new_header.splitlines()
     header = {}
     for elem in new_header:
