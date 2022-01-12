@@ -74,6 +74,7 @@ namespace powerloader
 
         // Zchunk header size
         std::ptrdiff_t zck_header_size = -1;
+        std::unique_ptr<Checksum> zck_header_checksum;
 
         // Total to download in zchunk file
         double total_to_download;

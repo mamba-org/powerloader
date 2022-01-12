@@ -96,8 +96,9 @@ namespace powerloader
         // else
         // {
         // Use supplied filename
-        spdlog::warn("Opening file {}", target->fn);
         temp_file = target->fn + PARTEXT;
+        spdlog::info("Opening file {}", temp_file.string());
+
         std::error_code ec;
         if (this->resume || target->is_zchunk)
         {
@@ -130,15 +131,8 @@ namespace powerloader
             self->range_fail = 1;
             return 0;
         }
-        else
-        {
-            spdlog::info("Writing out ranges");
-            // TODO?
-        }
 
-        auto i = zck_header_cb(buffer, size, nitems, self->target->zck_dl);
-        spdlog::info("ZCK HEADER CALLBACK WROTE: {}", i);
-        return i;
+        return zck_header_cb(buffer, size, nitems, self->target->zck_dl);
     }
 #endif  // WITH_ZCHUNK
 
@@ -289,6 +283,11 @@ namespace powerloader
         {
             spdlog::info("zck: Writing header");
             return zck_write_zck_header_cb(buffer, size, nitems, self->target->zck_dl);
+        }
+        else if (self->zck_state == ZckState::kHEADER_LEAD)
+        {
+            spdlog::info("zck: Writing lead");
+            return self->target->outfile->write(buffer, size, nitems);
         }
         else
         {

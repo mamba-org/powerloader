@@ -182,6 +182,11 @@ namespace powerloader
             ::fflush(m_fs);
         }
 
+        inline const fs::path& path() const
+        {
+            return m_path;
+        }
+
         void close(std::error_code& ec) noexcept
         {
             if (::fclose(m_fs) == 0)

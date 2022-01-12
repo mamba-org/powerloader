@@ -286,7 +286,7 @@ handle_download(const std::vector<std::string>& urls,
             // TODO we should have two different fields for those two
 #ifdef WITH_ZCHUNK
         if (!metadata.zck_header_sha256.empty())
-            targets.back()->checksums.push_back(
+            targets.back()->zck_header_checksum = std::make_unique<Checksum>(
                 Checksum{ ChecksumType::kSHA256, metadata.zck_header_sha256 });
         if (metadata.zck_header_size > 0)
             targets.back()->zck_header_size = metadata.zck_header_size;
