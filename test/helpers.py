@@ -255,8 +255,6 @@ def get_zchunk(
         "-o",
         str(outpath),
     ]
-
-    print("command: " + str(command))
     out = subprocess.check_output(command)
 
 

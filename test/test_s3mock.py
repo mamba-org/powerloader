@@ -20,6 +20,7 @@ class TestS3Mock:
         upload_s3_file(
             powerloader_binary, up_path, server=file["s3_mock_server"], plain_http=True
         )
+
         Path(upload_path).unlink()
         filename = str(file["s3_bucketname"]) + "/" + path_to_name(upload_path)
         generate_s3_download_yml(file, file["s3_mock_server"], filename)

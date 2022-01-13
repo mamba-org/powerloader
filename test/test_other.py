@@ -366,7 +366,6 @@ class TestAll:
         map1 = get_percentage(dsize1, get_header_map(path1 + ".zck"))
         map2 = get_percentage(dsize2, get_header_map(path2 + ".zck"))
 
-        """
         print(
             "Will download "
             + str(round(map1["percentage to download"]))
@@ -381,7 +380,6 @@ class TestAll:
             + str(round(map2["percentage matched chunks"]))
             + "% of chunks."
         )
-        """
 
         assert map1["percentage to download"] < 65
         assert map2["percentage to download"] < 65
