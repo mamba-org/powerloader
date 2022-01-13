@@ -384,7 +384,9 @@ class TestAll:
         assert map1["percentage to download"] < 65
         assert map2["percentage to download"] < 65
 
-    def test_growing_file(self, file, powerloader_binary, mock_server_working):
+    def test_growing_file(
+        self, file, powerloader_binary, mock_server_working, zchunk_expectations
+    ):
 
         remove_all(file)
 
@@ -399,7 +401,8 @@ class TestAll:
             resize_zchunk(powerloader_binary, mock_server_working)
             percentage_map = get_zck_percent_delta(outpath)
             if percentage_map != False:
-                print("percentage_map: " + str(percentage_map))
+                assert zchunk_expectations[i] == percentage_map
+                # print("i: " + str(i) + ", percentage_map: " + str(percentage_map))
                 # print("sha256: " + str(calculate_sha256(outpath)))
                 if percentage_map["header size / data size"] >= (1 * 10 ** -2):
                     assert percentage_map["percentage to download"] > 50

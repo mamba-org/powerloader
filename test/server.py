@@ -27,7 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--error_type", default="404")
     parser.add_argument("-u", "--username", default="")
     parser.add_argument("--pwd", default="")
-    parser.add_argument("--content", default="")
+    parser.add_argument("--cpath", default="")
     parser.add_argument(
         "--pkgs", metavar="N", type=str, nargs="+", help="broken pkgs", default=[]
     )
@@ -40,6 +40,6 @@ if __name__ == "__main__":
         args.error_type,
         args.username,
         args.pwd,
-        args.content,
+        args.cpath,
         args.host,
     )

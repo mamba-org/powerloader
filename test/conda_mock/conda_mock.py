@@ -33,15 +33,19 @@ def parse_byte_range(byte_range):
     return first, last
 
 
-def conda_mock_handler(port, pkgs, err_type, username, pwd, host, content):
+def conda_mock_handler(port, pkgs, err_type, username, pwd, host, content_path):
     class CondaMockHandler(BaseHTTPRequestHandler):
-        name = "gf" + str(platform.system()) + ".zck"
-        filepath = (
-            Path(os.path.dirname(os.path.abspath(__file__)))
-            / Path("static/zchunk/growing_file/")
-            / Path(name)
-        )
-        gf = GrowingFile(path=filepath, content=content, initial_exponent=10)
+        if content_path != "":
+            name = "gf" + str(platform.system()) + ".zck"
+            filepath = (
+                Path(os.path.dirname(os.path.abspath(__file__)))
+                / Path("static/zchunk/growing_file/")
+                / Path(name)
+            )
+            gf = GrowingFile(
+                path=filepath, content_path=content_path, initial_exponent=10
+            )
+
         _port, _pkgs, _err_type = port, pkgs, err_type
         _username, _pwd = username, pwd
         count_thresh = 3

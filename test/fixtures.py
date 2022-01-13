@@ -95,8 +95,90 @@ def checksums():
 
 
 @pytest.fixture
-def uniform_rand_sequence(checksums):
-    yield generate_content(checksums)
+def zchunk_expectations():
+    expect = {}
+    expect[0] = {}
+    expect[1] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 0,
+        "header size / data size": 0.58376,
+    }
+    expect[2] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size / data size": 0.31507,
+    }
+    expect[3] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size / data size": 0.16174,
+    }
+    expect[4] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size / data size": 0.08214,
+    }
+    expect[5] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size / data size": 0.04146,
+    }
+    expect[6] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size / data size": 0.01994,
+    }
+    expect[7] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size / data size": 0.01185,
+    }
+    expect[8] = {
+        "percentage to download": 29,
+        "percentage matched chunks": 67,
+        "header size / data size": 0.00699,
+    }
+    expect[9] = {
+        "percentage to download": 5,
+        "percentage matched chunks": 75,
+        "header size / data size": 0.00532,
+    }
+    expect[10] = {
+        "percentage to download": 14,
+        "percentage matched chunks": 88,
+        "header size / data size": 0.00408,
+    }
+    expect[11] = {
+        "percentage to download": 3,
+        "percentage matched chunks": 93,
+        "header size / data size": 0.00384,
+    }
+    expect[12] = {
+        "percentage to download": 1,
+        "percentage matched chunks": 97,
+        "header size / data size": 0.00315,
+    }
+    expect[13] = {
+        "percentage to download": 3,
+        "percentage matched chunks": 98,
+        "header size / data size": 0.00307,
+    }
+    expect[14] = {
+        "percentage to download": 0,
+        "percentage matched chunks": 99,
+        "header size / data size": 0.00305,
+    }
+    expect[15] = {
+        "percentage to download": 0,
+        "percentage matched chunks": 100,
+        "header size / data size": 0.003,
+    }
+    return expect
+
+
+@pytest.fixture
+def uniform_rand_sequence(file, checksums):
+    yield generate_content(file, checksums)
 
 
 @pytest.fixture
@@ -125,7 +207,7 @@ def mock_server_working(xprocess, uniform_rand_sequence):
     port = 5004
     pkgs = {}
     yield from mock_server(
-        xprocess, "m4", port, pkgs, error_type=None, content=uniform_rand_sequence
+        xprocess, "m4", port, pkgs, error_type=None, content_path=uniform_rand_sequence
     )
 
 

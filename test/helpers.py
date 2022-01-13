@@ -12,7 +12,7 @@ import time
 
 
 def mock_server(
-    xprocess, name, port, pkgs, error_type, uname=None, pwd=None, content=None
+    xprocess, name, port, pkgs, error_type, uname=None, pwd=None, content_path=None
 ):
     curdir = pathlib.Path(__file__).parent
     print("Starting mock_server")
@@ -33,8 +33,8 @@ def mock_server(
             error_type,
             "--pkgs",
             pkgs,
-            "--content",
-            content,
+            "--cpath",
+            content_path,
         ]
 
         if authenticate:
@@ -56,7 +56,7 @@ def mock_server(
 
             return not error
 
-    # logfile = xprocess.ensure(name, Starter)
+    logfile = xprocess.ensure(name, Starter)
 
     if authenticate:
         yield f"http://{uname}:{pwd}@localhost:{port}"
@@ -308,9 +308,13 @@ def get_zck_percent_delta(path):
     return percentage
 
 
-def generate_content(checksums):
+def generate_content(file, checksums):
     np.random.seed(seed=42)
     content = bytes(np.random.randint(256, size=2 ** 26))
     if hashlib.sha256(content).hexdigest() != checksums["random"]:
         raise Exception("Content must always be the same for deterministic tests")
-    return content
+    content_path = str(file["tmp_path"] / Path("original_content"))
+    # Content can't be passed to the server as a parameter (too verbose)
+    with open(content_path, "wb") as fout:
+        fout.write(content)
+    return content_path

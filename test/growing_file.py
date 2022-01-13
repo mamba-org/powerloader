@@ -1,3 +1,4 @@
+from logging import raiseExceptions
 from helpers import *
 
 
@@ -13,7 +14,7 @@ class GrowingFile:
         return success
 
     def add_content(self):
-        with open(self.plain_path, "w") as fout:
+        with open(self.plain_path, "wb") as fout:
             fout.write(self.content[: self.size - 1])
         out = subprocess.check_output(
             ["zck", str(self.plain_path), "-o", str(self.path)]
@@ -23,8 +24,10 @@ class GrowingFile:
             get_zck_percent_delta(self.path),
         )
 
-    def __init__(self, path, content, initial_exponent):
-        self.content, self.initial_exponent = content, initial_exponent
+    def __init__(self, path, content_path, initial_exponent):
+        with open(content_path, "rb") as f:
+            self.content = f.read()
+        self.initial_exponent = initial_exponent
         self.set_size(initial_exponent)
         self.plain_path = str(path).replace(".zck", "")
         self.path = path
