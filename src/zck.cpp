@@ -182,23 +182,6 @@ namespace powerloader
         return res;
     }
 
-    // TODO replace...
-    int lr_copy_content(int source, int dest)
-    {
-        const int bufsize = 2048;
-        char buf[bufsize];
-        ssize_t size;
-
-        lseek(source, 0, SEEK_SET);
-        lseek(dest, 0, SEEK_SET);
-
-        while ((size = read(source, buf, bufsize)) > 0)
-            if (write(dest, buf, size) == -1)
-                return -1;
-
-        return (size < 0) ? -1 : 0;
-    }
-
     bool find_local_zck_header(Target* target)
     {
         zckCtx* zck = nullptr;
@@ -222,16 +205,17 @@ namespace powerloader
                     continue;
                 }
 
-                int chk_fd = open(file.c_str(), O_RDONLY);
-                if (chk_fd < 0)
+                std::error_code ec;
+                FileIO chk_file(file, FileIO::read_binary, ec);
+                if (ec)
                 {
-                    spdlog::warn("zck: Unable to open {} ({})", file.string(), strerror(errno));
+                    spdlog::warn("zck: Unable to open {} ({})", file.string(), ec.message());
                     continue;
                 }
                 bool valid_header = false;
                 try
                 {
-                    valid_header = zck_valid_header(target->target, chk_fd);
+                    valid_header = zck_valid_header(target->target, chk_file.fd());
                 }
                 catch (zchunk_error& e)
                 {
@@ -241,10 +225,8 @@ namespace powerloader
                 if (valid_header)
                 {
                     spdlog::info("zchunk: Found file with same header at ", file.string());
-                    if (lr_copy_content(chk_fd, fd) == 0
-                        && ftruncate(fd, lseek(chk_fd, 0, SEEK_END)) >= 0
-                        && lseek(fd, 0, SEEK_SET) == 0
-                        && (zck = zck_init_read(target->target, chk_fd)))
+                    bool result = target->target->outfile->replace_from(chk_file);
+                    if ((zck = zck_init_read(target)))
                     {
                         found = true;
                         break;
@@ -252,10 +234,8 @@ namespace powerloader
                     else
                     {
                         spdlog::error("Error copying file");
-                        // g_clear_error(&tmp_err);
                     }
                 }
-                close(chk_fd);
             }
         }
         else
@@ -315,7 +295,7 @@ namespace powerloader
             }
         }
 
-        lseek(fd, 0, SEEK_SET);
+        target->target->outfile->seek(0, SEEK_SET);
         zck = zck_create();
         if (!zck_init_adv_read(zck, fd))
         {
@@ -474,14 +454,17 @@ namespace powerloader
         if (!zck_init_adv_read(zck, target->target->outfile->fd()))
         {
             zck_free(&zck);
-            throw zchunk_error("Unable to initialize zchunk file for reading");
+            spdlog::error("Unable to initialize zchunk file for reading");
+            return false;
         }
 
         bool success = zck_read_lead(zck);
         if (!success)
         {
-            throw zchunk_error("Could not read lead");
+            spdlog::error("Could not read lead");
+            return false;
         }
+
         ssize_t header_length = zck_get_header_length(zck);
         char* digest = zck_get_header_digest(zck);
         ChecksumType cktype = checksum_type_from_zck_hash((zck_hash) zck_get_full_hash_type(zck));
@@ -495,6 +478,7 @@ namespace powerloader
         if (target->target->zck_header_size == -1)
             target->target->zck_header_size = header_length;
         target->zck_state = ZckState::kHEADER_CK;
+
         free(digest);
         return true;
     }
@@ -543,20 +527,17 @@ namespace powerloader
             // We need to create a temporary file here, and then download the header there.
             // Then we can read the "lead" using zck_read_lead(...) from that temporary file and
             // compare with what we have on disk
-            //     FILE* tf = tmpfile(void)
             target->target->range = zck_get_range(0, zck_get_min_download_size() - 1);
             target->target->total_to_download = zck_get_min_download_size();
-            // target->target->resume = false;
+            target->target->resume = false;
             target->zck_state = ZckState::kHEADER_LEAD;
             spdlog::info("Header lead download prepared {}", target->target->total_to_download);
-            // return zck_clear_header(target);
             return true;
         }
 
         if (!zck)
         {
             target->zck_state = ZckState::kHEADER_CK;
-            spdlog::debug("Unable to read zchunk header: {}", target->target->path);
             if (!find_local_zck_header(target))
                 return false;
         }

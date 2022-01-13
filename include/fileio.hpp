@@ -89,22 +89,22 @@ namespace powerloader
 #endif
         }
 
-        inline int seek(int offset, int origin) const noexcept
+        inline long int seek(int offset, int origin) const noexcept
         {
             return ::fseek(m_fs, offset, origin);
         }
 
-        inline int seek(unsigned int offset, int origin) const noexcept
+        inline long int seek(unsigned int offset, int origin) const noexcept
         {
             return this->seek(static_cast<long long>(offset), origin);
         }
 
-        inline int seek(long offset, int origin) const noexcept
+        inline long int seek(long offset, int origin) const noexcept
         {
             return ::fseek(m_fs, offset, origin);
         }
 
-        inline int seek(unsigned long offset, int origin) const noexcept
+        inline long int seek(unsigned long offset, int origin) const noexcept
         {
 #ifdef _WIN32
             return ::_fseeki64(m_fs, static_cast<long long>(offset), origin);
@@ -114,7 +114,7 @@ namespace powerloader
 #endif
         }
 
-        inline int seek(long long offset, int origin) const noexcept
+        inline long int seek(long long offset, int origin) const noexcept
         {
 #ifdef _WIN32
             return ::_fseeki64(m_fs, offset, origin);
@@ -133,7 +133,7 @@ namespace powerloader
             return ::ftell(m_fs);
         }
 
-        inline int seek(unsigned long long offset, int origin) const noexcept
+        inline long int seek(unsigned long long offset, int origin) const noexcept
         {
             assert(offset < LLONG_MAX);
             return this->seek(static_cast<long long>(offset), origin);
@@ -159,7 +159,7 @@ namespace powerloader
             return ::fwrite(buffer, element_size, element_count, m_fs);
         }
 
-        inline int put(int c) const noexcept
+        inline long int put(int c) const noexcept
         {
             return ::fputc(c, m_fs);
         }
@@ -186,6 +186,35 @@ namespace powerloader
         {
             return m_path;
         }
+
+        inline bool copy_from(const FileIO& other)
+        {
+            constexpr std::size_t bufsize = 2048;
+            char buf[bufsize];
+            unsigned long size;
+
+            this->seek(0, SEEK_SET);
+            other.seek(0, SEEK_SET);
+
+            while ((size = other.read(buf, 1, bufsize)) > 0)
+                if (this->write(buf, 1, size) == -1)
+                    return false;
+
+            return (size < 0) ? false : true;
+        }
+
+        inline bool replace_from(const FileIO& other)
+        {
+            std::error_code ec;
+            if (copy_from(other) == true)
+            {
+                truncate(other.seek(0, SEEK_END), ec);
+            }
+            this->seek(0, SEEK_SET);
+            other.seek(0, SEEK_SET);
+            return false;
+        }
+
 
         void close(std::error_code& ec) noexcept
         {
