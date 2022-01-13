@@ -146,29 +146,6 @@ namespace powerloader
         return zck_valid_header(target->target, target->target->outfile->fd());
     }
 
-
-    bool zck_clear_header(Target* target)
-    {
-        // assert(target && target->f && target->target && target->target->path);
-
-        // TODO
-        std::error_code ec;
-        target->target->outfile->seek(0L, SEEK_END);
-        target->target->outfile->truncate(0, ec);
-        if (ec)
-        {
-            spdlog::error("Truncation went wrong!");
-            // g_set_error(err, LR_DOWNLOADER_ERROR, LRE_IO,
-            //             "Unable to truncate %s", target->target->path);
-            return false;
-        }
-        else
-        {
-            return true;
-        }
-        return true;
-    }
-
     std::vector<fs::path> get_recursive_files(fs::path dir, const std::string& suffix)
     {
         std::vector<fs::path> res;
@@ -308,7 +285,16 @@ namespace powerloader
         target->zck_state = ZckState::kHEADER;
         spdlog::info("Header download prepared {}", target->target->total_to_download);
 
-        return zck_clear_header(target);
+        // Note: this truncates the header
+        std::error_code ec;
+        target->target->outfile->truncate(0, ec);
+        if (ec)
+        {
+            spdlog::error("Could not truncate zchunk file");
+            return false;
+        }
+        target->target->outfile->seek(0, SEEK_SET);
+        return true;
     }
 
     bool find_local_zck_chunks(Target* target)
@@ -518,7 +504,10 @@ namespace powerloader
                 return false;
 
             if (target->zck_state == ZckState::kHEADER)
+            {
+                target->target->outfile->seek(0, SEEK_SET);
                 return true;
+            }
         }
 
         zck = zck_dl_get_zck(target->target->zck_dl);

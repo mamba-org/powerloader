@@ -477,7 +477,14 @@ namespace powerloader
         h.url(full_url);
 
         // Prepare FILE
-        target->open_target_file();
+        if (!target->target->outfile)
+        {
+            target->open_target_file();
+        }
+        else
+        {
+            target->target->outfile->seek(0, SEEK_SET);
+        }
         target->writecb_received = 0;
         target->writecb_required_range_written = false;
 

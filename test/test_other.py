@@ -301,6 +301,7 @@ class TestAll:
         assert headers[0]["Range"] == "bytes=0-256"
         assert headers[1]["Range"] == "bytes=257-4822"
         assert Path("lorem.txt.zck").exists()
+        assert Path("lorem.txt.zck").stat().st_size == 4823
         assert not Path("lorem.txt.zck.pdpart").exists()
 
         clear_prev_headers(mock_server_working)
@@ -309,7 +310,41 @@ class TestAll:
         assert headers is None
 
         assert Path("lorem.txt.zck").exists()
+        assert Path("lorem.txt.zck").stat().st_size == 4823
         assert not Path("lorem.txt.zck.pdpart").exists()
+
+        # grow the file by tripling the original
+        root = proj_root()
+        new_file = (
+            root / "test" / "conda_mock" / "static" / "zchunk" / "lorem.txt.x3.zck"
+        )
+
+        clear_prev_headers(mock_server_working)
+
+        args_o3 = [
+            powerloader_binary,
+            "download",
+            f"{mock_server_working}/static/zchunk/lorem.txt.x3.zck",
+            "-v",
+            "-o",
+            "lorem.txt.zck",
+        ]
+        out = subprocess.check_output(args_o3)
+
+        headers = get_prev_headers(mock_server_working, 100)
+
+        # lead
+        assert headers[0]["Range"] == "bytes=0-88"
+        # header
+        assert headers[1]["Range"] == "bytes=0-257"
+        range_start = int(headers[2]["Range"][len("bytes=") :].split("-")[0])
+        assert range_start > 4000
+
+        assert Path("lorem.txt.zck").stat().st_size == new_file.stat().st_size
+        assert calculate_sha256(new_file) == calculate_sha256("lorem.txt.zck")
+        assert Path("lorem.txt.zck").exists()
+        assert not Path("lorem.txt.zck.pdpart").exists()
+
         Path("lorem.txt.zck").unlink()
 
     def test_zchunk_basic_nochksum(file, powerloader_binary, mock_server_working):
