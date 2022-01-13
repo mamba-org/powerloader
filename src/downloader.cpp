@@ -507,6 +507,7 @@ namespace powerloader
                 target->state = DownloadState::kFINISHED;
                 target->reset();
                 target->headercb_interrupt_reason.clear();
+                target->call_endcallback(TransferStatus::kSUCCESSFUL);
                 // lr_downloadtarget_set_error(target->target, LRE_OK, NULL);
                 return prepare_next_transfer(candidate_found);
             }

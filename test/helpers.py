@@ -207,10 +207,16 @@ def download_s3_file(powerloader_binary, file, plain_http=False):
 def get_prev_headers(mock_server_working, n_headers=1):
     with urlopen(f"{mock_server_working}/prev_headers") as fi:
         x = json.loads(fi.read().decode("utf-8"))
+        if not x:
+            return x
         if n_headers == 1:
             return x[-1]
         else:
             return x[-n_headers:]
+
+
+def clear_prev_headers(mock_server_working):
+    urlopen(f"{mock_server_working}/clear_prev_headers")
 
 
 def get_percentage(delta_size):

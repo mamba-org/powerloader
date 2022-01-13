@@ -109,6 +109,11 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
             self.end_headers()
             self.wfile.write(data[first : last + 1])
 
+        def clear_prev_headers(self):
+            global prev_headers
+            prev_headers = []
+            return self.return_ok_with_message("OK")
+
         def serve_prev_headers(self):
             if not prev_headers:
                 self.return_ok_with_message(
@@ -194,6 +199,8 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
         def get_main(self):
             if self.path.startswith("/prev_headers"):
                 return self.serve_prev_headers()
+            if self.path.startswith("/clear_prev_headers"):
+                return self.clear_prev_headers()
 
             if self.path.startswith("/broken_counts/static/"):
                 return self.return_not_found_counts()
