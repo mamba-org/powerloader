@@ -3,6 +3,7 @@ from urllib.request import urlopen
 import platform, datetime
 import shutil, subprocess
 import os, time, json
+import numpy as np
 
 from helpers import *
 
@@ -89,8 +90,18 @@ def checksums():
         "boa-0.8.1.tar.gz": "b824237d80155efd97b79469534d602637b40a2a27c4f71417d5e6977238ff74",
         "artifact": "c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4",
         "mock_artifact": "5b3513f580c8397212ff2c8f459c199efc0c90e4354a5f3533adf0a3fff3a530",
+        "random": "98df12664c9cff65bdc764c7a73f2c905f8ee639b4579471d704eaef175f5cf2",
     }
     return cksums
+
+
+@pytest.fixture
+def uniform_rand_sequence(checksums):
+    np.random.seed(seed=42)
+    content = bytes(np.random.randint(256, size=2 ** 26))
+    if hashlib.sha256(content).hexdigest() != checksums["random"]:
+        raise Exception("Content must always be the same for deterministic tests")
+    yield content
 
 
 @pytest.fixture
@@ -115,10 +126,12 @@ def mock_server_broken(xprocess, checksums):
 
 
 @pytest.fixture
-def mock_server_working(xprocess, checksums):
+def mock_server_working(xprocess, uniform_rand_sequence):
     port = 5004
     pkgs = {}
-    yield from mock_server(xprocess, "m4", port, pkgs, error_type=None)
+    yield from mock_server(
+        xprocess, "m4", port, pkgs, error_type=None, content=uniform_rand_sequence
+    )
 
 
 @pytest.fixture

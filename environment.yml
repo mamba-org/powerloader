@@ -21,3 +21,4 @@ dependencies:
   - pip:
     - pytest-xprocess
     - requests
+    - numpy

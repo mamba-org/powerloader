@@ -7,9 +7,12 @@ import sys, socket, pathlib
 from pathlib import Path
 import json, os
 import requests
+import time
 
 
-def mock_server(xprocess, name, port, pkgs, error_type, uname=None, pwd=None):
+def mock_server(
+    xprocess, name, port, pkgs, error_type, uname=None, pwd=None, content=None
+):
     curdir = pathlib.Path(__file__).parent
     print("Starting mock_server")
     authenticate = (uname is not None) and (pwd is not None)

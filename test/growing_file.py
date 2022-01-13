@@ -3,7 +3,6 @@ from helpers import *
 
 class GrowingFile:
     max_exponent = 26
-    content = "".encode("utf-8")
 
     def set_size(self, exponent):
         self.exponent = exponent
@@ -11,14 +10,11 @@ class GrowingFile:
         success = 2 ** exponent <= 2 ** self.max_exponent
         if success == False:
             self.exponent = self.initial_exponent
-            self.content = "".encode("utf-8")
         return success
 
     def add_content(self):
-        self.content += os.urandom(self.size)
-
-        with open(self.plain_path, "wb") as fout:
-            fout.write(self.content)
+        with open(self.plain_path, "w") as fout:
+            fout.write(self.content[: self.size - 1])
         out = subprocess.check_output(
             ["zck", str(self.plain_path), "-o", str(self.path)]
         )
@@ -27,12 +23,11 @@ class GrowingFile:
             get_zck_percent_delta(self.path),
         )
 
-    def __init__(self, path, initial_exponent):
-        self.initial_exponent = initial_exponent
+    def __init__(self, path, content, initial_exponent):
+        self.content, self.initial_exponent = content, initial_exponent
         self.set_size(initial_exponent)
         self.plain_path = str(path).replace(".zck", "")
         self.path = path
-        self.add_content()
 
     def __del__(self):
         pass
