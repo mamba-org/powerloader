@@ -124,13 +124,13 @@ namespace powerloader
                 if (zck_is_error(zck) == 1)
                 {
                     // Non-fatal zchunk error
-                    spdlog::warn("Serious zchunk error: %s", zck_get_error(zck));
+                    spdlog::warn("Serious zchunk error: {}", zck_get_error(zck));
                     throw download_error(zck_get_error(zck), true);
                 }
                 else
                 {
                     // Fatal zchunk error (zck_is_error(zck) == 2)
-                    spdlog::error("Fatal zchunk error: %s", zck_get_error(zck));
+                    spdlog::error("Fatal zchunk error: {}", zck_get_error(zck));
                     throw fatal_download_error(zck_get_error(zck));
                 }
                 return true;
@@ -769,7 +769,12 @@ namespace powerloader
             if (current_target->target->is_zchunk)
             {
                 zckCtx* zck = nullptr;
-                if (current_target->zck_state == ZckState::kHEADER)
+                if (current_target->zck_state == ZckState::kHEADER_LEAD)
+                {
+                    if (!zck_read_lead(current_target))
+                        goto transfer_error;
+                }
+                else if (current_target->zck_state == ZckState::kHEADER)
                 {
                     if (current_target->mirror->max_ranges > 0
                         && current_target->mirror->protocol == Protocol::kHTTP

@@ -21,26 +21,39 @@ namespace powerloader
                 return ZCK_HASH_UNKNOWN;
         }
     }
+    ChecksumType checksum_type_from_zck_hash(zck_hash hash_type)
+    {
+        switch (hash_type)
+        {
+            case ZCK_HASH_SHA1:
+                return ChecksumType::kSHA1;
+            case ZCK_HASH_SHA256:
+                return ChecksumType::kSHA256;
+            default:
+                throw zchunk_error("zck: Hash type not known");
+        }
+    }
 
-    zckCtx* init_zck_read(const char* checksum,
-                          ChecksumType checksum_type,
+    zckCtx* init_zck_read(const std::unique_ptr<Checksum>& checksum,
                           ptrdiff_t zck_header_size,
                           int fd)
     {
         // assert(!err || *err == NULL);
-
+        if (!checksum)
+        {
+            throw zchunk_error("No header checksum set");
+        }
         zckCtx* zck = zck_create();
         if (!zck_init_adv_read(zck, fd))
         {
             zck_free(&zck);
             throw zchunk_error("Unable to initialize zchunk file for reading");
         }
-        zck_hash ct = zck_hash_from_checksum(checksum_type);
+        zck_hash ct = zck_hash_from_checksum(checksum->type);
         if (ct == ZCK_HASH_UNKNOWN)
         {
             zck_free(&zck);
-            throw zchunk_error(
-                fmt::format("Zchunk doesn't support checksum type {}", checksum_type));
+            throw zchunk_error(fmt::format("Zchunk doesn't support checksum type {}", ct));
         }
         if (!zck_set_ioption(zck, ZCK_VAL_HEADER_HASH_TYPE, ct))
         {
@@ -53,22 +66,23 @@ namespace powerloader
             zck_free(&zck);
             throw zchunk_error("Error setting header size");
         }
-        if (!zck_set_soption(zck, ZCK_VAL_HEADER_DIGEST, checksum, strlen(checksum)))
+        if (!zck_set_soption(
+                zck, ZCK_VAL_HEADER_DIGEST, checksum->checksum.data(), checksum->checksum.size()))
         {
             zck_free(&zck);
-            throw zchunk_error(fmt::format("Unable to set validation checksum: {}", checksum));
+            throw zchunk_error(
+                fmt::format("Unable to set validation checksum: {}", checksum->checksum));
         }
         spdlog::info("Successful init zck read");
         return zck;
     }
 
-    zckCtx* zck_init_read_base(const char* checksum,
-                               ChecksumType checksum_type,
+    zckCtx* zck_init_read_base(const std::unique_ptr<Checksum>& checksum,
                                std::ptrdiff_t zck_header_size,
                                int fd)
     {
         lseek(fd, 0, SEEK_SET);
-        zckCtx* zck = init_zck_read(checksum, checksum_type, zck_header_size, fd);
+        zckCtx* zck = init_zck_read(checksum, zck_header_size, fd);
 
         if (zck == nullptr)
             return nullptr;
@@ -87,13 +101,12 @@ namespace powerloader
         return zck;
     }
 
-    bool zck_valid_header_base(const char* checksum,
-                               ChecksumType checksum_type,
+    bool zck_valid_header_base(const std::unique_ptr<Checksum>& checksum,
                                std::ptrdiff_t zck_header_size,
                                int fd)
     {
         lseek(fd, 0, SEEK_SET);
-        zckCtx* zck = init_zck_read(checksum, checksum_type, zck_header_size, fd);
+        zckCtx* zck = init_zck_read(checksum, zck_header_size, fd);
         if (zck == nullptr)
             return false;
 
@@ -110,38 +123,15 @@ namespace powerloader
     {
         zckCtx* zck = nullptr;
         bool found = false;
-        for (auto& chksum : target->checksums)
-        {
-            spdlog::info("Checking checksum: {}: {}", chksum.type, "lll");
-            try
-            {
-                zck = zck_init_read_base(
-                    chksum.checksum.data(), chksum.type, target->zck_header_size, fd);
-            }
-            catch (const std::exception& e)
-            {
-                spdlog::info("Didnt find matching header...");
-                continue;
-            }
-            found = true;
-            break;
-        }
-        if (!found)
-        {
-            throw zchunk_error("Zchunk header checksum didn't match expected checksum");
-        }
+        zck = zck_init_read_base(target->zck_header_checksum, target->zck_header_size, fd);
         return zck;
     }
 
     bool zck_valid_header(const std::shared_ptr<DownloadTarget>& target, int fd)
     {
-        for (auto& chksum : target->checksums)
+        if (zck_valid_header_base(target->zck_header_checksum, target->zck_header_size, fd))
         {
-            if (zck_valid_header_base(
-                    chksum.checksum.data(), chksum.type, target->zck_header_size, fd))
-            {
-                return true;
-            }
+            return true;
         }
         throw zchunk_error(fmt::format("{}'s zchunk header doesn't match", target->path));
     }
@@ -192,86 +182,49 @@ namespace powerloader
         return res;
     }
 
-    // TODO replace...
-    int lr_copy_content(int source, int dest)
-    {
-        const int bufsize = 2048;
-        char buf[bufsize];
-        ssize_t size;
-
-        lseek(source, 0, SEEK_SET);
-        lseek(dest, 0, SEEK_SET);
-
-        while ((size = read(source, buf, bufsize)) > 0)
-            if (write(dest, buf, size) == -1)
-                return -1;
-
-        return (size < 0) ? -1 : 0;
-    }
-
     bool find_local_zck_header(Target* target)
     {
         zckCtx* zck = nullptr;
         bool found = false;
         int fd = target->target->outfile->fd();
+        auto dt = target->target;
 
-        fs::path& cache_dir = Context::instance().cache_dir;
-        if (!cache_dir.empty() && fs::exists(cache_dir))
+        if (!dt->zck_cache_file.empty() && fs::exists(dt->zck_cache_file))
         {
-            spdlog::info("Cache directory: {}", cache_dir.string());
-            auto filelist = get_recursive_files(cache_dir, ".zck");
-
-            fs::path destdir = cache_dir;
-            fs::path dest = destdir / target->target->path;
-            spdlog::info("Saving zck file to {}", dest.string());
-
-            for (const auto& file : filelist)
+            std::error_code ec;
+            FileIO chk_file(dt->zck_cache_file, FileIO::read_binary, ec);
+            if (ec)
             {
-                if (dest == file)
-                {
-                    continue;
-                }
+                spdlog::warn("zck: Unable to open {} ({})", chk_file.path().string(), ec.message());
+                return false;
+            }
+            bool valid_header = false;
+            try
+            {
+                valid_header = zck_valid_header(target->target, chk_file.fd());
+            }
+            catch (zchunk_error& e)
+            {
+                spdlog::info("zck: no valid header {}", e.what());
+            };
 
-                int chk_fd = open(file.c_str(), O_RDONLY);
-                if (chk_fd < 0)
+            if (valid_header)
+            {
+                spdlog::info("zchunk: Found file with same header at {}", chk_file.path().string());
+                bool result = target->target->outfile->replace_from(chk_file);
+                if ((zck = zck_init_read(target)))
                 {
-                    // spdlog::info("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
-                    spdlog::warn("zck: Unable to open {}", file.string());
-                    continue;
+                    found = true;
                 }
-                bool valid_header = false;
-                try
+                else
                 {
-                    valid_header = zck_valid_header(target->target, chk_fd);
+                    spdlog::error("Error copying file");
                 }
-                catch (zchunk_error& e)
-                {
-                    spdlog::info("zck: no valid header {}", e.what());
-                };
-
-                if (valid_header)
-                {
-                    spdlog::info("zchunk: Found file with same header at ", file.string());
-                    if (lr_copy_content(chk_fd, fd) == 0
-                        && ftruncate(fd, lseek(chk_fd, 0, SEEK_END)) >= 0
-                        && lseek(fd, 0, SEEK_SET) == 0
-                        && (zck = zck_init_read(target->target, chk_fd)))
-                    {
-                        found = true;
-                        break;
-                    }
-                    else
-                    {
-                        spdlog::error("Error copying file");
-                        // g_clear_error(&tmp_err);
-                    }
-                }
-                close(chk_fd);
             }
         }
         else
         {
-            spdlog::info("No cache directory set.");
+            spdlog::info("No zchunk cache file set or found");
         }
 
         if (found)
@@ -290,7 +243,6 @@ namespace powerloader
         return true;
     }
 
-    // TODO allow headers when not knowing header size / header checksum
     bool prepare_zck_header(Target* target)
     {
         zckCtx* zck = nullptr;
@@ -327,7 +279,7 @@ namespace powerloader
             }
         }
 
-        lseek(fd, 0, SEEK_SET);
+        target->target->outfile->seek(0, SEEK_SET);
         zck = zck_create();
         if (!zck_init_adv_read(zck, fd))
         {
@@ -371,52 +323,37 @@ namespace powerloader
                                            target->target->path,
                                            zck_get_error(zck)));
         }
-        // if (target->target->handle->cachedir)
 
-        fs::path& cache_dir = Context::instance().cache_dir;
-        if (!cache_dir.empty() && fs::exists(cache_dir))
+        auto dt = target->target;
+        if (!dt->zck_cache_file.empty() && fs::exists(dt->zck_cache_file))
         {
-            spdlog::info("Cache directory: {}", cache_dir.string());
-            auto filelist = get_recursive_files(cache_dir, ".zck");
-            bool found = false;
+            std::error_code ec;
+            FileIO chk_file(dt->zck_cache_file, FileIO::read_binary, ec);
 
-            fs::path dest = cache_dir / target->target->path;
-
-            for (const auto& file : filelist)
+            if (ec)
             {
-                if (dest == file)
-                {
-                    continue;
-                }
-
-                int chk_fd = open(file.c_str(), O_RDONLY);
-                if (chk_fd < 0)
-                {
-                    // spdlog::info("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
-                    spdlog::warn("Unable to open {}", file.string());
-                    continue;
-                }
-
-                zckCtx* zck_src = zck_create();
-                if (!zck_init_read(zck_src, chk_fd))
-                {
-                    close(chk_fd);
-                    continue;
-                }
-
-                if (!zck_copy_chunks(zck_src, zck))
-                {
-                    spdlog::warn("Error copying chunks: {}", zck_get_error(zck));
-                    // g_warning("Error copying chunks from %s to %s: %s", cf, uf,
-                    // zck_get_error(zck));
-                    zck_free(&zck_src);
-                    close(chk_fd);
-                    continue;
-                }
-                zck_free(&zck_src);
-                close(chk_fd);
+                spdlog::warn("Unable to open {}: {}", chk_file.path().string(), ec.message());
+                return false;
             }
+
+            zckCtx* zck_src = zck_create();
+            if (!zck_init_read(zck_src, chk_file.fd()))
+            {
+                return false;
+            }
+
+            if (!zck_copy_chunks(zck_src, zck))
+            {
+                spdlog::warn("Error copying chunks from {} to {}: {}",
+                             chk_file.path().string(),
+                             dt->outfile->path().string(),
+                             zck_get_error(zck));
+                zck_free(&zck_src);
+                return false;
+            }
+            zck_free(&zck_src);
         }
+
         target->target->downloaded = target->target->total_to_download;
 
         // Calculate how many bytes need to be downloaded
@@ -477,6 +414,44 @@ namespace powerloader
         return true;
     }
 
+    bool zck_read_lead(Target* target)
+    {
+        zckCtx* zck = zck_create();
+        target->target->outfile->flush();
+        target->target->outfile->seek(0, SEEK_SET);
+
+        if (!zck_init_adv_read(zck, target->target->outfile->fd()))
+        {
+            zck_free(&zck);
+            spdlog::error("Unable to initialize zchunk file for reading");
+            return false;
+        }
+
+        bool success = zck_read_lead(zck);
+        if (!success)
+        {
+            spdlog::error("Could not read lead");
+            return false;
+        }
+
+        ssize_t header_length = zck_get_header_length(zck);
+        char* digest = zck_get_header_digest(zck);
+        ChecksumType cktype = checksum_type_from_zck_hash((zck_hash) zck_get_full_hash_type(zck));
+
+        spdlog::info("zck: Found header size: {}\n", header_length);
+        spdlog::info("zck: Found header digest: {} ({})\n", digest, strlen(digest));
+
+        if (!target->target->zck_header_checksum)
+            target->target->zck_header_checksum
+                = std::make_unique<Checksum>(Checksum{ ChecksumType::kSHA256, digest });
+        if (target->target->zck_header_size == -1)
+            target->target->zck_header_size = header_length;
+        target->zck_state = ZckState::kHEADER_CK;
+
+        free(digest);
+        return true;
+    }
+
     bool check_zck(Target* target)
     {
         assert(target);
@@ -486,7 +461,7 @@ namespace powerloader
         if (target->mirror
             && (target->mirror->max_ranges == 0 || target->mirror->protocol != Protocol::kHTTP))
         {
-            spdlog::info("zck: mirror does not support zck");
+            spdlog::info("zck: mirror does not support ranges");
             target->zck_state = ZckState::kBODY;
             target->target->expected_size = target->target->orig_size;
             target->target->range.clear();
@@ -516,25 +491,22 @@ namespace powerloader
         zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
         if (target->zck_state == ZckState::kHEADER_LEAD)
         {
-            spdlog::critical("zck: download without header_size & hash not implemented yet");
+            spdlog::info("zck: downloading lead to find header size and hash");
+
             // We need to create a temporary file here, and then download the header there.
             // Then we can read the "lead" using zck_read_lead(...) from that temporary file and
             // compare with what we have on disk
-            //     FILE* tf = tmpfile(void)
-            //     target->target->range = zck_get_range(0, zck_get_min_download_size() - 1);
-            //     target->target->total_to_download = zck_get_min_download_size();
-            //     target->target->resume = false;
-            //     target->zck_state = ZckState::kHEADER_LEAD;
-            //     spdlog::info("Header lead download prepared {}",
-            //     target->target->total_to_download);
-            //     // return zck_clear_header(target);
-            //     return true;
+            target->target->range = zck_get_range(0, zck_get_min_download_size() - 1);
+            target->target->total_to_download = zck_get_min_download_size();
+            target->target->resume = false;
+            target->zck_state = ZckState::kHEADER_LEAD;
+            spdlog::info("Header lead download prepared {}", target->target->total_to_download);
+            return true;
         }
 
         if (!zck)
         {
             target->zck_state = ZckState::kHEADER_CK;
-            spdlog::debug("Unable to read zchunk header: {}", target->target->path);
             if (!find_local_zck_header(target))
                 return false;
         }
@@ -571,8 +543,6 @@ namespace powerloader
                 target->zck_state = ZckState::kFINISHED;
                 return true;
             }
-
-            spdlog::debug("Downloading rest of zchunk body: {}", target->target->path);
 
             // Download the remaining checksums
             zck_reset_failed_chunks(zck);

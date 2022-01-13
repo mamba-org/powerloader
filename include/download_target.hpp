@@ -21,7 +21,7 @@ namespace powerloader
     public:
         inline DownloadTarget(const std::string& path,
                               const std::string& base_url,
-                              const std::string& fn)
+                              const fs::path& fn)
             : path(path)
             , fn(fn)
             , base_url(base_url)
@@ -35,6 +35,13 @@ namespace powerloader
             {
                 complete_url = join_url(base_url, path);
             }
+
+#if WITH_ZCHUNK
+            if (is_zchunk)
+            {
+                zck_cache_file = fn;
+            }
+#endif
         }
 
         bool has_complete_url()
@@ -47,8 +54,10 @@ namespace powerloader
         bool no_cache = false;
 
         std::string complete_url;
-        std::string fn, path, base_url;
+        std::string path, base_url;
         std::unique_ptr<FileIO> outfile;
+
+        fs::path fn;
 
         std::size_t byterange_start = 0, byterange_end = 0;
         std::string range;
@@ -62,8 +71,7 @@ namespace powerloader
         EndCb endcb = nullptr;
         void* cbdata = nullptr;
 
-        // these are available checksums for the entire file  or, in the case of a zchunk file,
-        // for the header because the zchunk header contains checksums for the rest of the file.
+        // these are available checksums for the entire file
         std::vector<Checksum> checksums;
 
         // error code
@@ -74,6 +82,9 @@ namespace powerloader
 
         // Zchunk header size
         std::ptrdiff_t zck_header_size = -1;
+        std::unique_ptr<Checksum> zck_header_checksum;
+
+        fs::path zck_cache_file;
 
         // Total to download in zchunk file
         double total_to_download;

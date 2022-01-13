@@ -24,19 +24,17 @@ namespace powerloader
     };
 
     zck_hash zck_hash_from_checksum(ChecksumType checksum_type);
+    ChecksumType checksum_type_from_zck_hash(zck_hash hash_type);
 
-    zckCtx* init_zck_read(const char* checksum,
-                          ChecksumType checksum_type,
+    zckCtx* init_zck_read(const std::unique_ptr<Checksum>& chksum,
                           ptrdiff_t zck_header_size,
                           int fd);
 
-    zckCtx* zck_init_read_base(const char* checksum,
-                               ChecksumType checksum_type,
+    zckCtx* zck_init_read_base(const std::unique_ptr<Checksum>& chksum,
                                std::ptrdiff_t zck_header_size,
                                int fd);
 
-    bool zck_valid_header_base(const char* checksum,
-                               ChecksumType checksum_type,
+    bool zck_valid_header_base(const std::unique_ptr<Checksum>& chksum,
                                std::ptrdiff_t zck_header_size,
                                int fd);
 
@@ -47,7 +45,7 @@ namespace powerloader
     bool zck_valid_header(Target* target);
 
     bool zck_clear_header(Target* target);
-
+    bool zck_read_lead(Target* target);
     std::vector<fs::path> get_recursive_files(fs::path dir, const std::string& suffix);
 
     // TODO replace...
