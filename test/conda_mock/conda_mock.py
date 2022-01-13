@@ -10,7 +10,7 @@ def file_path(path):
 
 
 failure_count = 0
-prev_headers = None
+prev_headers = []
 BYTE_RANGE_RE = re.compile(r"bytes=(\d+)-(\d+)?$")
 
 
@@ -114,16 +114,20 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
                 self.return_ok_with_message(
                     json.dumps(None).encode("utf-8"), "application/json"
                 )
-            d = {}
-            for k in prev_headers.keys():
-                d[k] = prev_headers[k]
+
+            res = []
+            for el in prev_headers:
+                d = {}
+                for k in el.keys():
+                    d[k] = el[k]
+                res.append(d)
             self.return_ok_with_message(
-                json.dumps(d).encode("utf-8"), "application/json"
+                json.dumps(res).encode("utf-8"), "application/json"
             )
 
         def serve_file(self, path, harm_keyword=None):
             global prev_headers
-            prev_headers = self.headers
+            prev_headers.append(self.headers)
 
             if "Range" not in self.headers:
                 self.range = None

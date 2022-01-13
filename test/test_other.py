@@ -296,6 +296,30 @@ class TestAll:
             ]
         )
 
+        headers = get_prev_headers(mock_server_working, 2)
+        assert headers[0]["Range"] == "bytes=0-256"
+        assert headers[1]["Range"] == "bytes=257-4822"
+        assert Path("lorem.txt.zck").exists()
+
+        assert Path("lorem.txt.zck").exists()
+        Path("lorem.txt.zck").unlink()
+
+    def test_zchunk_basic_nochksum(file, powerloader_binary, mock_server_working):
+        # Download the expected file
+        assert not Path("lorem.txt.zck").exists()
+
+        out = subprocess.check_output(
+            [
+                powerloader_binary,
+                "download",
+                f"{mock_server_working}/static/zchunk/lorem.txt.zck",
+            ]
+        )
+
+        headers = get_prev_headers(mock_server_working, 3)
+        assert headers[0]["Range"] == "bytes=0-88"
+        assert headers[1]["Range"] == "bytes=0-256"
+        assert headers[2]["Range"] == "bytes=257-4822"
         assert Path("lorem.txt.zck").exists()
         Path("lorem.txt.zck").unlink()
 
