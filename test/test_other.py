@@ -385,6 +385,7 @@ class TestAll:
         assert map2["percentage to download"] < 65
 
     def test_growing_file(self, file, powerloader_binary, mock_server_working):
+
         remove_all(file)
 
         name = Path("static/zchunk/growing_file/gf" + str(platform.system()) + ".zck")
@@ -398,8 +399,8 @@ class TestAll:
             resize_zchunk(powerloader_binary, mock_server_working)
             percentage_map = get_zck_percent_delta(outpath)
             if percentage_map != False:
-                # print("percentage_map: " + str(percentage_map))
-                print("sha256: " + str(calculate_sha256(outpath)))
+                print("percentage_map: " + str(percentage_map))
+                # print("sha256: " + str(calculate_sha256(outpath)))
                 if percentage_map["header size / data size"] >= (1 * 10 ** -2):
                     assert percentage_map["percentage to download"] > 50
                 elif percentage_map["header size / data size"] <= (6 * 10 ** -4):

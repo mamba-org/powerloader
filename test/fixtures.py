@@ -3,7 +3,6 @@ from urllib.request import urlopen
 import platform, datetime
 import shutil, subprocess
 import os, time, json
-import numpy as np
 
 from helpers import *
 
@@ -97,11 +96,7 @@ def checksums():
 
 @pytest.fixture
 def uniform_rand_sequence(checksums):
-    np.random.seed(seed=42)
-    content = bytes(np.random.randint(256, size=2 ** 26))
-    if hashlib.sha256(content).hexdigest() != checksums["random"]:
-        raise Exception("Content must always be the same for deterministic tests")
-    yield content
+    yield generate_content(checksums)
 
 
 @pytest.fixture

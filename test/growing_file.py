@@ -28,6 +28,8 @@ class GrowingFile:
         self.set_size(initial_exponent)
         self.plain_path = str(path).replace(".zck", "")
         self.path = path
+        if self.content == "":
+            raise Exception("Content is required")
 
     def __del__(self):
         pass

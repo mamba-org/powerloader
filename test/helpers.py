@@ -5,6 +5,7 @@ from urllib.request import urlopen
 import os, subprocess, shutil
 import sys, socket, pathlib
 from pathlib import Path
+import numpy as np
 import json, os
 import requests
 import time
@@ -32,6 +33,8 @@ def mock_server(
             error_type,
             "--pkgs",
             pkgs,
+            "--content",
+            content,
         ]
 
         if authenticate:
@@ -53,7 +56,7 @@ def mock_server(
 
             return not error
 
-    logfile = xprocess.ensure(name, Starter)
+    # logfile = xprocess.ensure(name, Starter)
 
     if authenticate:
         yield f"http://{uname}:{pwd}@localhost:{port}"
@@ -303,3 +306,11 @@ def get_zck_percent_delta(path):
         print("Exception: " + str(e))
     shutil.copy(str(path), str(path).replace(".zck", "_old.ck"))
     return percentage
+
+
+def generate_content(checksums):
+    np.random.seed(seed=42)
+    content = bytes(np.random.randint(256, size=2 ** 26))
+    if hashlib.sha256(content).hexdigest() != checksums["random"]:
+        raise Exception("Content must always be the same for deterministic tests")
+    return content

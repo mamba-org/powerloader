@@ -33,7 +33,7 @@ def parse_byte_range(byte_range):
     return first, last
 
 
-def conda_mock_handler(port, pkgs, err_type, username, pwd, content):
+def conda_mock_handler(port, pkgs, err_type, username, pwd, host, content):
     class CondaMockHandler(BaseHTTPRequestHandler):
         name = "gf" + str(platform.system()) + ".zck"
         filepath = (

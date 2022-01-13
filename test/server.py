@@ -10,7 +10,7 @@ except (ValueError, ImportError):
 
 
 def start_server(port, broken, err_type, username, pwd, content, host="127.0.0.1"):
-    handler = conda_mock_handler(port, broken, err_type, username, pwd, content)
+    handler = conda_mock_handler(port, broken, err_type, username, pwd, host, content)
     print(f"Starting server with {port} on {host}")
     print(f"Missing packages: {broken}\n")
     print("Server started!")
@@ -33,12 +33,13 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
     start_server(
         args.port,
         set(args.pkgs),
         args.error_type,
         args.username,
         args.pwd,
-        args.host,
         args.content,
+        args.host,
     )
