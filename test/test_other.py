@@ -284,18 +284,50 @@ class TestAll:
         # Download the expected file
         assert not Path("lorem.txt.zck").exists()
 
+        args = [
+            powerloader_binary,
+            "download",
+            f"{mock_server_working}/static/zchunk/lorem.txt.zck",
+            "--zck-header-size",
+            "257",
+            "--zck-header-sha",
+            "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b",
+            "-v",
+        ]
+
+        out = subprocess.check_output(args)
+
+        headers = get_prev_headers(mock_server_working, 2)
+        assert headers[0]["Range"] == "bytes=0-256"
+        assert headers[1]["Range"] == "bytes=257-4822"
+        assert Path("lorem.txt.zck").exists()
+        assert not Path("lorem.txt.zck.pdpart").exists()
+
+        clear_prev_headers(mock_server_working)
+        out = subprocess.check_output(args)
+        headers = get_prev_headers(mock_server_working, 100)
+        assert headers is None
+
+        assert Path("lorem.txt.zck").exists()
+        assert not Path("lorem.txt.zck.pdpart").exists()
+        Path("lorem.txt.zck").unlink()
+
+    def test_zchunk_basic_nochksum(file, powerloader_binary, mock_server_working):
+        # Download the expected file
+        assert not Path("lorem.txt.zck").exists()
+
         out = subprocess.check_output(
             [
                 powerloader_binary,
                 "download",
                 f"{mock_server_working}/static/zchunk/lorem.txt.zck",
-                "--zck-header-size",
-                "257",
-                "--zck-header-sha",
-                "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b",
             ]
         )
 
+        headers = get_prev_headers(mock_server_working, 3)
+        assert headers[0]["Range"] == "bytes=0-88"
+        assert headers[1]["Range"] == "bytes=0-256"
+        assert headers[2]["Range"] == "bytes=257-4822"
         assert Path("lorem.txt.zck").exists()
         Path("lorem.txt.zck").unlink()
 

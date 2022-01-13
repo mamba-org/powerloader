@@ -79,22 +79,6 @@ namespace powerloader
 
     void Target::open_target_file()
     {
-        /** Open the file to write to */
-        // if (target->fd && target->fd->is_open())
-        // {
-        //     // Use supplied filedescriptor
-        //     spdlog::info("Using supplied fd");
-        //     // return target->fd;
-        //     // if (fd == -1)
-        //     // {
-        //     //     g_set_error(err, LR_DOWNLOADER_ERROR, LRE_IO,
-        //     //                 "dup(%d) failed: %s",
-        //     //                 target->target->fd, g_strerror(errno));
-        //     //     return nullptr;
-        //     // }
-        // }
-        // else
-        // {
         // Use supplied filename
         fs::path fn = target->fn;
         temp_file = fn.replace_extension(fn.extension().string() + PARTEXT);
@@ -114,9 +98,6 @@ namespace powerloader
         {
             throw std::runtime_error("Could not open target file.");
         }
-        // }
-
-        // return target->outfile;
     }
 
 #ifdef WITH_ZCHUNK
