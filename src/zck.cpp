@@ -187,60 +187,44 @@ namespace powerloader
         zckCtx* zck = nullptr;
         bool found = false;
         int fd = target->target->outfile->fd();
+        auto dt = target->target;
 
-        fs::path& cache_dir = Context::instance().cache_dir;
-        if (!cache_dir.empty() && fs::exists(cache_dir))
+        if (!dt->zck_cache_file.empty() && fs::exists(dt->zck_cache_file))
         {
-            spdlog::info("Cache directory: {}", cache_dir.string());
-            auto filelist = get_recursive_files(cache_dir, ".zck");
-
-            fs::path destdir = cache_dir;
-            fs::path dest = destdir / target->target->path;
-            spdlog::info("Saving zck file to {}", dest.string());
-
-            for (const auto& file : filelist)
+            std::error_code ec;
+            FileIO chk_file(dt->zck_cache_file, FileIO::read_binary, ec);
+            if (ec)
             {
-                if (dest == file)
-                {
-                    continue;
-                }
+                spdlog::warn("zck: Unable to open {} ({})", chk_file.path().string(), ec.message());
+                return false;
+            }
+            bool valid_header = false;
+            try
+            {
+                valid_header = zck_valid_header(target->target, chk_file.fd());
+            }
+            catch (zchunk_error& e)
+            {
+                spdlog::info("zck: no valid header {}", e.what());
+            };
 
-                std::error_code ec;
-                FileIO chk_file(file, FileIO::read_binary, ec);
-                if (ec)
+            if (valid_header)
+            {
+                spdlog::info("zchunk: Found file with same header at {}", chk_file.path().string());
+                bool result = target->target->outfile->replace_from(chk_file);
+                if ((zck = zck_init_read(target)))
                 {
-                    spdlog::warn("zck: Unable to open {} ({})", file.string(), ec.message());
-                    continue;
+                    found = true;
                 }
-                bool valid_header = false;
-                try
+                else
                 {
-                    valid_header = zck_valid_header(target->target, chk_file.fd());
-                }
-                catch (zchunk_error& e)
-                {
-                    spdlog::info("zck: no valid header {}", e.what());
-                };
-
-                if (valid_header)
-                {
-                    spdlog::info("zchunk: Found file with same header at ", file.string());
-                    bool result = target->target->outfile->replace_from(chk_file);
-                    if ((zck = zck_init_read(target)))
-                    {
-                        found = true;
-                        break;
-                    }
-                    else
-                    {
-                        spdlog::error("Error copying file");
-                    }
+                    spdlog::error("Error copying file");
                 }
             }
         }
         else
         {
-            spdlog::info("No cache directory set.");
+            spdlog::info("No zchunk cache file set or found");
         }
 
         if (found)
@@ -339,52 +323,37 @@ namespace powerloader
                                            target->target->path,
                                            zck_get_error(zck)));
         }
-        // if (target->target->handle->cachedir)
 
-        fs::path& cache_dir = Context::instance().cache_dir;
-        if (!cache_dir.empty() && fs::exists(cache_dir))
+        auto dt = target->target;
+        if (!dt->zck_cache_file.empty() && fs::exists(dt->zck_cache_file))
         {
-            spdlog::info("Cache directory: {}", cache_dir.string());
-            auto filelist = get_recursive_files(cache_dir, ".zck");
-            bool found = false;
+            std::error_code ec;
+            FileIO chk_file(dt->zck_cache_file, FileIO::read_binary, ec);
 
-            fs::path dest = cache_dir / target->target->path;
-
-            for (const auto& file : filelist)
+            if (ec)
             {
-                if (dest == file)
-                {
-                    continue;
-                }
-
-                int chk_fd = open(file.c_str(), O_RDONLY);
-                if (chk_fd < 0)
-                {
-                    // spdlog::info("WARNING: Unable to open {}: {}", cf, g_strerror(errno));
-                    spdlog::warn("Unable to open {}", file.string());
-                    continue;
-                }
-
-                zckCtx* zck_src = zck_create();
-                if (!zck_init_read(zck_src, chk_fd))
-                {
-                    close(chk_fd);
-                    continue;
-                }
-
-                if (!zck_copy_chunks(zck_src, zck))
-                {
-                    spdlog::warn("Error copying chunks: {}", zck_get_error(zck));
-                    // g_warning("Error copying chunks from %s to %s: %s", cf, uf,
-                    // zck_get_error(zck));
-                    zck_free(&zck_src);
-                    close(chk_fd);
-                    continue;
-                }
-                zck_free(&zck_src);
-                close(chk_fd);
+                spdlog::warn("Unable to open {}: {}", chk_file.path().string(), ec.message());
+                return false;
             }
+
+            zckCtx* zck_src = zck_create();
+            if (!zck_init_read(zck_src, chk_file.fd()))
+            {
+                return false;
+            }
+
+            if (!zck_copy_chunks(zck_src, zck))
+            {
+                spdlog::warn("Error copying chunks from {} to {}: {}",
+                             chk_file.path().string(),
+                             dt->outfile->path().string(),
+                             zck_get_error(zck));
+                zck_free(&zck_src);
+                return false;
+            }
+            zck_free(&zck_src);
         }
+
         target->target->downloaded = target->target->total_to_download;
 
         // Calculate how many bytes need to be downloaded
@@ -574,8 +543,6 @@ namespace powerloader
                 target->zck_state = ZckState::kFINISHED;
                 return true;
             }
-
-            spdlog::debug("Downloading rest of zchunk body: {}", target->target->path);
 
             // Download the remaining checksums
             zck_reset_failed_chunks(zck);

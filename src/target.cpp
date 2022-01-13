@@ -96,7 +96,8 @@ namespace powerloader
         // else
         // {
         // Use supplied filename
-        temp_file = target->fn + PARTEXT;
+        fs::path fn = target->fn;
+        temp_file = fn.replace_extension(fn.extension().string() + PARTEXT);
         spdlog::info("Opening file {}", temp_file.string());
 
         std::error_code ec;
