@@ -48,7 +48,6 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["authentication"] = file_map["test_path"] / Path("passwd_format_one.yml")
     file_map["s3_server"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
     file_map["s3_mock_server"] = "s3://127.0.0.1:9000"
-    # file_map["s3_mock_server"] = "http://127.0.0.1:9000"
     file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
     file_map["s3_bucketname"] = Path("testbucket")
     file_map["tmp_yml"] = file_map["tmp_path"] / Path("tmp.yml")
@@ -61,7 +60,6 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["tag"] = "1.0"
     file_map["username"] = "wolfv"
     file_map["lorem_zck"] = file_map["test_path"] / Path("conda_mock/static/zchunk/")
-    # file_map["lorem_zck"] = Path("static/zchunk/")
 
     try:
         os.mkdir(file_map["tmp_path"])

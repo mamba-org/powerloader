@@ -391,7 +391,7 @@ class TestAll:
         filepath = file["test_path"] / Path("conda_mock") / name
         outpath = file["tmp_path"] / name.name
 
-        for i in range(1):
+        for i in range(16):
             get_zchunk(
                 file, filepath, name, powerloader_binary, mock_server_working, outpath
             )
