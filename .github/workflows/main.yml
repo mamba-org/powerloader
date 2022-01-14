@@ -81,7 +81,7 @@ jobs:
           AWS_EC2_METADATA_DISABLED: true
         if: runner.os == 'Linux'
         run: |
-          sudo docker start minio || sudo docker run -d -p 9000:9000 --name minio \
+          sudo docker run -d -p 9000:9000 --name minio \
                      -e MINIO_ACCESS_KEY=$AWS_ACCESS_KEY_ID \
                      -e MINIO_SECRET_KEY=$AWS_SECRET_ACCESS_KEY \
                      -v /tmp/data:/data \
@@ -90,19 +90,10 @@ jobs:
 
           # Populate minIO
           # https://docs.min.io/docs/aws-cli-with-minio.html
-
-      - name: Download packages and place in bucket
-        env:
-          AWS_S3_BUCKET: testbucket
-          AWS_ACCESS_KEY_ID: minioadmin
-          AWS_SECRET_ACCESS_KEY: minioadmin
-          AWS_S3_ENDPOINT: http://127.0.0.1:9000
-          AWS_EC2_METADATA_DISABLED: true
-        if: runner.os == 'Linux'
-        run: |
-          # Upload file to AWS mock
+          server_path="test/conda_mock/static/packages"
           aws --endpoint-url $AWS_S3_ENDPOINT s3 mb s3://testbucket
-          aws --endpoint-url $AWS_S3_ENDPOINT s3 cp $server_path/xtensor-0.23.9-hc021e02_1.tar.bz2 s3://testbucket/
+          aws --endpoint-url $AWS_S3_ENDPOINT \
+              s3 cp $server_path/xtensor-0.23.9-hc021e02_1.tar.bz2 s3://testbucket/
 
           # Create mock_artifact file
           mkdir test/tmp
@@ -121,7 +112,7 @@ jobs:
           # Run tests
           pytest ./test/test_s3main_branch.py
 
-      - name: Run python based tests for S3
+      - name: Run python based tests
         shell: bash -l -eo pipefail {0}
         env:
           AWS_S3_BUCKET: testbucket
