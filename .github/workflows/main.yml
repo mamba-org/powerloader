@@ -68,6 +68,7 @@ jobs:
 
       - name: Download test packages
         shell: bash -l -eo pipefail {0}
+        if: runner.os != 'Windows'
         run: |
           server_path="test/conda_mock/static/packages"
           build/powerloader download -f test/remote_mirrors.yml -d $server_path
