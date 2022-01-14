@@ -135,3 +135,10 @@ jobs:
           pytest ./test/test_other.py
           pytest ./test/test_oci_registry.py
           pytest ./test/test_s3mock.py
+
+      - name: Run python based tests for OSX
+        shell: bash -l -eo pipefail {0}
+        if: runner.os == 'macOS'
+        run: |
+          pytest ./test/test_other.py
+          pytest ./test/test_oci_registry.py
