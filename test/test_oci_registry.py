@@ -164,9 +164,13 @@ def clean_env():
         os.environ["GHA_USER"] = user
 
 
+skip_no_docker = pytest.mark.skipif(no_docker(), reason="No docker installed")
+
+
 class TestOCImock:
 
     # Upload a file
+    @skip_no_docker
     def test_upload(self, mock_oci_registry, temp_txt_file, clean_env):
         tag = "1.0"
         name_on_server = upload_oci(
@@ -188,6 +192,7 @@ class TestOCImock:
     #     assert checksums[file["name_on_mock_server"]] == calculate_sha256(newpath)
 
     # Upload a file and download it again
+    @skip_no_docker
     def test_upload_and_download(
         self, temp_txt_file, powerloader_binary, mock_oci_registry, clean_env
     ):

@@ -3,6 +3,7 @@ from urllib.request import urlopen
 import platform, datetime
 import shutil, subprocess
 import os, time, json
+import shutil
 
 from helpers import *
 
@@ -33,6 +34,10 @@ def get_proj_root(cwd=os.getcwd()):
 @pytest.fixture
 def powerloader_binary(get_proj_root):
     return get_powerloader_binary(get_proj_root)
+
+
+def no_docker():
+    return shutil.which("docker") is None
 
 
 @pytest.fixture
