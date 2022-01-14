@@ -7,24 +7,32 @@ import os, time, json
 from helpers import *
 
 
-@pytest.fixture
-def get_proj_root(cwd=os.getcwd()):
+def proj_root(cwd=os.getcwd()):
     proj_root = cwd
     if not Path(proj_root).exists():
         print("POWERLOADER NOT FOUND!")
-    return proj_root
+    return Path(proj_root)
 
 
-@pytest.fixture
-def powerloader_binary(get_proj_root):
+def get_powerloader_binary(proj_root=proj_root()):
     env_var = os.environ.get("POWERLOADER_EXE")
     if env_var:
         return env_var
     else:
         if platform.system() == "Windows":
-            return Path(get_proj_root) / "build" / "powerloader.exe"
+            return Path(proj_root) / "build" / "powerloader.exe"
         else:
-            return Path(get_proj_root) / "build" / "powerloader"
+            return Path(proj_root) / "build" / "powerloader"
+
+
+@pytest.fixture
+def get_proj_root(cwd=os.getcwd()):
+    return proj_root(cwd)
+
+
+@pytest.fixture
+def powerloader_binary(get_proj_root):
+    return get_powerloader_binary(get_proj_root)
 
 
 @pytest.fixture

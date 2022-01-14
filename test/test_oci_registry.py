@@ -2,24 +2,6 @@ from fixtures import *
 from xprocess import ProcessStarter
 
 
-def proj_root(cwd=os.getcwd()):
-    proj_root = cwd
-    if not Path(proj_root).exists():
-        print("POWERLOADER NOT FOUND!")
-    return proj_root
-
-
-def get_powerloader_binary():
-    env_var = os.environ.get("POWERLOADER_EXE")
-    if env_var:
-        return env_var
-    else:
-        if platform.system() == "Windows":
-            return Path(proj_root()) / "build" / "powerloader.exe"
-        else:
-            return Path(proj_root()) / "build" / "powerloader"
-
-
 def get_oci_path(name_on_server, tag):
     newname = name_on_server + "-" + tag
     newpath = file["tmp_path"] / Path(newname)

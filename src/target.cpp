@@ -85,7 +85,7 @@ namespace powerloader
         spdlog::info("Opening file {}", temp_file.string());
 
         std::error_code ec;
-        if (this->resume || target->is_zchunk)
+        if (fs::exists(temp_file) && this->resume)
         {
             target->outfile = std::make_unique<FileIO>(temp_file, FileIO::append_update_binary, ec);
         }
