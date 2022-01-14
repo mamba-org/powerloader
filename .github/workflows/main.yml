@@ -73,33 +73,6 @@ jobs:
           server_path="test/conda_mock/static/packages"
           build/powerloader download -f test/remote_mirrors.yml -d $server_path
 
-      - name: Setup minio and oras
-        env:
-          AWS_S3_BUCKET: testbucket
-          AWS_ACCESS_KEY_ID: minioadmin
-          AWS_SECRET_ACCESS_KEY: minioadmin
-          AWS_S3_ENDPOINT: http://127.0.0.1:9000
-          AWS_EC2_METADATA_DISABLED: true
-        if: runner.os == 'Linux'
-        run: |
-          sudo docker run -d -p 9000:9000 --name minio \
-                     -e MINIO_ACCESS_KEY=$AWS_ACCESS_KEY_ID \
-                     -e MINIO_SECRET_KEY=$AWS_SECRET_ACCESS_KEY \
-                     -v /tmp/data:/data \
-                     -v /tmp/config:/root/.minio \
-                     minio/minio server /data
-
-          # Populate minIO
-          # https://docs.min.io/docs/aws-cli-with-minio.html
-          server_path="test/conda_mock/static/packages"
-          aws --endpoint-url $AWS_S3_ENDPOINT s3 mb s3://testbucket
-          aws --endpoint-url $AWS_S3_ENDPOINT \
-              s3 cp $server_path/xtensor-0.23.9-hc021e02_1.tar.bz2 s3://testbucket/
-
-          # Create mock_artifact file
-          mkdir test/tmp
-          echo "artifact" > test/tmp/mock_artifact
-
       - name: Python based tests that require secrets
         shell: bash -l -eo pipefail {0}
         if: runner.os == 'Linux' && github.event_name != 'pull_request'
@@ -111,7 +84,8 @@ jobs:
           GHA_USER: mamba-org
         run: |
           # Run tests
-          pytest ./test/test_s3main_branch.py
+          pytest ./test/test_s3server.py
+          pytest ./test/test_oci_registry.py
 
       - name: Run python based tests
         shell: bash -l -eo pipefail {0}
@@ -124,9 +98,9 @@ jobs:
           AWS_EC2_METADATA_DISABLED: true
         if: runner.os == 'Linux'
         run: |
-          pytest ./test/test_other.py
-          pytest ./test/test_oci_registry.py
           pytest ./test/test_s3mock.py
+          pytest ./test/test_oci_registry.py
+          pytest ./test/test_other.py
 
       - name: Run python based tests for OSX
         shell: bash -l -eo pipefail {0}

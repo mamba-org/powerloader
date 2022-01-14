@@ -1,150 +1,73 @@
+from os import unlink
 from fixtures import *
 
 
-@pytest.fixture(scope="module", autouse=True)
-def mock_s3_minio(xprocess, file, fs_ready):
+@pytest.fixture
+def zck_file_upload_aws_server(powerloader_binary, xprocess, fs_ready, file):
+    upload_path = file["lorem_zck_file"]
+    up_path = str(upload_path) + ":" + path_to_name(upload_path)
+    destination1 = file["tmp_path"] / upload_path.name
+    assert not destination1.exists()
 
-    set_env_var(file, "AWS_SECRET_ACCESS_KEY")
-    set_env_var(file, "AWS_ACCESS_KEY_ID")
-    set_env_var(file, "AWS_DEFAULT_REGION")
+    upload_path = file["lorem_zck_file_x3"]
+    up_path = str(upload_path) + ":" + path_to_name(upload_path)
+    destination3x = file["tmp_path"] / upload_path.name
+    assert not destination3x.exists()
 
-    assert aws_credentials_all_exist() == True
+    srv_name = upload_s3_file(
+        powerloader_binary, up_path, server=file["s3_server"], plain_http=False
+    )
 
-    start_docker = [
-        "docker",
-        "start",
-        "minio",
-    ]
-    out = run_command(start_docker)
+    srv_name_x3 = upload_s3_file(
+        powerloader_binary, up_path, server=file["s3_server"], plain_http=False
+    )
 
-    if "minio" not in out:
-        run_docker = [
-            "docker",
-            "run",
-            "-d",
-            "-p",
-            "9000:9000",
-            "--name",
-            "minio",
-            "-e",
-            "MINIO_ACCESS_KEY=" + file["AWS_ACCESS_KEY_ID"],
-            "-e",
-            "MINIO_SECRET_KEY=" + file["AWS_SECRET_ACCESS_KEY"],
-            "-v",
-            "/tmp/data:/data",
-            "-v",
-            "/tmp/config:/root/.minio",
-            "minio/minio",
-            "server",
-            "/data",
-        ]
-        out = run_command(run_docker)
+    get_zchunk_s3(
+        file,
+        filepath=file["lorem_zck_file"],
+        powerloader_binary=powerloader_binary,
+        localpath=destination1,
+        mock=False,
+    )
 
-    # Populate minIO
-    # https://docs.min.io/docs/aws-cli-with-minio.html
-    create_testbucket = [
-        "aws",
-        "--endpoint-url",
-        file["s3_mock_endpoint"],
-        "s3",
-        "mb",
-        "s3://testbucket",
-    ]
-    out = run_command(create_testbucket)
+    get_zchunk_s3(
+        file,
+        filepath=file["lorem_zck_file_x3"],
+        powerloader_binary=powerloader_binary,
+        localpath=file["tmp_path"] / upload_path.name,
+        mock=False,
+    )
 
-    aws_cp(file, file["xtensor_path"], file["s3_bucketpath"])
-    aws_cp(file, file["lorem_zck_file"], file["s3_bucketpath"])
-    aws_cp(file, file["lorem_zck_file_x3"], file["s3_bucketpath"])
+    assert destination1.exists()
+    assert destination3x.exists()
+    assert calculate_sha256(destination1) == calculate_sha256(file["lorem_zck_file"])
+    assert calculate_sha256(destination3x) == calculate_sha256(
+        file["lorem_zck_file_x3"]
+    )
+    destination1.unlink()
+    destination3x.unlink()
 
-    check_testbucket = [
-        "aws",
-        "--endpoint-url",
-        file["s3_mock_endpoint"],
-        "s3",
-        "ls",
-        file["s3_bucketname"],
-    ]
-    out = run_command(check_testbucket)
-    assert "xtensor-0.23.9-hc021e02_1.tar.bz2" in out
-    assert "lorem.txt.x3.zck" in out
-    assert "lorem.txt.zck" in out
+    yield srv_name, srv_name_x3
+    # TODO: Remove files from remote again
 
 
-class TestS3Mock:
+class TestS3Server:
     @skip_aws_credentials
-    def test_s3_mock(self, file, powerloader_binary, unique_filename):
+    def test_up_and_down(self, file, powerloader_binary, unique_filename):
         remove_all(file)
         upload_path = generate_unique_file(file, unique_filename)
         hash_before_upload = calculate_sha256(upload_path)
-        up_path = (
-            upload_path
-            + ":"
-            + str(file["s3_bucketname"] / Path(path_to_name(upload_path)))
-        )
+        up_path = upload_path + ":" + path_to_name(upload_path)
         upload_s3_file(
-            powerloader_binary, up_path, server=file["s3_mock_server"], plain_http=True
+            powerloader_binary, up_path, server=file["s3_server"], plain_http=False
         )
         Path(upload_path).unlink()
-        filename = str(file["s3_bucketname"]) + "/" + path_to_name(upload_path)
-        generate_s3_download_yml(file, file["s3_mock_server"], filename)
-        download_s3_file(powerloader_binary, file, plain_http=True)
+        generate_s3_download_yml(file, file["s3_server"], path_to_name(upload_path))
+        download_s3_file(powerloader_binary, file)
         assert hash_before_upload == calculate_sha256(upload_path)
 
     @skip_aws_credentials
-    def test_s3_mock_mod_txt(self, file, powerloader_binary, unique_filename_txt):
-        remove_all(file)
-        upload_path = generate_unique_file(file, unique_filename_txt)
-        hash_before_upload = calculate_sha256(upload_path)
-        up_path = (
-            upload_path
-            + ":"
-            + str(file["s3_bucketname"] / Path(path_to_name(upload_path)))
-        )
-        upload_s3_file(
-            powerloader_binary, up_path, server=file["s3_mock_server"], plain_http=True
-        )
-        Path(upload_path).unlink()
-        filename = str(file["s3_bucketname"]) + "/" + path_to_name(upload_path)
-        generate_s3_download_yml(file, file["s3_mock_server"], filename)
-        download_s3_file(powerloader_binary, file, plain_http=True)
-        assert hash_before_upload == calculate_sha256(upload_path)
-
-    @skip_aws_credentials
-    def test_s3_mock_yml_mod_loc(self, file, powerloader_binary, unique_filename):
-        remove_all(file)
-        upload_path = generate_unique_file(file, unique_filename)
-        hash_before_upload = calculate_sha256(upload_path)
-        up_path = (
-            upload_path
-            + ":"
-            + str(file["s3_bucketname"] / Path(path_to_name(upload_path)))
-        )
-        upload_s3_file(
-            powerloader_binary, up_path, server=file["s3_mock_server"], plain_http=True
-        )
-        Path(upload_path).unlink()
-        server = file["s3_mock_server"] + "/" + str(file["s3_bucketname"])
-        generate_s3_download_yml(file, server, path_to_name(upload_path))
-        download_s3_file(powerloader_binary, file, plain_http=True)
-        assert hash_before_upload == calculate_sha256(upload_path)
-
-    @skip_aws_credentials
-    def test_yml_s3_mock_mirror(self, file, checksums, powerloader_binary):
-        remove_all(file)
-        filename = (
-            str(file["s3_bucketname"]).replace("s3://", "")
-            + "/"
-            + path_to_name(file["xtensor_path"])
-        )
-        generate_s3_download_yml(file, file["s3_mock_server"], filename)
-        download_s3_file(powerloader_binary, file, plain_http=True)
-        Path(file["tmp_yml"]).unlink()
-
-        for fp in get_files(file, expect=">zero"):
-            assert calculate_sha256(fp) == checksums[str(path_to_name(fp))]
-
-    @skip_aws_credentials
-    def test_zchunk_basic(self, file, powerloader_binary):
+    def test_zchunk_basic(self, file, powerloader_binary, zck_file_upload_aws_server):
         # Download the expected file
         name = file["lorem_zck_file"].name
         localpath = file["tmp_path"] / name
@@ -155,6 +78,7 @@ class TestS3Mock:
             filepath=file["lorem_zck_file"],
             powerloader_binary=powerloader_binary,
             localpath=localpath,
+            mock=False,
         )
         """
         headers = get_prev_headers(mock_server_working, 2)
@@ -173,6 +97,7 @@ class TestS3Mock:
             filepath=file["lorem_zck_file"],
             powerloader_binary=powerloader_binary,
             localpath=localpath,
+            mock=False,
         )
 
         """
@@ -195,6 +120,7 @@ class TestS3Mock:
             filepath=file["lorem_zck_file_x3"],
             powerloader_binary=powerloader_binary,
             localpath=localpath,
+            mock=False,
         )
 
         """
@@ -247,15 +173,23 @@ class TestS3Mock:
         content_present, gf = setup_file(
             generate_content(file, checksums), unique_filename
         )
-
         # Content was provided
         assert content_present == True
-        aws_cp(file, remote_zck_path, file["s3_bucketpath"])
+        up_path = str(remote_zck_path) + ":" + path_to_name(remote_zck_path)
+
+        upload_s3_file(
+            powerloader_binary, up_path, server=file["s3_server"], plain_http=False,
+        )
         remote_plain_path = Path(str(remote_zck_path).replace(".zck", ""))
 
-        for i in range(16):
+        # Only going to five, to save costs...
+        for i in range(5):
             get_zchunk_s3(
-                file, remote_zck_path, powerloader_binary, localpath=local_zck_path
+                file,
+                remote_zck_path,
+                powerloader_binary,
+                localpath=local_zck_path,
+                mock=False,
             )
             local_plain_path = Path(str(local_zck_path).replace(".zck", ""))
             assert calculate_sha256(remote_zck_path) == calculate_sha256(local_zck_path)
@@ -266,7 +200,6 @@ class TestS3Mock:
             percentage_map = get_zck_percent_delta(local_zck_path, first_time=(i == 0))
             if percentage_map != False:
                 assert zchunk_expectations[i] == percentage_map
-
                 if False:
                     print(
                         "\n\ni: "
@@ -279,6 +212,8 @@ class TestS3Mock:
 
                 if False:
                     print("i: " + str(i) + ", percentage_map: " + str(percentage_map))
-
             gf.add_content()
-            aws_cp(file, remote_zck_path, file["s3_bucketpath"])
+            upload_s3_file(
+                powerloader_binary, up_path, server=file["s3_server"], plain_http=False
+            )
+        # TODO: Check headers!
