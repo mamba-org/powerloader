@@ -66,6 +66,12 @@ jobs:
           ninja
           ninja test
 
+      - name: Download test packages
+        shell: bash -l -eo pipefail {0}
+        run: |
+          server_path="test/conda_mock/static/packages"
+          build/powerloader download -f test/remote_mirrors.yml -d $server_path
+
       - name: Setup minio and oras
         env:
           AWS_S3_BUCKET: testbucket
@@ -84,7 +90,6 @@ jobs:
 
           # Populate minIO
           # https://docs.min.io/docs/aws-cli-with-minio.html
-          aws --endpoint-url $AWS_S3_ENDPOINT s3 mb s3://testbucket
 
       - name: Download packages and place in bucket
         env:
@@ -95,18 +100,13 @@ jobs:
           AWS_EC2_METADATA_DISABLED: true
         if: runner.os == 'Linux'
         run: |
-          server_path="test/conda_mock/static/packages"
-          powerloader_path="build/powerloader"
-          $powerloader_path download -f test/remote_mirrors.yml -d $server_path
-
           # Upload file to AWS mock
+          aws --endpoint-url $AWS_S3_ENDPOINT s3 mb s3://testbucket
           aws --endpoint-url $AWS_S3_ENDPOINT s3 cp $server_path/xtensor-0.23.9-hc021e02_1.tar.bz2 s3://testbucket/
-          # aws --endpoint-url $AWS_S3_ENDPOINT s3 ls s3://testbucket
 
-          # Upload file to OCI mock: https://docs.docker.com/engine/reference/commandline/tag/
+          # Create mock_artifact file
           mkdir test/tmp
           echo "artifact" > test/tmp/mock_artifact
-          # ./build/powerloader upload test/tmp/mock_artifact:mock_artifact:1.0 -m oci://localhost:5000 -k -v --plain-http
 
       - name: Python based tests that require secrets
         shell: bash -l -eo pipefail {0}
