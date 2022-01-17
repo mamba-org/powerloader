@@ -44,9 +44,65 @@ namespace powerloader
 #endif
         }
 
-        bool has_complete_url()
+        inline bool has_complete_url()
         {
             return !complete_url.empty();
+        }
+
+        inline bool validate_checksum(const fs::path& path)
+        {
+            if (checksums.empty())
+                return false;
+
+            auto findchecksum = [&](const ChecksumType& t) -> Checksum* {
+                for (auto& cs : checksums)
+                {
+                    if (cs.type == t)
+                        return &cs;
+                }
+                return nullptr;
+            };
+
+            Checksum* cs;
+            if ((cs = findchecksum(ChecksumType::kSHA256)))
+            {
+                auto sum = sha256sum(path);
+
+                if (sum != cs->checksum)
+                {
+                    spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}",
+                                  sum,
+                                  cs->checksum);
+                    return false;
+                }
+                return true;
+            }
+            else if ((cs = findchecksum(ChecksumType::kSHA1)))
+            {
+                spdlog::error("Checking SHA1 sum not implemented!");
+                return false;
+            }
+            else if ((cs = findchecksum(ChecksumType::kMD5)))
+            {
+                spdlog::info("Checking MD5 sum");
+                auto sum = md5sum(path);
+                if (sum != cs->checksum)
+                {
+                    spdlog::error("MD5 sum of downloaded file is wrong.\nIs {}. Should be {}",
+                                  sum,
+                                  cs->checksum);
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        bool already_downloaded()
+        {
+            if (checksums.empty())
+                return false;
+            return fs::exists(fn) && validate_checksum(fn);
         }
 
         bool is_zchunk = false;

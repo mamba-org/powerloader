@@ -1045,6 +1045,17 @@ namespace powerloader
     {
         int still_running, repeats = 0;
         const long max_wait_msecs = 1000;
+
+        for (auto* target : m_targets)
+        {
+            if (target->target->already_downloaded())
+            {
+                spdlog::info("Found already downloaded file!");
+                target->call_endcallback(TransferStatus::kALREADYEXISTS);
+                target->state = DownloadState::kFINISHED;
+            }
+        }
+
         prepare_next_transfers();
 
         while (true)

@@ -119,5 +119,4 @@ namespace powerloader
         bool range_fail = false;
         ZckState zck_state;
     };
-
 }
