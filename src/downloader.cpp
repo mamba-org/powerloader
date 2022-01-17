@@ -759,10 +759,8 @@ namespace powerloader
                 fatal_err = true;
             }
 
-            // Error
-            // TODO!
-            // if (!transfer_check)
-            //     return false;
+            if (!transfer_check)
+                return false;
 
             if (current_target->target->outfile && current_target->target->outfile->open())
             {
@@ -771,11 +769,6 @@ namespace powerloader
 
             if (transfer_err)
                 goto transfer_error;
-
-                // preserve timestamp?
-
-                // check checksums ...
-                // validate download
 
 #ifdef WITH_ZCHUNK
             if (current_target->target->is_zchunk)
@@ -841,17 +834,20 @@ namespace powerloader
             else
             {
 #endif
-                if (!current_target->check_checksums())
+                // New file was downloaded
+                if (!current_target->check_filesize())
                 {
-                    // this is what librepo does, but I am not sure it's ideal
+                    fs::remove(current_target->temp_file);
                     return false;
                 }
-                // New file was downloaded - clear checksums cached in extended attributes
-                // ret = check_finished_transfer_checksum(fd,
-                //                                       target->target->checksums,
-                //                                       &matches,
-                //                                       &transfer_err,
-                //                                       &tmp_err);
+                if (!current_target->check_checksums())
+                {
+                    fs::remove(current_target->temp_file);
+                    return false;
+                }
+
+                // TODO preserve timestamp?
+
                 // if (!ret) { // Error
                 //     g_propagate_prefixed_error(err, tmp_err, "Downloading from %s"
                 //             "was successful but error encountered while "

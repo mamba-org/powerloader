@@ -432,7 +432,14 @@ namespace powerloader
     {
         if (target->expected_size > 0)
         {
-            return fs::file_size(temp_file) == target->expected_size;
+            if (fs::file_size(temp_file) != target->expected_size)
+            {
+                spdlog::error("Filesize of {} ({}) does not match expected filesize ({}).",
+                              temp_file.string(),
+                              fs::file_size(temp_file),
+                              target->expected_size);
+                return false;
+            }
         }
         return true;
     }
@@ -455,14 +462,12 @@ namespace powerloader
         Checksum* cs;
         if ((cs = findchecksum(ChecksumType::kSHA256)))
         {
-            spdlog::info("Checking SHA256 sum");
             auto sum = sha256sum(temp_file);
             if (sum != cs->checksum)
             {
                 spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}",
                               sum,
                               cs->checksum);
-                fs::remove(temp_file);
                 return false;
             }
             return true;
@@ -480,7 +485,6 @@ namespace powerloader
             {
                 spdlog::error(
                     "MD5 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
-                fs::remove(temp_file);
                 return false;
             }
             return true;
