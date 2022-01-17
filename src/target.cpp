@@ -40,12 +40,12 @@ namespace powerloader
         }
         else if (status == TransferStatus::kALREADYEXISTS)
         {
-            // TODO not emitted currently
+            reset();
         }
         else if (status == TransferStatus::kERROR)
         {
-            // TODO remove or can we continue?
-            // fs::remove(temp_file);
+            reset();
+            fs::remove(temp_file);
         }
 
         return rc;
@@ -298,11 +298,9 @@ namespace powerloader
 
         if (range_start <= 0 && range_end <= 0)
         {
-            // Write everything curl give to you
+            // Write everything curl gives us
             self->writecb_received += all;
-            // TODO check bad bit here!
-            self->target->outfile->write(buffer, size, nitems);
-            return all;
+            return self->target->outfile->write(buffer, size, nitems);
         }
 
         // Deal with situation when user wants only specific byte range of the
@@ -448,44 +446,6 @@ namespace powerloader
             return true;
         }
 
-        auto findchecksum = [&](const ChecksumType& t) -> Checksum* {
-            for (auto& cs : target->checksums)
-            {
-                if (cs.type == t)
-                    return &cs;
-            }
-            return nullptr;
-        };
-        Checksum* cs;
-        if ((cs = findchecksum(ChecksumType::kSHA256)))
-        {
-            auto sum = sha256sum(temp_file);
-            if (sum != cs->checksum)
-            {
-                spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}",
-                              sum,
-                              cs->checksum);
-                return false;
-            }
-            return true;
-        }
-        else if ((cs = findchecksum(ChecksumType::kSHA1)))
-        {
-            spdlog::error("Checking SHA1 sum not implemented!");
-            return false;
-        }
-        else if ((cs = findchecksum(ChecksumType::kMD5)))
-        {
-            spdlog::info("Checking MD5 sum");
-            auto sum = md5sum(temp_file);
-            if (sum != cs->checksum)
-            {
-                spdlog::error(
-                    "MD5 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
-                return false;
-            }
-            return true;
-        }
-        return true;
+        return target->validate_checksum(temp_file);
     }
 }
