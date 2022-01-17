@@ -35,7 +35,7 @@ namespace powerloader
 {
     Downloader::Downloader()
     {
-        max_parallel_connections = 5;
+        max_parallel_connections = Context::instance().max_parallel_downloads;
         multi_handle = curl_multi_init();
         curl_multi_setopt(multi_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, max_parallel_connections);
     }
@@ -267,11 +267,10 @@ namespace powerloader
                 // Number of transfers which are downloading from the mirror
                 // should always be lower or equal than maximum allowed number
                 // of connection to a single host.
-                assert(max_connection_per_host == -1
-                       || mirror->running_transfers <= max_connection_per_host);
-
-                // Init max of allowed parallel connections from config
-                mirror->init_once_allowed_parallel_connections(max_connection_per_host);
+                if (mirror->allowed_parallel_connections > 0)
+                {
+                    assert(mirror->running_transfers <= mirror->allowed_parallel_connections);
+                }
 
                 // Check number of connections to the mirror
                 if (mirror->is_parallel_connections_limited_and_reached())
@@ -1130,8 +1129,16 @@ namespace powerloader
     bool Downloader::set_max_speeds_to_transfers()
     {
         // Nothing to do
-        if (m_running_transfers.empty())
+        auto& ctx = Context::instance();
+        if (m_running_transfers.empty() || ctx.max_speed_limit <= 0)
             return true;
+
+        for (auto& current_target : m_running_transfers)
+        {
+            assert(ctx.max_speed_limit > 0);
+            current_target->curl_handle->setopt(CURLOPT_MAX_RECV_SPEED_LARGE,
+                                                (curl_off_t) ctx.max_speed_limit);
+        }
 
         // Compute number of running downloads from repos with limited speed
         // GHashTable *num_running_downloads_per_repo = g_hash_table_new(NULL, NULL);

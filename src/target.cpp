@@ -438,6 +438,11 @@ namespace powerloader
 
     bool Target::check_checksums()
     {
+        if (!Context::instance().validate_checksum)
+        {
+            return true;
+        }
+
         if (target->checksums.empty())
         {
             return true;

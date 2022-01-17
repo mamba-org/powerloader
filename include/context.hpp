@@ -4,6 +4,9 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <filesystem>
+namespace fs = std::filesystem;
+#include <spdlog/spdlog.h>
 
 #ifdef WITH_ZCHUNK
 extern "C"
@@ -11,10 +14,12 @@ extern "C"
 #include <zck.h>
 }
 #endif
-#include "mirror.hpp"
+
 
 namespace powerloader
 {
+    struct Mirror;
+
     class Context
     {
     public:
@@ -23,10 +28,16 @@ namespace powerloader
         bool adaptive_mirror_sorting = true;
 
         bool disable_ssl = false;
+        bool validate_checksum = true;
 
         long connect_timeout = 30L;
         long low_speed_time = 30L;
         long low_speed_limit = 1000L;
+
+        long max_speed_limit = -1L;
+        long max_parallel_downloads = 5L;
+        long max_downloads_per_mirror = -1L;
+
         bool ftp_use_seepsv = true;
 
         fs::path cache_dir;

@@ -82,7 +82,7 @@ namespace powerloader
          *
          * @param complete_path_or_base_url determine type of download - mirrors or
          * base_url/fullpath
-         * @return gboolean Return TRUE when another chance to download is allowed.
+         * @return Return true when another chance to download is allowed.
          */
         bool can_retry_download(int num_of_tried_mirrors, const std::string& url);
         bool check_msgs(bool failfast);
@@ -97,7 +97,6 @@ namespace powerloader
 
         int allowed_mirror_failures = 3;
         int max_mirrors_to_try = -1;
-        int max_connection_per_host = -1;
         std::size_t max_parallel_connections = 5;
 
         std::map<std::string, std::vector<std::shared_ptr<Mirror>>> mirror_map;
