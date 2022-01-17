@@ -347,7 +347,7 @@ namespace powerloader
                 }
             }
 
-            // If LRO_OFFLINE is specified, check if the obtained full_url  is local or not
+            // If LRO_OFFLINE is specified, check if the obtained full_url is local or not
             // This condition should never be true for a full_url built from a mirror, because
             // select_suitable_mirror() checks if the URL is local if LRO_OFFLINE is enabled by
             // itself.

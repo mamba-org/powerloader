@@ -45,6 +45,7 @@ namespace powerloader
         else if (status == TransferStatus::kERROR)
         {
             reset();
+            spdlog::error("Removing file {}", temp_file.string());
             fs::remove(temp_file);
         }
 
@@ -362,26 +363,19 @@ namespace powerloader
         }
 
         assert(nitems > 0);
-        self->target->outfile->write(buffer, size, nitems);
+        cur_written = self->target->outfile->write(buffer, size, nitems);
 
-        // TOOD check failbit!
-        // if (cur_written != nitems)
-        // {
-        //     g_warning("Error while writing file: %s", g_strerror(errno));
-        //     return 0; // There was an error
-        // }
+        if (cur_written != nitems)
+        {
+            spdlog::error("Writing file {}: {}", self->temp_file.string(), strerror(errno));
+            // There was an error
+            return 0;
+        }
 
-        return cur_written_expected;
-
-        // // if (!this->fd) throw std::runtime_error("No ofstream open!");
-        // std::size_t numbytes = size * nitems;
-        // // static_cast<DownloadTarget *>(self)->fd->write(buffer, numbytes);
-        // self->target->fd->write(buffer, numbytes);
-        // return numbytes;
+        return cur_written;
     }
 
-    // Progress callback for CURL handles.
-    // progress callback set by the user of powerdownloader.
+    // Progress callback for CURL handles set by the user of powerdownloader.
     int Target::progress_callback(Target* target,
                                   curl_off_t total_to_download,
                                   curl_off_t now_downloaded,
@@ -404,11 +398,11 @@ namespace powerloader
         }
 
 #ifdef WITH_ZCHUNK
-        // if (target->target->is_zchunk)
-        // {
-        //     total_to_download = target->target->total_to_download;
-        //     now_downloaded = now_downloaded + target->target->downloaded;
-        // }
+        if (target->target->is_zchunk)
+        {
+            total_to_download = target->target->total_to_download;
+            now_downloaded = now_downloaded + target->target->downloaded;
+        }
 #endif /* WITH_ZCHUNK */
 
         ret = target->target->progress_callback(total_to_download, now_downloaded);

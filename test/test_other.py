@@ -82,6 +82,24 @@ class TestAll:
         assert not Path(file["output_path_pdpart"]).exists()
         assert not Path(file["output_path"]).exists()
 
+    def test_broken_file(self, file, powerloader_binary, mock_server_working):
+        p = Path("randomnonexist.txt")
+        ppart = Path("randomnonexist.txt.pdpart")
+        assert not p.exists()
+        assert not ppart.exists()
+
+        with pytest.raises(subprocess.CalledProcessError):
+            out = subprocess.check_output(
+                [
+                    powerloader_binary,
+                    "download",
+                    f"{mock_server_working}/randomnonexist.txt",
+                ]
+            )
+
+        assert not p.exists()
+        assert not ppart.exists()
+
     # Download a broken file
     def test_broken_download_good_checksum(
         self, file, powerloader_binary, mock_server_working
