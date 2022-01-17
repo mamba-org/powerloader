@@ -221,9 +221,7 @@ namespace powerloader
                     {
                         reiterate = true;
                     }
-                    if (std::find(
-                            target->tried_mirrors.begin(), target->tried_mirrors.end(), mirror)
-                        != target->tried_mirrors.end())
+                    if (target->tried_mirrors.count(mirror))
                     {
                         // This mirror was already tried for this target
                         continue;
@@ -284,11 +282,11 @@ namespace powerloader
                 // This mirror looks suitable - use it
                 return mirror;
             }
-        } while (reiterate && target->tried_mirrors.size() < allowed_mirror_failures
+        } while (reiterate && target->retries < allowed_mirror_failures
                  && ++mirrors_iterated < allowed_mirror_failures);
 
-        throw std::runtime_error(
-            fmt::format("No suitable mirror found for {}", target->target->base_url));
+        throw fatal_download_error(
+            fmt::format("No suitable mirror found for {}", target->target->complete_url));
     }
 
     // Select next target
@@ -321,7 +319,7 @@ namespace powerloader
                             "Empty mirrorlist and no basepath specified in DownloadTarget" });
             }
 
-            // g_debug("Selecting mirror for: %s", target->target->path);
+            spdlog::debug("Selecting mirror for: {}", target->target->path);
 
             // Prepare full target URL
             if (complete_url_in_path)
@@ -914,7 +912,7 @@ namespace powerloader
                     std::string complete_url_or_base_url = complete_url_in_path
                                                                ? current_target->target->path
                                                                : current_target->target->base_url;
-                    if (can_retry_download(num_of_tried_mirrors, complete_url_or_base_url))
+                    if (can_retry_download(current_target->retries, complete_url_or_base_url))
                     {
                         // Try another mirror or retry
                         if (!complete_url_or_base_url.empty())
@@ -983,8 +981,7 @@ namespace powerloader
                 if (current_target->target->is_zchunk
                     && current_target->zck_state != ZckState::kFINISHED)
                 {
-                    // If we haven't finished downloading zchunk file, setup next
-                    // download
+                    // If we haven't finished downloading zchunk file, setup next download
                     current_target->state = DownloadState::kWAITING;
                     current_target->original_offset = -1;
                     // target->target->rcode = LRE_UNFINISHED;
@@ -1132,8 +1129,6 @@ namespace powerloader
 
     bool Downloader::set_max_speeds_to_transfers()
     {
-        // assert(!err || *err == NULL);
-
         // Nothing to do
         if (m_running_transfers.empty())
             return true;
