@@ -63,7 +63,7 @@ namespace powerloader
          *                          we cannot write to a socket, we cannot write
          *                          data to disk, bad function argument, ...
          */
-        bool check_finished_transfer_status(CURLMsg* msg, Target* target);
+        void check_finished_transfer_status(CURLMsg* msg, Target* target);
 
         bool is_max_mirrors_unlimited();
 

@@ -64,7 +64,8 @@ namespace powerloader
         std::ptrdiff_t expected_size = 0;
         std::ptrdiff_t orig_size = 0;
 
-        Mirror* used_mirror;
+        std::shared_ptr<Mirror> used_mirror;
+        std::string effective_url;
 
         std::function<int(curl_off_t, curl_off_t)> progress_callback;
 

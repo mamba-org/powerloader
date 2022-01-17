@@ -53,30 +53,22 @@ namespace powerloader
 
     bool Target::truncate_transfer_file()
     {
-        spdlog::info("Truncating transfer file ");
         std::ptrdiff_t offset = 0;
+        std::error_code ec;
 
-        auto p = fs::path(target->fn);
-
-        if (!fs::exists(p))
+        if (!target->outfile->open())
             return true;
 
         if (original_offset >= 0)
             offset = original_offset;
 
-        assert(target->outfile->open());
-        std::error_code ec;
         target->outfile->truncate(offset, ec);
         if (ec)
         {
-            throw std::runtime_error("Could not truncate");
+            throw std::runtime_error("Could not truncate file");
         }
-        target->outfile->seek(original_offset, SEEK_SET);
-        // fs::resize_file(p, offset);
-        // if (target->fd && target->fd->is_open())
-        // {
-        //     target->fd->seekp(original_offset);
-        // }
+
+        target->outfile->seek(offset, SEEK_SET);
         return true;
     }
 

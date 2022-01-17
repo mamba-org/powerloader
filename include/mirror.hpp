@@ -90,11 +90,16 @@ namespace powerloader
             return running_transfers > 0;
         }
 
+        inline void set_allowed_parallel_connections(int max_allowed_parallel_connections)
+        {
+            allowed_parallel_connections = max_allowed_parallel_connections;
+        }
+
         inline void init_once_allowed_parallel_connections(int max_allowed_parallel_connections)
         {
             if (allowed_parallel_connections == 0)
             {
-                allowed_parallel_connections = max_allowed_parallel_connections;
+                set_allowed_parallel_connections(max_allowed_parallel_connections);
             }
         }
 

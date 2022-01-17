@@ -113,7 +113,6 @@ namespace powerloader
 
         CbReturnCode cb_return_code;
 
-        // CURL *curl_handle = nullptr;
         std::unique_ptr<CURLHandle> curl_handle;
         Protocol protocol;
 
