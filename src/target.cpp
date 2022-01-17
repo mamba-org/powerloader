@@ -53,30 +53,22 @@ namespace powerloader
 
     bool Target::truncate_transfer_file()
     {
-        spdlog::info("Truncating transfer file ");
         std::ptrdiff_t offset = 0;
+        std::error_code ec;
 
-        auto p = fs::path(target->fn);
-
-        if (!fs::exists(p))
+        if (!target->outfile->open())
             return true;
 
         if (original_offset >= 0)
             offset = original_offset;
 
-        assert(target->outfile->open());
-        std::error_code ec;
         target->outfile->truncate(offset, ec);
         if (ec)
         {
-            throw std::runtime_error("Could not truncate");
+            throw std::runtime_error("Could not truncate file");
         }
-        target->outfile->seek(original_offset, SEEK_SET);
-        // fs::resize_file(p, offset);
-        // if (target->fd && target->fd->is_open())
-        // {
-        //     target->fd->seekp(original_offset);
-        // }
+
+        target->outfile->seek(offset, SEEK_SET);
         return true;
     }
 
@@ -432,7 +424,14 @@ namespace powerloader
     {
         if (target->expected_size > 0)
         {
-            return fs::file_size(temp_file) == target->expected_size;
+            if (fs::file_size(temp_file) != target->expected_size)
+            {
+                spdlog::error("Filesize of {} ({}) does not match expected filesize ({}).",
+                              temp_file.string(),
+                              fs::file_size(temp_file),
+                              target->expected_size);
+                return false;
+            }
         }
         return true;
     }
@@ -455,14 +454,12 @@ namespace powerloader
         Checksum* cs;
         if ((cs = findchecksum(ChecksumType::kSHA256)))
         {
-            spdlog::info("Checking SHA256 sum");
             auto sum = sha256sum(temp_file);
             if (sum != cs->checksum)
             {
                 spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}",
                               sum,
                               cs->checksum);
-                fs::remove(temp_file);
                 return false;
             }
             return true;
@@ -480,7 +477,6 @@ namespace powerloader
             {
                 spdlog::error(
                     "MD5 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
-                fs::remove(temp_file);
                 return false;
             }
             return true;

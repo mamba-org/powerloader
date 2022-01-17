@@ -73,7 +73,7 @@ namespace powerloader
         // retry & backoff values
         std::chrono::system_clock::time_point next_retry;
         // first retry should wait for how many seconds?
-        std::chrono::system_clock::duration retry_wait_seconds = std::chrono::seconds(1);
+        std::chrono::system_clock::duration retry_wait_seconds = std::chrono::milliseconds(200);
         // backoff factor for retry
         std::size_t retry_backoff_factor = 2;
         // count number of retries (this is not the same as failed transfers, as mutiple
@@ -90,11 +90,16 @@ namespace powerloader
             return running_transfers > 0;
         }
 
+        inline void set_allowed_parallel_connections(int max_allowed_parallel_connections)
+        {
+            allowed_parallel_connections = max_allowed_parallel_connections;
+        }
+
         inline void init_once_allowed_parallel_connections(int max_allowed_parallel_connections)
         {
             if (allowed_parallel_connections == 0)
             {
-                allowed_parallel_connections = max_allowed_parallel_connections;
+                set_allowed_parallel_connections(max_allowed_parallel_connections);
             }
         }
 

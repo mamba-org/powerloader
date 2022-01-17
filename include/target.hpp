@@ -91,7 +91,7 @@ namespace powerloader
         std::ptrdiff_t original_offset;
 
         // internal stuff
-        std::size_t retries;
+        std::size_t retries = 0;
 
         DownloadState state = DownloadState::kWAITING;
 
@@ -113,7 +113,6 @@ namespace powerloader
 
         CbReturnCode cb_return_code;
 
-        // CURL *curl_handle = nullptr;
         std::unique_ptr<CURLHandle> curl_handle;
         Protocol protocol;
 

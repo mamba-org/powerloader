@@ -63,7 +63,7 @@ namespace powerloader
          *                          we cannot write to a socket, we cannot write
          *                          data to disk, bad function argument, ...
          */
-        bool check_finished_transfer_status(CURLMsg* msg, Target* target);
+        void check_finished_transfer_status(CURLMsg* msg, Target* target);
 
         bool is_max_mirrors_unlimited();
 
@@ -95,7 +95,7 @@ namespace powerloader
         std::vector<Target*> m_targets;
         std::vector<Target*> m_running_transfers;
 
-        int allowed_mirror_failures = 10;
+        int allowed_mirror_failures = 3;
         int max_mirrors_to_try = -1;
         int max_connection_per_host = -1;
         std::size_t max_parallel_connections = 5;

@@ -64,8 +64,6 @@ namespace powerloader
         std::ptrdiff_t expected_size = 0;
         std::ptrdiff_t orig_size = 0;
 
-        Mirror* used_mirror;
-
         std::function<int(curl_off_t, curl_off_t)> progress_callback;
 
         EndCb endcb = nullptr;
@@ -74,7 +72,8 @@ namespace powerloader
         // these are available checksums for the entire file
         std::vector<Checksum> checksums;
 
-        // error code
+        std::shared_ptr<Mirror> used_mirror;
+        std::string effective_url;
 
 #ifdef WITH_ZCHUNK
         // Zchunk download context
