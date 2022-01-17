@@ -56,6 +56,15 @@ namespace powerloader
             reset();
         }
 
+        inline bool zck_running()
+        {
+#ifdef WITH_ZCHUNK
+            return target->is_zchunk && zck_state != ZckState::kFINISHED;
+#else
+            return false;
+#endif
+        }
+
         CbReturnCode call_endcallback(TransferStatus status);
 
         static int progress_callback(Target* ptr,
@@ -110,7 +119,6 @@ namespace powerloader
 
         bool range_fail = false;
         ZckState zck_state;
-        FILE* f = nullptr;
     };
 
 }

@@ -53,6 +53,7 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
             if failure_count < self.count_thresh:
                 self.return_not_found()
             else:
+                failure_count = 0
                 self.serve_static()
 
         def reset_failure_count(self):
