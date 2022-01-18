@@ -66,6 +66,7 @@ namespace powerloader
         }
 
         CbReturnCode call_endcallback(TransferStatus status);
+        void reset_file(TransferStatus status);
 
         static int progress_callback(Target* ptr,
                                      curl_off_t total_to_download,

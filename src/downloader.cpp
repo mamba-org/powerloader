@@ -728,21 +728,6 @@ namespace powerloader
                 serious_err = result.error().is_serious();
                 fatal_err = result.error().is_fatal();
             }
-            // }
-            // catch (const download_error& e)
-            // {
-            //     // non-fatal download error
-            //     spdlog::warn(e.what());
-            //     transfer_err = true;
-            //     serious_err = e.serious;
-            // }
-            // catch (const fatal_download_error& e)
-            // {
-            //     // fatal download error
-            //     spdlog::error(e.what());
-            //     transfer_err = true;
-            //     fatal_err = true;
-            // }
 
             if (current_target->target->outfile && current_target->target->outfile->open())
             {
@@ -779,10 +764,10 @@ namespace powerloader
                         if (zck == nullptr)
                         {
                             spdlog::error("Unable to get zchunk file from download context");
-                            // g_set_error(&transfer_err,
-                            //             LR_DOWNLOADER_ERROR,
-                            //             LRE_ZCK,
-                            //             "Unable to get zchunk file from download context");
+                            result = cpp::fail(DownloaderError{
+                                ErrorLevel::SERIOUS,
+                                ErrorCode::PD_ZCK,
+                                "Unable to get zchunk file from download context" });
                             goto transfer_error;
                         }
                         if (zck_failed_chunks(zck) == 0 && zck_missing_chunks(zck) == 0)
@@ -805,9 +790,13 @@ namespace powerloader
                         zck_free(&zck);
                         spdlog::error("At least one of the zchunk checksums doesn't match in {}",
                                       effective_url);
-                        // g_set_error(&transfer_err, LR_DOWNLOADER_ERROR, LRE_BADCHECKSUM,
-                        // "At least one of the zchunk checksums doesn't match in
-                        // %s", effective_url);
+
+                        result = cpp::fail(DownloaderError{
+                            ErrorLevel::SERIOUS,
+                            ErrorCode::PD_BADCHECKSUM,
+                            fmt::format("At least one of the zchunk checksums doesn't match in {}",
+                                        effective_url) });
+
                         goto transfer_error;
                     }
                     zck_free(&zck);
@@ -819,31 +808,39 @@ namespace powerloader
                 // New file was downloaded
                 if (!transfer_err && !current_target->check_filesize())
                 {
-                    fs::remove(current_target->temp_file);
-                    return false;
+                    result = cpp::fail(
+                        DownloaderError({ ErrorLevel::SERIOUS,
+                                          ErrorCode::PD_BADCHECKSUM,
+                                          "Result file does not have expected filesize" }));
+                    transfer_err = true;
+                    goto transfer_error;
                 }
                 if (!transfer_err && !current_target->check_checksums())
                 {
-                    fs::remove(current_target->temp_file);
-                    return false;
+                    result = cpp::fail(
+                        DownloaderError({ ErrorLevel::SERIOUS,
+                                          ErrorCode::PD_BADCHECKSUM,
+                                          "Result file does not have expected checksum" }));
+                    transfer_err = true;
+                    goto transfer_error;
                 }
-
-                // TODO preserve timestamp?
-
-                // if (!ret) { // Error
-                //     g_propagate_prefixed_error(err, tmp_err, "Downloading from %s"
-                //             "was successful but error encountered while "
-                //             "checksumming: ", effective_url);
-                //     return FALSE;
-                // }
+                if (result.has_error())
+                {
+                    current_target->reset_file(TransferStatus::kERROR);
+                }
 #ifdef WITH_ZCHUNK
             }
 #endif
 
         transfer_error:
-
             // Cleanup
             curl_multi_remove_handle(multi_handle, current_target->curl_handle->ptr());
+
+            // call_endcallback()
+            if (result.has_error())
+            {
+                result.error().log();
+            }
             current_target->reset();
 
             current_target->headercb_interrupt_reason.clear();
@@ -865,7 +862,7 @@ namespace powerloader
             }
 
             // There was an error during transfer
-            if (transfer_err)
+            if (result.has_error())
             {
                 // int complete_url_in_path = strstr(target->target->path, "://") ? 1 : 0;
                 int complete_url_in_path = false;
@@ -905,13 +902,13 @@ namespace powerloader
                 //     }
                 // }
 
-                if (!fatal_err)
+                if (!result.error().is_fatal())
                 {
                     // Temporary error (serious_error) during download occurred and
                     // another transfers are running or there are successful transfers
                     // and fewer failed transfers than tried parallel connections. It may be
                     // mirror is OK but accepts fewer parallel connections.
-                    if (serious_err && current_target->mirror
+                    if (result.error().is_serious() && current_target->mirror
                         && (current_target->mirror->has_running_transfers()
                             || (current_target->mirror->successful_transfers > 0
                                 && current_target->mirror->failed_transfers
@@ -981,23 +978,15 @@ namespace powerloader
                     // Call end callback
                     CbReturnCode rc = current_target->call_endcallback(TransferStatus::kERROR);
                     spdlog::error("Retries exceeded for {}", current_target->target->complete_url);
-                    // TODO
-                    // current_target->target->set_error(
-                    //     // DownloaderError{
-                    //     //     ErrorLevel::Fatal
-                    //     //     "Download failed"
-                    //     // }
-                    // )
-                    // lr_downloadtarget_set_error(target->target,
-                    //                             transfer_err->code,
-                    //                             "Download failed: %s",
-                    //                             transfer_err->message);
+
+                    assert(result.has_error());
+                    current_target->target->set_error(result.error());
 
                     if (failfast || rc == CbReturnCode::kERROR)
                     {
                         // Fail fast is enabled, fail on any error
-                        throw fatal_download_error(
-                            "Failing fast or interrupted by error from end callback");
+                        fail_fast_err = true;
+                        spdlog::error("Failing fast or interrupted by error from end callback");
                     }
                     else
                     {
@@ -1014,12 +1003,7 @@ namespace powerloader
                 if (current_target->target->is_zchunk
                     && current_target->zck_state != ZckState::kFINISHED)
                 {
-                    // If we haven't finished downloading zchunk file, setup next download
                     current_target->state = DownloadState::kWAITING;
-                    current_target->original_offset = -1;
-                    // target->target->rcode = LRE_UNFINISHED;
-                    // target->target->err = "Not finished";
-                    // current_target->handle = target->target->handle;
                     current_target->tried_mirrors.erase(current_target->mirror);
                 }
                 else
@@ -1055,8 +1039,6 @@ namespace powerloader
                     current_target->target->used_mirror = current_target->mirror;
                 }
 
-                // TODO
-                // lr_downloadtarget_set_error(target->target, LRE_OK, NULL);
                 current_target->target->effective_url = effective_url;
             }
 
@@ -1064,8 +1046,6 @@ namespace powerloader
             {
                 // Interrupt whole downloading
                 // A fatal error occurred or interrupted by callback
-                // g_propagate_error(err, fail_fast_err);
-                throw fatal_download_error();
                 return false;
             }
         }
@@ -1104,6 +1084,13 @@ namespace powerloader
             if (!check)
             {
                 curl_multi_cleanup(multi_handle);
+                for (auto& target : m_running_transfers)
+                {
+                    target->target->set_error(DownloaderError{ ErrorLevel::FATAL,
+                                                               ErrorCode::PD_INTERRUPTED,
+                                                               "Download interrupted by error" });
+                    target->call_endcallback(TransferStatus::kERROR);
+                }
                 return false;
             }
 

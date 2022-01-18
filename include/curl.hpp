@@ -10,6 +10,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <nlohmann/json.hpp>
 
+#include "result.hpp"
 #include "utils.hpp"
 #include "enums.hpp"
 
@@ -167,6 +168,16 @@ namespace powerloader
         {
             if (response)
                 finalize_transfer(*response);
+        }
+
+        template <class T>
+        inline cpp::result<T, CURLcode> getinfo(CURLINFO option)
+        {
+            T val;
+            CURLcode result = curl_easy_getinfo(m_handle, option, &val);
+            if (result != CURLE_OK)
+                return cpp::fail(result);
+            return val;
         }
 
         template <class T>

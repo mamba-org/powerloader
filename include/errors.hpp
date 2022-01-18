@@ -1,5 +1,6 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
 #include "result.hpp"
 
 namespace powerloader
@@ -86,7 +87,6 @@ namespace powerloader
         FATAL
     };
 
-
     struct DownloaderError
     {
         ErrorLevel level;
@@ -100,6 +100,21 @@ namespace powerloader
         inline bool is_fatal()
         {
             return level == ErrorLevel::FATAL;
+        }
+
+        inline void log()
+        {
+            switch (level)
+            {
+                case ErrorLevel::FATAL:
+                    spdlog::critical(reason);
+                    break;
+                case ErrorLevel::SERIOUS:
+                    spdlog::error(reason);
+                    break;
+                default:
+                    spdlog::warn(reason);
+            }
         }
     };
 }

@@ -38,6 +38,7 @@ namespace powerloader
         long max_parallel_downloads = 5L;
         long max_downloads_per_mirror = -1L;
 
+        bool preserve_filetime = true;
         bool ftp_use_seepsv = true;
 
         fs::path cache_dir;

@@ -15,6 +15,40 @@ namespace powerloader
         }
     }
 
+    void Target::reset_file(TransferStatus status)
+    {
+        if (target->outfile && status == TransferStatus::kSUCCESSFUL)
+        {
+            reset();
+
+            std::error_code ec;
+            fs::rename(temp_file, target->fn, ec);
+
+            if (!ec && Context::instance().preserve_filetime)
+            {
+                auto remote_filetime = curl_handle->getinfo<curl_off_t>(CURLINFO_FILETIME_T);
+                if (remote_filetime.has_error() || remote_filetime.value() < 0)
+                    spdlog::debug("Unable to get remote time of retrieved document");
+
+                if (remote_filetime.value() >= 0)
+                {
+                    fs::file_time_type tp(std::chrono::seconds(remote_filetime.value()));
+                    fs::last_write_time(target->fn, tp, ec);
+                }
+            }
+        }
+        else if (status == TransferStatus::kALREADYEXISTS)
+        {
+            reset();
+        }
+        else if (status == TransferStatus::kERROR)
+        {
+            reset();
+            spdlog::error("Removing file {}", temp_file.string());
+            fs::remove(temp_file);
+        }
+    }
+
     CbReturnCode Target::call_endcallback(TransferStatus status)
     {
         EndCb end_cb = override_endcb ? override_endcb : target->endcb;
@@ -33,21 +67,7 @@ namespace powerloader
             }
         }
 
-        if (target->outfile && status == TransferStatus::kSUCCESSFUL)
-        {
-            reset();
-            fs::rename(temp_file, target->fn);
-        }
-        else if (status == TransferStatus::kALREADYEXISTS)
-        {
-            reset();
-        }
-        else if (status == TransferStatus::kERROR)
-        {
-            reset();
-            spdlog::error("Removing file {}", temp_file.string());
-            fs::remove(temp_file);
-        }
+        reset_file(status);
 
         return rc;
     }

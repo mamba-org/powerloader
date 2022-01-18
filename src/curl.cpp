@@ -69,7 +69,8 @@ namespace powerloader
 
         if (curl_easy_setopt(h, CURLOPT_FTP_USE_EPSV, (long) ctx.ftp_use_seepsv) != CURLE_OK)
             goto err;
-        if (curl_easy_setopt(h, CURLOPT_FILETIME, 0) != CURLE_OK)
+
+        if (curl_easy_setopt(h, CURLOPT_FILETIME, (long) ctx.preserve_filetime) != CURLE_OK)
             goto err;
 
         if (Context::instance().verbosity > 0)
