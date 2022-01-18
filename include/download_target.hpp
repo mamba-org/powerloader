@@ -6,6 +6,7 @@
 #include "url.hpp"
 #include "mirror.hpp"
 #include "fileio.hpp"
+#include "errors.hpp"
 
 #ifdef WITH_ZCHUNK
 extern "C"
@@ -130,6 +131,12 @@ namespace powerloader
 
         std::shared_ptr<Mirror> used_mirror;
         std::string effective_url;
+        std::unique_ptr<DownloaderError> error;
+
+        inline void set_error(const DownloaderError& err)
+        {
+            error = std::make_unique<DownloaderError>(err);
+        }
 
 #ifdef WITH_ZCHUNK
         // Zchunk download context

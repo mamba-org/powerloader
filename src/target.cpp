@@ -92,7 +92,7 @@ namespace powerloader
 
         if (ec)
         {
-            throw std::runtime_error("Could not open target file.");
+            throw std::system_error(ec);
         }
     }
 

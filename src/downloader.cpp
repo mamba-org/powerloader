@@ -74,7 +74,8 @@ namespace powerloader
      *                          we cannot write to a socket, we cannot write
      *                          data to disk, bad function argument, ...
      */
-    void Downloader::check_finished_transfer_status(CURLMsg* msg, Target* target)
+    cpp::result<void, DownloaderError> Downloader::check_finished_transfer_status(CURLMsg* msg,
+                                                                                  Target* target)
     {
         long code = 0;
         char* effective_url = NULL;
@@ -100,8 +101,10 @@ namespace powerloader
             else if (target->headercb_state == HeaderCbState::kINTERRUPTED)
             {
                 // Download was interrupted by header callback
-                throw download_error("Interrupted by header callback "
-                                     + target->headercb_interrupt_reason);
+                return cpp::fail(DownloaderError{ ErrorLevel::FATAL,
+                                                  ErrorCode::PD_CBINTERRUPTED,
+                                                  fmt::format("Interrupted by header callback: {}",
+                                                              target->headercb_interrupt_reason) });
             }
 #ifdef WITH_ZCHUNK
             else if (target->range_fail)
@@ -124,13 +127,15 @@ namespace powerloader
                 {
                     // Non-fatal zchunk error
                     spdlog::warn("Serious zchunk error: {}", zck_get_error(zck));
-                    throw download_error(zck_get_error(zck), true);
+                    return cpp::fail(DownloaderError{
+                        ErrorLevel::SERIOUS, ErrorCode::PD_ZCK, fmt::format(zck_get_error(zck)) });
                 }
                 else
                 {
                     // Fatal zchunk error (zck_is_error(zck) == 2)
                     spdlog::error("Fatal zchunk error: {}", zck_get_error(zck));
-                    throw fatal_download_error(zck_get_error(zck));
+                    return cpp::fail(DownloaderError{
+                        ErrorLevel::FATAL, ErrorCode::PD_ZCK, fmt::format(zck_get_error(zck)) });
                 }
             }
 #endif /* WITH_ZCHUNK */
@@ -159,15 +164,18 @@ namespace powerloader
                     case CURLE_SSL_CRL_BADFILE:
                     case CURLE_WRITE_ERROR:
                         // Fatal error
-                        throw fatal_download_error(error);
+                        return cpp::fail(
+                            DownloaderError{ ErrorLevel::FATAL, ErrorCode::PD_CURL, error });
                         break;
                     case CURLE_OPERATION_TIMEDOUT:
                         // Serious error
-                        throw download_error(error, true);
+                        return cpp::fail(
+                            DownloaderError{ ErrorLevel::SERIOUS, ErrorCode::PD_CURL, error });
                         break;
                     default:
                         // Other error are not considered fatal
-                        throw download_error(error);
+                        return cpp::fail(
+                            DownloaderError{ ErrorLevel::INFO, ErrorCode::PD_CURL, error });
                 }
             }
         }
@@ -182,10 +190,14 @@ namespace powerloader
             // Check HTTP(S) code / or FTP
             if (code / 100 != 2)
             {
-                throw download_error(fmt::format(
-                    "Status code: {} for {} (IP: {})", code, effective_url, effective_ip));
+                return cpp::fail(DownloaderError{
+                    ErrorLevel::INFO,
+                    ErrorCode::PD_CURL,
+                    fmt::format(
+                        "Status code: {} for {} (IP: {})", code, effective_url, effective_ip) });
             }
         }
+        return {};
     }
 
     bool Downloader::is_max_mirrors_unlimited()
@@ -193,13 +205,20 @@ namespace powerloader
         return max_mirrors_to_try <= 0;
     }
 
-    std::shared_ptr<Mirror> Downloader::select_suitable_mirror(Target* target)
+    cpp::result<std::shared_ptr<Mirror>, DownloaderError> Downloader::select_suitable_mirror(
+        Target* target)
     {
         // This variable is used to indentify that all possible mirrors
         // were already tried and the transfer should be marked as failed.
         bool at_least_one_suitable_mirror_found = false;
 
-        assert(target && !target->mirrors.empty());
+        assert(target);
+
+        if (target->mirrors.empty())
+        {
+            return cpp::fail(DownloaderError{
+                ErrorLevel::FATAL, ErrorCode::PD_MIRRORS, "No mirrors added for target" });
+        }
 
         // mirrors_iterated is used to allow to use mirrors multiple times for a target
         std::size_t mirrors_iterated = 0;
@@ -207,10 +226,10 @@ namespace powerloader
         // retry local paths have no reason
         bool reiterate = false;
 
-        //  Iterate over mirrors for the target. If no suitable mirror is found on
-        //  the first iteration, relax the conditions (by allowing previously
-        //  failing mirrors to be used again) and do additional iterations up to
-        //  number of allowed failures equal to dd->allowed_mirror_failures.
+        // Iterate over mirrors for the target. If no suitable mirror is found on
+        // the first iteration, relax the conditions (by allowing previously
+        // failing mirrors to be used again) and do additional iterations up to
+        // number of allowed failures equal to dd->allowed_mirror_failures.
         do
         {
             for (const auto& mirror : target->mirrors)
@@ -284,18 +303,18 @@ namespace powerloader
         } while (reiterate && target->retries < allowed_mirror_failures
                  && ++mirrors_iterated < allowed_mirror_failures);
 
-        throw fatal_download_error(
-            fmt::format("No suitable mirror found for {}", target->target->complete_url));
+        return cpp::fail(DownloaderError(
+            { ErrorLevel::FATAL,
+              ErrorCode::PD_NOURL,
+              fmt::format("No suitable mirror found for {}", target->target->complete_url) }));
     }
 
     // Select next target
-    cpp::result<std::pair<Target*, std::string>, XError> Downloader::select_next_target()
+    cpp::result<std::pair<Target*, std::string>, DownloaderError> Downloader::select_next_target()
     {
-        // assert(selected_target);
-        // assert(selected_full_url);
-
         Target* selected_target = nullptr;
         Mirror* mirror = nullptr;
+
         for (auto* target : m_targets)
         {
             std::shared_ptr<Mirror> mirror;
@@ -313,9 +332,10 @@ namespace powerloader
             if (target->target->base_url.empty() && !have_mirrors && !complete_url_in_path)
             {
                 // Used relative path with empty internal mirrorlist and no basepath specified!
-                return cpp::fail(
-                    XError{ XError::FATAL,
-                            "Empty mirrorlist and no basepath specified in DownloadTarget" });
+                return cpp::fail(DownloaderError{
+                    ErrorLevel::FATAL,
+                    ErrorCode::PD_UNFINISHED,
+                    "Empty mirrorlist and no basepath specified in DownloadTarget" });
             }
 
             spdlog::debug("Selecting mirror for: {}", target->target->path);
@@ -328,12 +348,16 @@ namespace powerloader
             else
             {
                 // Find a suitable mirror
-                mirror = select_suitable_mirror(target);
-
-                if (!mirror)
+                auto res = select_suitable_mirror(target);
+                if (res.has_error())
                 {
-                    return cpp::fail(XError{ XError::FATAL, "No mirror found" });
+                    target->call_endcallback(TransferStatus::kERROR);
+                    return cpp::fail(res.error());
                 }
+
+                mirror = res.value();
+
+                assert(mirror);
 
                 if (mirror && !mirror->need_preparation(target))
                 {
@@ -358,30 +382,32 @@ namespace powerloader
 
                 // Mark the target as failed
                 target->state = DownloadState::kFAILED;
-                // lr_downloadtarget_set_error(target->target, LRE_NOURL,
-                //                             "Cannot download, offline mode is specified and no "
-                //                             "local URL is available");
+                target->target->set_error(DownloaderError{
+                    ErrorLevel::FATAL,
+                    ErrorCode::PD_NOURL,
+                    "Cannot download: offline mode is specified and no local URL is available." });
 
                 auto cb_ret = target->call_endcallback(TransferStatus::kERROR);
-                if (cb_ret == CbReturnCode::kERROR || failfast)
-                {
-                    throw fatal_download_error(fmt::format(
-                        "Cannot download {}: Offline mode is specified and no local URL is available",
-                        target->target->path));
-                }
+                // TODO
+                // if (cb_ret == CbReturnCode::kERROR || failfast)
+                // {
+                //     throw fatal_download_error(fmt::format(
+                //         "Cannot download {}: Offline mode is specified and no local URL is
+                //         available", target->target->path));
+                // }
             }
 
             // A waiting target found
             if (mirror || !full_url.empty())
             {
-                // Note: mirror is NULL if base_url is used
+                // Note: mirror is nullptr if base_url is used
                 target->mirror = mirror;
                 return std::make_pair(target, full_url);
             }
         }
 
         // No suitable target found
-        return std::make_pair(nullptr, std::string(""));
+        return std::make_pair(nullptr, std::string());
     }
 
     bool Downloader::prepare_next_transfer(bool* candidate_found)
@@ -471,7 +497,9 @@ namespace powerloader
             if (!check_zck(target))
             {
                 spdlog::error("Unable to initialize zchunk file!");
-                throw fatal_download_error("Unable to initialize zchunk file!");
+                target->state = DownloadState::kFAILED;
+                target->target->set_error(DownloaderError{
+                    ErrorLevel::FATAL, ErrorCode::PD_ZCK, "Unable to initialize zchunk file" });
             }
 
             // If zchunk is finished, we're done, so move to next target
@@ -678,10 +706,7 @@ namespace powerloader
                 }
             }
 
-            if (!current_target)
-            {
-                throw std::runtime_error("Could not find target associated with multi request");
-            }
+            assert(current_target);
 
             char* tmp_effective_url;
 
@@ -696,24 +721,28 @@ namespace powerloader
             bool transfer_err = false, serious_err = false, fatal_err = false;
             bool fail_fast_err = false;
 
-            try
+            auto result = check_finished_transfer_status(msg, current_target);
+            if (result.has_error())
             {
-                check_finished_transfer_status(msg, current_target);
-            }
-            catch (const download_error& e)
-            {
-                // non-fatal download error
-                spdlog::warn(e.what());
                 transfer_err = true;
-                serious_err = e.serious;
+                serious_err = result.error().is_serious();
+                fatal_err = result.error().is_fatal();
             }
-            catch (const fatal_download_error& e)
-            {
-                // fatal download error
-                spdlog::error(e.what());
-                transfer_err = true;
-                fatal_err = true;
-            }
+            // }
+            // catch (const download_error& e)
+            // {
+            //     // non-fatal download error
+            //     spdlog::warn(e.what());
+            //     transfer_err = true;
+            //     serious_err = e.serious;
+            // }
+            // catch (const fatal_download_error& e)
+            // {
+            //     // fatal download error
+            //     spdlog::error(e.what());
+            //     transfer_err = true;
+            //     fatal_err = true;
+            // }
 
             if (current_target->target->outfile && current_target->target->outfile->open())
             {
@@ -841,7 +870,6 @@ namespace powerloader
                 // int complete_url_in_path = strstr(target->target->path, "://") ? 1 : 0;
                 int complete_url_in_path = false;
 
-                int num_of_tried_mirrors = current_target->tried_mirrors.size();
                 bool retry = false;
 
                 spdlog::error("Error during transfer");
@@ -902,7 +930,6 @@ namespace powerloader
 
                         // Give used mirror another chance
                         current_target->tried_mirrors.erase(current_target->mirror);
-                        num_of_tried_mirrors = current_target->tried_mirrors.size();
                     }
 
                     // complete_url_in_path and target->base_url doesn't have an
@@ -953,7 +980,14 @@ namespace powerloader
 
                     // Call end callback
                     CbReturnCode rc = current_target->call_endcallback(TransferStatus::kERROR);
-
+                    spdlog::error("Retries exceeded for {}", current_target->target->complete_url);
+                    // TODO
+                    // current_target->target->set_error(
+                    //     // DownloaderError{
+                    //     //     ErrorLevel::Fatal
+                    //     //     "Download failed"
+                    //     // }
+                    // )
                     // lr_downloadtarget_set_error(target->target,
                     //                             transfer_err->code,
                     //                             "Download failed: %s",

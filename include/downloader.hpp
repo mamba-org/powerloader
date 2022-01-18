@@ -28,21 +28,10 @@ namespace fs = std::filesystem;
 #ifdef WITH_ZCHUNK
 #include <zck.hpp>
 #endif
-#include "result.hpp"
+#include "errors.hpp"
 
 namespace powerloader
 {
-    struct XError
-    {
-        enum
-        {
-            INFO,
-            SERIOUS,
-            FATAL
-        } level;
-        std::string reason;
-    };
-
     class Downloader
     {
     public:
@@ -63,13 +52,15 @@ namespace powerloader
          *                          we cannot write to a socket, we cannot write
          *                          data to disk, bad function argument, ...
          */
-        void check_finished_transfer_status(CURLMsg* msg, Target* target);
+        cpp::result<void, DownloaderError> check_finished_transfer_status(CURLMsg* msg,
+                                                                          Target* target);
 
         bool is_max_mirrors_unlimited();
 
-        std::shared_ptr<Mirror> select_suitable_mirror(Target* target);
+        cpp::result<std::shared_ptr<Mirror>, DownloaderError> select_suitable_mirror(
+            Target* target);
 
-        cpp::result<std::pair<Target*, std::string>, XError> select_next_target();
+        cpp::result<std::pair<Target*, std::string>, DownloaderError> select_next_target();
 
         bool prepare_next_transfer(bool* candidate_found);
 
