@@ -515,21 +515,6 @@ namespace powerloader
         }
 #endif /* WITH_ZCHUNK */
 
-        // Allow resume only for files that were originally being
-        // downloaded by librepo
-        // if (target->resume && fs::exist(!is_resumable(target->target->fn, ))
-        // {
-        //     target->resume = false;
-        //     p_debug("Resume ignored, existing file was not originally "
-        //             "being downloaded by Librepo")
-        //     if (ftruncate(fd, 0) == -1)
-        //     {
-        //         g_set_error(err, LR_DOWNLOADER_ERROR, LRE_IO,
-        //                     "ftruncate() failed: %s", g_strerror(errno));
-        //         goto fail;
-        //     }
-        // }
-
         if (target->resume && target->resume_count >= Context::instance().max_resume_count)
         {
             target->resume = false;
@@ -555,6 +540,7 @@ namespace powerloader
             }
 
             curl_off_t used_offset = target->original_offset;
+
             spdlog::info("Trying to resume from offset {}", used_offset);
             h.setopt(CURLOPT_RESUME_FROM_LARGE, used_offset);
         }
@@ -631,11 +617,6 @@ namespace powerloader
         // Add the transfer to the list of running transfers
         m_running_transfers.push_back(target);
         return true;
-
-    fail:
-        // Cleanup target
-        target->reset();
-        return false;
     }
 
     bool Downloader::prepare_next_transfers()
@@ -854,11 +835,12 @@ namespace powerloader
             if (current_target->mirror)
             {
                 bool success = transfer_err == false;
-                // TODO
                 current_target->mirror->update_statistics(success);
                 if (Context::instance().adaptive_mirror_sorting)
-                    sort_mirrors(
-                        current_target->mirrors, current_target->mirror, success, serious_err);
+                    sort_mirrors(current_target->mirrors,
+                                 current_target->mirror,
+                                 success,
+                                 result.error().is_serious());
             }
 
             // There was an error during transfer
@@ -1158,6 +1140,7 @@ namespace powerloader
         // }
     }
 
+    // We do not implement the function of librepo to set a max speed per repository
     bool Downloader::set_max_speeds_to_transfers()
     {
         // Nothing to do
@@ -1171,59 +1154,6 @@ namespace powerloader
             current_target->curl_handle->setopt(CURLOPT_MAX_RECV_SPEED_LARGE,
                                                 (curl_off_t) ctx.max_speed_limit);
         }
-
-        // Compute number of running downloads from repos with limited speed
-        // GHashTable *num_running_downloads_per_repo = g_hash_table_new(NULL, NULL);
-        // for (GSList *elem = dd->running_transfers; elem; elem = g_slist_next(elem)) {
-        //     const LrTarget *ltarget = elem->data;
-
-        //     if (!ltarget->handle || !ltarget->handle->maxspeed) // Skip repos with unlimited
-        //     speed or without handle
-        //         continue;
-
-        //     guint num_running_downloads_from_repo =
-        //         GPOINTER_TO_UINT(g_hash_table_lookup(num_running_downloads_per_repo,
-        //         ltarget->handle));
-        //     if (num_running_downloads_from_repo)
-        //         ++num_running_downloads_from_repo;
-        //     else
-        //         num_running_downloads_from_repo = 1;
-        //     g_hash_table_insert(num_running_downloads_per_repo, ltarget->handle,
-        //                         GUINT_TO_POINTER(num_running_downloads_from_repo));
-        // }
-
-        // // Set max speed to transfers
-        // GHashTableIter iter;
-        // gpointer key, value;
-        // g_hash_table_iter_init(&iter, num_running_downloads_per_repo);
-        // while (g_hash_table_iter_next(&iter, &key, &value)) {
-        //     const LrHandle *repo = key;
-        //     const guint num_running_downloads_from_repo = GPOINTER_TO_UINT(value);
-
-        //     // Calculate a max speed (rounded up) per target (for repo)
-        //     const gint64 single_target_speed =
-        //         (repo->maxspeed + (num_running_downloads_from_repo - 1)) /
-        //         num_running_downloads_from_repo;
-
-        //     for (GSList *elem = dd->running_transfers; elem; elem = g_slist_next(elem)) {
-        //         LrTarget *ltarget = elem->data;
-        //         if (ltarget->handle == repo) {
-        //             CURL *curl_handle = ltarget->curl_handle;
-        //             CURLcode code = curl_easy_setopt(curl_handle,
-        //                                              CURLOPT_MAX_RECV_SPEED_LARGE,
-        //                                              (curl_off_t)single_target_speed);
-        //             if (code != CURLE_OK) {
-        //                 g_set_error(err, LR_DOWNLOADER_ERROR, LRE_CURLSETOPT,
-        //                             "Cannot set CURLOPT_MAX_RECV_SPEED_LARGE option: %s",
-        //                             curl_easy_strerror(code));
-        //                 g_hash_table_destroy(num_running_downloads_per_repo);
-        //                 return FALSE;
-        //             }
-        //         }
-        //     }
-        // }
-
-        // g_hash_table_destroy(num_running_downloads_per_repo);
 
         return true;
     }
