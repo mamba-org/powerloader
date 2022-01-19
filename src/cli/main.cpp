@@ -207,13 +207,56 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
 
 struct DownloadMetadata
 {
+    std::string url;
     std::string outfile;
     std::string sha256;
     std::ptrdiff_t filesize = -1;
 
     std::string zck_header_sha256;
     std::ptrdiff_t zck_header_size = -1;
+
+    void print()
+    {
+        std::cout << url << " " << sha256 << " " << filesize << std::endl;
+    }
 };
+
+std::vector<DownloadMetadata>
+parse_targets(const YAML::Node& node)
+{
+    assert(node.IsSequence());
+    std::vector<DownloadMetadata> result;
+    for (YAML::Node::const_iterator oit = node.begin(); oit != node.end(); ++oit)
+    {
+        // Just a target, not a map
+        if (oit->IsScalar())
+        {
+            spdlog::warn("Adding URL {}", oit->as<std::string>());
+            result.push_back(DownloadMetadata{ .url = oit->as<std::string>() });
+        }
+        else
+        {
+            assert(oit->IsMap());
+
+            const YAML::Node& el = *oit;
+            DownloadMetadata r;
+
+            if (el["url"])
+                r.url = el["url"].as<std::string>();
+            if (el["sha256"])
+                r.sha256 = el["sha256"].as<std::string>();
+            if (el["size"])
+                r.filesize = el["size"].as<std::ptrdiff_t>();
+            if (el["zck_header_sha256"])
+                r.zck_header_sha256 = el["zck_header_sha256"].as<std::string>();
+            if (el["zck_header_size"])
+                r.zck_header_size = el["zck_header_size"].as<std::ptrdiff_t>();
+            r.print();
+            result.push_back(r);
+        }
+    }
+    return result;
+}
 
 int
 handle_download(const std::vector<std::string>& urls,
@@ -332,7 +375,10 @@ parse_mirrors(const YAML::Node& node)
     assert(node.IsMap());
     std::map<std::string, std::vector<std::shared_ptr<Mirror>>> res;
 
-    auto get_env_from_str = [](const std::string& s, const std::string default_val) {
+    auto get_env_from_str = [](const YAML::Node& node, const std::string default_val) {
+        std::string s;
+        if (node)
+            s = node.as<std::string>();
         if (starts_with(s, "env:"))
         {
             return get_env(s.substr(4).c_str());
@@ -359,29 +405,22 @@ parse_mirrors(const YAML::Node& node)
             }
             else
             {
-                // expecting a map
                 auto cred = *it;
                 creds.url = URLHandler(cred["url"].as<std::string>());
-                if (cred["password"])
-                {
-                    creds.password = get_env_from_str(cred["password"].as<std::string>(),
-                                                      "AWS_SECRET_ACCESS_KEY");
-                }
-                if (cred["user"])
-                {
-                    creds.user
-                        = get_env_from_str(cred["user"].as<std::string>(), "AWS_ACCESS_KEY_ID");
-                }
-                if (cred["region"])
-                {
-                    creds.region
-                        = get_env_from_str(cred["region"].as<std::string>(), "AWS_DEFAULT_REGION");
-                }
+                creds.password = get_env_from_str(cred["password"], "AWS_SECRET_ACCESS_KEY");
+                creds.user = get_env_from_str(cred["user"], "AWS_ACCESS_KEY_ID");
+                creds.region = get_env_from_str(cred["region"], "AWS_DEFAULT_REGION");
             }
             auto kof = KindOf::kHTTP;
             if (creds.url.scheme() == "s3")
             {
                 kof = KindOf::kS3;
+                if (creds.password.empty())
+                    creds.password = get_env("AWS_SECRET_ACCESS_KEY");
+                if (creds.user.empty())
+                    creds.user = get_env("AWS_ACCESS_KEY_ID");
+                if (creds.region.empty())
+                    creds.region = get_env("AWS_DEFAULT_REGION");
             }
             else if (creds.url.scheme() == "oci")
             {
@@ -495,6 +534,8 @@ main(int argc, char** argv)
 
         auto& ctx = Context::instance();
 
+        auto targets = parse_targets(config["targets"]);
+        // exit(0);
         du_files = config["targets"].as<std::vector<std::string>>();
         if (config["mirrors"])
         {
