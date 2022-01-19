@@ -15,6 +15,40 @@ namespace powerloader
         }
     }
 
+    void Target::reset_file(TransferStatus status)
+    {
+        if (target->outfile && status == TransferStatus::kSUCCESSFUL)
+        {
+            reset();
+
+            std::error_code ec;
+            fs::rename(temp_file, target->fn, ec);
+
+            if (!ec && Context::instance().preserve_filetime)
+            {
+                auto remote_filetime = curl_handle->getinfo<curl_off_t>(CURLINFO_FILETIME_T);
+                if (remote_filetime.has_error() || remote_filetime.value() < 0)
+                    spdlog::debug("Unable to get remote time of retrieved document");
+
+                if (remote_filetime.value() >= 0)
+                {
+                    fs::file_time_type tp(std::chrono::seconds(remote_filetime.value()));
+                    fs::last_write_time(target->fn, tp, ec);
+                }
+            }
+        }
+        else if (status == TransferStatus::kALREADYEXISTS)
+        {
+            reset();
+        }
+        else if (status == TransferStatus::kERROR)
+        {
+            reset();
+            spdlog::error("Removing file {}", temp_file.string());
+            fs::remove(temp_file);
+        }
+    }
+
     CbReturnCode Target::call_endcallback(TransferStatus status)
     {
         EndCb end_cb = override_endcb ? override_endcb : target->endcb;
@@ -33,20 +67,7 @@ namespace powerloader
             }
         }
 
-        if (target->outfile && status == TransferStatus::kSUCCESSFUL)
-        {
-            reset();
-            fs::rename(temp_file, target->fn);
-        }
-        else if (status == TransferStatus::kALREADYEXISTS)
-        {
-            // TODO not emitted currently
-        }
-        else if (status == TransferStatus::kERROR)
-        {
-            // TODO remove or can we continue?
-            // fs::remove(temp_file);
-        }
+        reset_file(status);
 
         return rc;
     }
@@ -91,7 +112,7 @@ namespace powerloader
 
         if (ec)
         {
-            throw std::runtime_error("Could not open target file.");
+            throw std::system_error(ec);
         }
     }
 
@@ -298,11 +319,9 @@ namespace powerloader
 
         if (range_start <= 0 && range_end <= 0)
         {
-            // Write everything curl give to you
+            // Write everything curl gives us
             self->writecb_received += all;
-            // TODO check bad bit here!
-            self->target->outfile->write(buffer, size, nitems);
-            return all;
+            return self->target->outfile->write(buffer, size, nitems);
         }
 
         // Deal with situation when user wants only specific byte range of the
@@ -364,26 +383,19 @@ namespace powerloader
         }
 
         assert(nitems > 0);
-        self->target->outfile->write(buffer, size, nitems);
+        cur_written = self->target->outfile->write(buffer, size, nitems);
 
-        // TOOD check failbit!
-        // if (cur_written != nitems)
-        // {
-        //     g_warning("Error while writing file: %s", g_strerror(errno));
-        //     return 0; // There was an error
-        // }
+        if (cur_written != nitems)
+        {
+            spdlog::error("Writing file {}: {}", self->temp_file.string(), strerror(errno));
+            // There was an error
+            return 0;
+        }
 
-        return cur_written_expected;
-
-        // // if (!this->fd) throw std::runtime_error("No ofstream open!");
-        // std::size_t numbytes = size * nitems;
-        // // static_cast<DownloadTarget *>(self)->fd->write(buffer, numbytes);
-        // self->target->fd->write(buffer, numbytes);
-        // return numbytes;
+        return cur_written;
     }
 
-    // Progress callback for CURL handles.
-    // progress callback set by the user of powerdownloader.
+    // Progress callback for CURL handles set by the user of powerdownloader.
     int Target::progress_callback(Target* target,
                                   curl_off_t total_to_download,
                                   curl_off_t now_downloaded,
@@ -406,11 +418,11 @@ namespace powerloader
         }
 
 #ifdef WITH_ZCHUNK
-        // if (target->target->is_zchunk)
-        // {
-        //     total_to_download = target->target->total_to_download;
-        //     now_downloaded = now_downloaded + target->target->downloaded;
-        // }
+        if (target->target->is_zchunk)
+        {
+            total_to_download = target->target->total_to_download;
+            now_downloaded = now_downloaded + target->target->downloaded;
+        }
 #endif /* WITH_ZCHUNK */
 
         ret = target->target->progress_callback(total_to_download, now_downloaded);
@@ -438,49 +450,16 @@ namespace powerloader
 
     bool Target::check_checksums()
     {
+        if (!Context::instance().validate_checksum)
+        {
+            return true;
+        }
+
         if (target->checksums.empty())
         {
             return true;
         }
 
-        auto findchecksum = [&](const ChecksumType& t) -> Checksum* {
-            for (auto& cs : target->checksums)
-            {
-                if (cs.type == t)
-                    return &cs;
-            }
-            return nullptr;
-        };
-        Checksum* cs;
-        if ((cs = findchecksum(ChecksumType::kSHA256)))
-        {
-            auto sum = sha256sum(temp_file);
-            if (sum != cs->checksum)
-            {
-                spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}",
-                              sum,
-                              cs->checksum);
-                return false;
-            }
-            return true;
-        }
-        else if ((cs = findchecksum(ChecksumType::kSHA1)))
-        {
-            spdlog::error("Checking SHA1 sum not implemented!");
-            return false;
-        }
-        else if ((cs = findchecksum(ChecksumType::kMD5)))
-        {
-            spdlog::info("Checking MD5 sum");
-            auto sum = md5sum(temp_file);
-            if (sum != cs->checksum)
-            {
-                spdlog::error(
-                    "MD5 sum of downloaded file is wrong.\nIs {}. Should be {}", sum, cs->checksum);
-                return false;
-            }
-            return true;
-        }
-        return true;
+        return target->validate_checksum(temp_file);
     }
 }

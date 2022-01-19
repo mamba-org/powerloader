@@ -12,11 +12,9 @@ namespace powerloader
     template <class T>
     std::size_t read_callback(char* ptr, std::size_t size, std::size_t nmemb, T* stream)
     {
-        // TODO stream error handling?!
         // copy as much data as possible into the 'ptr' buffer, but no more than
         // 'size' * 'nmemb' bytes!
         stream->read(ptr, size * nmemb);
-        spdlog::info("Uploading {} bytes of data!", stream->gcount());
         return stream->gcount();
     }
 
@@ -71,7 +69,8 @@ namespace powerloader
 
         if (curl_easy_setopt(h, CURLOPT_FTP_USE_EPSV, (long) ctx.ftp_use_seepsv) != CURLE_OK)
             goto err;
-        if (curl_easy_setopt(h, CURLOPT_FILETIME, 0) != CURLE_OK)
+
+        if (curl_easy_setopt(h, CURLOPT_FILETIME, (long) ctx.preserve_filetime) != CURLE_OK)
             goto err;
 
         if (Context::instance().verbosity > 0)

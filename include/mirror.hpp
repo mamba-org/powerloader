@@ -7,6 +7,7 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
+#include "context.hpp"
 #include "curl.hpp"
 #include "enums.hpp"
 #include "utils.hpp"
@@ -37,6 +38,12 @@ namespace powerloader
         {
             if (url.back() == '/')
                 this->url = this->url.substr(0, this->url.size() - 1);
+
+            auto& ctx = Context::instance();
+            if (ctx.max_downloads_per_mirror > 0)
+            {
+                allowed_parallel_connections = ctx.max_downloads_per_mirror;
+            }
         }
 
         // URL of the mirror
@@ -56,7 +63,7 @@ namespace powerloader
         // Maximum number of allowed parallel connections to this mirror. -1 means no
         // limit. Dynamically adjusted(decreased) if no fatal(temporary) error will
         // occur.
-        int allowed_parallel_connections = 0;
+        long allowed_parallel_connections = -1;
         // The maximum number of tried parallel connections to this mirror
         // (including unsuccessful).
         int max_tried_parallel_connections = 0;
@@ -93,14 +100,6 @@ namespace powerloader
         inline void set_allowed_parallel_connections(int max_allowed_parallel_connections)
         {
             allowed_parallel_connections = max_allowed_parallel_connections;
-        }
-
-        inline void init_once_allowed_parallel_connections(int max_allowed_parallel_connections)
-        {
-            if (allowed_parallel_connections == 0)
-            {
-                set_allowed_parallel_connections(max_allowed_parallel_connections);
-            }
         }
 
         inline void increase_running_transfers()
