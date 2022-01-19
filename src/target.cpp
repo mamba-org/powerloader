@@ -77,7 +77,7 @@ namespace powerloader
         std::ptrdiff_t offset = 0;
         std::error_code ec;
 
-        if (!target->outfile->open())
+        if (!target->outfile || !target->outfile->open())
             return true;
 
         if (original_offset >= 0)
