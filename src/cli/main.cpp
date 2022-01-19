@@ -82,7 +82,6 @@ progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
 std::pair<std::string, std::string>
 oci_fn_split_tag(const std::string& fn)
 {
-    spdlog::info("Splitting {}", fn);
     // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
     // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
     std::pair<std::string, std::string> result;
@@ -98,7 +97,7 @@ oci_fn_split_tag(const std::string& fn)
     std::string tag;
     if (parts.size() > 2)
     {
-        std::string last_part = parts[2].substr(0, parts[2].size() - parts[2].find_first_of("."));
+        std::string last_part = parts[2].substr(0, parts[2].find_first_of("."));
         tag = fmt::format("{}-{}", parts[1], last_part);
     }
     else
@@ -106,13 +105,10 @@ oci_fn_split_tag(const std::string& fn)
         tag = parts[1];
     }
 
-    if (ends_with(tag, ".tar.bz2"))
-        tag = tag.substr(0, tag.size() - 8);
-    if (ends_with(tag, ".conda"))
-        tag = tag.substr(0, tag.size() - 6);
-
     replace_all(tag, "_", "-");
     result.second = tag;
+
+    spdlog::info("Splitting {} to name: {} tag: {}", fn, result.first, result.second);
     return result;
 }
 
