@@ -84,7 +84,7 @@ target_link_libraries(powerloader libpowerloader CLI11::CLI11)
 
 option(ENABLE_TESTS "Enable tests" ON)
 
-option(ENABLE_PYTHON "Enable python bindings" ON) 
+option(ENABLE_PYTHON "Enable python bindings" ON)
 
 # Tests
 # =====
