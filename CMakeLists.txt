@@ -84,8 +84,14 @@ target_link_libraries(powerloader libpowerloader CLI11::CLI11)
 
 option(ENABLE_TESTS "Enable tests" ON)
 
+option(ENABLE_PYTHON "Enable python bindings" ON)
+
 # Tests
 # =====
 if (ENABLE_TESTS)
     add_subdirectory(test)
+endif()
+
+if (ENABLE_PYTHON)
+    add_subdirectory(src/python)
 endif()
