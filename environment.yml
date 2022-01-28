@@ -18,6 +18,8 @@ dependencies:
   - yaml-cpp
   - pytest
   - pyyaml
+  - python
+  - pybind11
+  - requests
   - pip:
     - pytest-xprocess
-    - requests
