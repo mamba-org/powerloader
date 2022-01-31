@@ -1,7 +1,7 @@
 #include <pybind11/iostream.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
+#include <pybind11/functional.h>
 #include "downloader.hpp"
 
 namespace py = pybind11;
@@ -22,9 +22,16 @@ PYBIND11_MODULE(pypowerloader, m)
 
     py::class_<DownloadTarget, std::shared_ptr<DownloadTarget>>(m, "DownloadTarget")
         .def(py::init<const std::string&, const std::string&, const fs::path&>())
-        .def_readonly("complete_url", &DownloadTarget::complete_url);
+        .def_readonly("complete_url", &DownloadTarget::complete_url)
+        .def_readwrite("progress_callback", &DownloadTarget::progress_callback);
 
     py::class_<Mirror, std::shared_ptr<Mirror>>(m, "Mirror").def(py::init<const std::string&>());
+
+    py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
+        .def(
+            py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
+        .def_readwrite("verbosity", &Context::verbosity)
+        .def_readwrite("mirror_map", &Context::mirror_map);
 
     py::class_<Downloader>(m, "Downloader")
         .def(py::init<>())
