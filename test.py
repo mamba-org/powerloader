@@ -12,7 +12,22 @@ filename = "python3.9_test"
 downTarg = pypowerloader.DownloadTarget(path, baseurl, filename)
 print("complete url: " + downTarg.complete_url)
 
-mirror = pypowerloader.Mirror(baseurl)
+
+def progress(total, done):
+    print(f"Total {total}, done {done}")
+    return 0
+
+
+downTarg.progress_callback = progress
+
 dl = pypowerloader.Downloader()
 dl.add(downTarg)
-dl.download()
+
+con = pypowerloader.Context()
+
+# dl.download()
+mirror = pypowerloader.Mirror(baseurl)
+
+print("mirror_map1: " + str(con.mirror_map))
+con.mirror_map = {"conda-forge": [mirror], "test": []}
+print("mirror_map2: " + str(con.mirror_map))
