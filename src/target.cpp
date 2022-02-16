@@ -51,6 +51,8 @@ namespace powerloader
 
     CbReturnCode Target::call_endcallback(TransferStatus status)
     {
+        reset_file(status);
+
         EndCb end_cb = override_endcb ? override_endcb : target->endcb;
         void* cb_data = override_endcb ? override_endcb_data : target->cbdata;
         CbReturnCode rc = CbReturnCode::kOK;
@@ -66,9 +68,6 @@ namespace powerloader
                 spdlog::error("End-Callback returned an error");
             }
         }
-
-        reset_file(status);
-
         return rc;
     }
 

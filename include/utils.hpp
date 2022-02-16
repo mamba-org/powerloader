@@ -10,8 +10,6 @@
 #include <string_view>
 #include <cctype>
 
-namespace fs = std::filesystem;
-
 extern "C"
 {
 #include <openssl/evp.h>
@@ -19,6 +17,8 @@ extern "C"
 
 namespace powerloader
 {
+    namespace fs = std::filesystem;
+
     inline bool is_sig_interrupted()
     {
         return false;

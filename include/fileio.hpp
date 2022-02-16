@@ -1,3 +1,5 @@
+#pragma once
+
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
@@ -10,10 +12,11 @@
 #include <windows.h>
 #endif
 
-namespace fs = std::filesystem;
 
 namespace powerloader
 {
+    namespace fs = std::filesystem;
+
     class FileIO
     {
     private:
