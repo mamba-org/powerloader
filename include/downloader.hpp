@@ -16,7 +16,6 @@ extern "C"
 #include <fcntl.h>
 }
 
-namespace fs = std::filesystem;
 
 #include "context.hpp"
 #include "curl.hpp"
@@ -32,6 +31,8 @@ namespace fs = std::filesystem;
 
 namespace powerloader
 {
+    namespace fs = std::filesystem;
+
     class Downloader
     {
     public:

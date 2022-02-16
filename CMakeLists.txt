@@ -23,6 +23,24 @@ set(LIBPOWERLOADER_SRCS
     src/uploader/oci_upload.cpp
 )
 
+set(LIBPOWERLOADER_HEADERS
+    include/context.hpp
+    include/curl.hpp
+    include/download_target.hpp
+    include/downloader.hpp
+    include/enums.hpp
+    include/errors.hpp
+    include/fastest_mirror.hpp
+    include/fileio.hpp
+    include/mirror.hpp
+    include/url.hpp
+    include/result.hpp
+    include/target.hpp
+    include/utils.hpp
+    include/zck.hpp
+)
+
+
 
 add_executable(powerloader src/cli/main.cpp)
 
@@ -46,12 +64,18 @@ endif()
 add_library(libpowerloader
     ${LIBPOWERLOADER_SRCS}
 )
+set_target_properties(libpowerloader
+    PROPERTIES PREFIX ""
+)
 
 target_include_directories(powerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
     ${ZCK_INCLUDE_DIRS}
 )
+
+set_target_properties(powerloader PROPERTIES PUBLIC_HEADER "${LIBPOWERLOADER_HEADERS}")
+
 if (DEV)
     add_executable(dpowerloader src/main.cpp)
     target_link_libraries(dpowerloader libpowerloader)
@@ -81,6 +105,19 @@ target_link_libraries(libpowerloader
                       ${OPENSSL_LIBRARIES}
                       ${YAML_CPP_LIBRARIES})
 target_link_libraries(powerloader libpowerloader CLI11::CLI11)
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+set(LIBMAMBA_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "install path for libmambaConfig.cmake")
+
+install(TARGETS powerloader libpowerloader
+        EXPORT ${PROJECT_NAME}-targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        PUBLIC_HEADER DESTINATION  ${CMAKE_INSTALL_INCLUDEDIR}/powerloader
+)
 
 option(ENABLE_TESTS "Enable tests" ON)
 

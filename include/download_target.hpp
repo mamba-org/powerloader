@@ -17,6 +17,15 @@ extern "C"
 
 namespace powerloader
 {
+    /** Called when a transfer is done (use transfer status to check
+     * if successful or failed).
+     * @param clientp           Pointer to user data.
+     * @param status            Transfer status
+     * @param msg               Error message or NULL.
+     * @return                  See LrCbReturnCode codes
+     */
+    typedef CbReturnCode (*EndCb)(TransferStatus status, const std::string& msg, void* clientp);
+
     class DownloadTarget
     {
     public:
@@ -122,6 +131,7 @@ namespace powerloader
         std::ptrdiff_t orig_size = 0;
 
         std::function<int(curl_off_t, curl_off_t)> progress_callback;
+
 
         EndCb endcb = nullptr;
         void* cbdata = nullptr;

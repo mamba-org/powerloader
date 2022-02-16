@@ -5,8 +5,6 @@
 #include <fstream>
 #include <set>
 
-namespace fs = std::filesystem;
-
 #include "curl.hpp"
 #include "download_target.hpp"
 #include "enums.hpp"
@@ -15,6 +13,8 @@ namespace fs = std::filesystem;
 
 namespace powerloader
 {
+    namespace fs = std::filesystem;
+
     class Target
     {
     public:

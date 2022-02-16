@@ -5,7 +5,6 @@
 #include <chrono>
 #include <map>
 #include <filesystem>
-namespace fs = std::filesystem;
 #include <spdlog/spdlog.h>
 
 #ifdef WITH_ZCHUNK
@@ -18,6 +17,8 @@ extern "C"
 
 namespace powerloader
 {
+    namespace fs = std::filesystem;
+
     struct Mirror;
 
     class Context

@@ -85,13 +85,4 @@ namespace powerloader
         ChecksumType type;
         std::string checksum;
     };
-
-    /** Called when a transfer is done (use transfer status to check
-     * if successful or failed).
-     * @param clientp           Pointer to user data.
-     * @param status            Transfer status
-     * @param msg               Error message or NULL.
-     * @return                  See LrCbReturnCode codes
-     */
-    typedef CbReturnCode (*EndCb)(TransferStatus status, const std::string& msg, void* clientp);
 }
