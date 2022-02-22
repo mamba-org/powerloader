@@ -109,7 +109,8 @@ namespace powerloader
 
         char errorbuffer[CURL_ERROR_SIZE];
 
-        EndCb override_endcb = nullptr;
+        using end_callback = DownloadTarget::end_callback;
+        end_callback override_endcb = nullptr;
         void* override_endcb_data = nullptr;
 
         CbReturnCode cb_return_code;

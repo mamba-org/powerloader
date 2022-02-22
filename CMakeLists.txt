@@ -11,6 +11,7 @@ include_directories(include)
 
 set(LIBPOWERLOADER_SRCS
     src/context.cpp
+    src/download_target.cpp
     src/downloader.cpp
     src/fastest_mirror.cpp
     src/mirror.cpp
@@ -37,7 +38,6 @@ set(LIBPOWERLOADER_HEADERS
     include/result.hpp
     include/target.hpp
     include/utils.hpp
-    include/zck.hpp
 )
 
 

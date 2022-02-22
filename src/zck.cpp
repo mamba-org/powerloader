@@ -1,8 +1,9 @@
 #include <spdlog/fmt/fmt.h>
 
-#include <zck.hpp>
+#include "zck.hpp"
 #include "context.hpp"
 #include "target.hpp"
+#include "download_target.hpp"
 
 namespace powerloader
 {
@@ -123,13 +124,15 @@ namespace powerloader
     {
         zckCtx* zck = nullptr;
         bool found = false;
-        zck = zck_init_read_base(target->zck_header_checksum, target->zck_header_size, fd);
+        zck = zck_init_read_base(
+            target->p_zck->zck_header_checksum, target->p_zck->zck_header_size, fd);
         return zck;
     }
 
     bool zck_valid_header(const std::shared_ptr<DownloadTarget>& target, int fd)
     {
-        if (zck_valid_header_base(target->zck_header_checksum, target->zck_header_size, fd))
+        if (zck_valid_header_base(
+                target->p_zck->zck_header_checksum, target->p_zck->zck_header_size, fd))
         {
             return true;
         }
@@ -166,10 +169,10 @@ namespace powerloader
         int fd = target->target->outfile->fd();
         auto dt = target->target;
 
-        if (!dt->zck_cache_file.empty() && fs::exists(dt->zck_cache_file))
+        if (!dt->p_zck->zck_cache_file.empty() && fs::exists(dt->p_zck->zck_cache_file))
         {
             std::error_code ec;
-            FileIO chk_file(dt->zck_cache_file, FileIO::read_binary, ec);
+            FileIO chk_file(dt->p_zck->zck_cache_file, FileIO::read_binary, ec);
             if (ec)
             {
                 spdlog::warn("zck: Unable to open {} ({})", chk_file.path().string(), ec.message());
@@ -206,9 +209,9 @@ namespace powerloader
 
         if (found)
         {
-            zckCtx* old_zck = zck_dl_get_zck(target->target->zck_dl);
+            zckCtx* old_zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
             zck_free(&old_zck);
-            if (!zck_dl_set_zck(target->target->zck_dl, zck))
+            if (!zck_dl_set_zck(target->target->p_zck->zck_dl, zck))
             {
                 throw zchunk_error(fmt::format("Unable to setup zchunk download context for {}",
                                                target->target->path));
@@ -247,7 +250,7 @@ namespace powerloader
             }
             if (zck)
             {
-                if (!zck_dl_set_zck(target->target->zck_dl, zck))
+                if (!zck_dl_set_zck(target->target->p_zck->zck_dl, zck))
                 {
                     throw zchunk_error("Unable to setup zchunk download context");
                 }
@@ -264,11 +267,11 @@ namespace powerloader
                                            target->target->path));
         }
 
-        if (target->target->zck_dl)
+        if (target->target->p_zck->zck_dl)
         {
-            zckCtx* old_zck = zck_dl_get_zck(target->target->zck_dl);
+            zckCtx* old_zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
             zck_free(&old_zck);
-            if (!zck_dl_set_zck(target->target->zck_dl, zck))
+            if (!zck_dl_set_zck(target->target->p_zck->zck_dl, zck))
             {
                 throw zchunk_error(fmt::format("Unable to setup zchunk download context for {}",
                                                target->target->path));
@@ -276,14 +279,14 @@ namespace powerloader
         }
         else
         {
-            target->target->zck_dl = zck_dl_init(zck);
+            target->target->p_zck->zck_dl = zck_dl_init(zck);
         }
 
-        target->target->range = zck_get_range(0, target->target->zck_header_size - 1);
-        target->target->total_to_download = target->target->zck_header_size;
+        target->target->range = zck_get_range(0, target->target->p_zck->zck_header_size - 1);
+        target->target->p_zck->total_to_download = target->target->p_zck->zck_header_size;
         target->target->resume = false;
         target->zck_state = ZckState::kHEADER;
-        spdlog::info("Header download prepared {}", target->target->total_to_download);
+        spdlog::info("Header download prepared {}", target->target->p_zck->total_to_download);
 
         // Note: this truncates the header
         std::error_code ec;
@@ -299,9 +302,9 @@ namespace powerloader
 
     bool find_local_zck_chunks(Target* target)
     {
-        assert(target && target->target && target->target->zck_dl);
+        assert(target && target->target && target->target->p_zck->zck_dl);
 
-        zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
+        zckCtx* zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
         int fd = target->target->outfile->fd();
         if (zck && fd != zck_get_fd(zck) && !zck_set_fd(zck, fd))
         {
@@ -311,10 +314,10 @@ namespace powerloader
         }
 
         auto dt = target->target;
-        if (!dt->zck_cache_file.empty() && fs::exists(dt->zck_cache_file))
+        if (!dt->p_zck->zck_cache_file.empty() && fs::exists(dt->p_zck->zck_cache_file))
         {
             std::error_code ec;
-            FileIO chk_file(dt->zck_cache_file, FileIO::read_binary, ec);
+            FileIO chk_file(dt->p_zck->zck_cache_file, FileIO::read_binary, ec);
 
             if (ec)
             {
@@ -340,7 +343,7 @@ namespace powerloader
             zck_free(&zck_src);
         }
 
-        target->target->downloaded = target->target->total_to_download;
+        target->target->p_zck->downloaded = target->target->p_zck->total_to_download;
 
         // Calculate how many bytes need to be downloaded
         for (zckChunk* idx = zck_get_first_chunk(zck); idx != NULL; idx = zck_get_next_chunk(idx))
@@ -348,7 +351,7 @@ namespace powerloader
             if (zck_get_chunk_valid(idx) != 1)
             {
                 // Estimate of multipart overhead
-                target->target->total_to_download += zck_get_chunk_comp_size(idx) + 92;
+                target->target->p_zck->total_to_download += zck_get_chunk_comp_size(idx) + 92;
             }
         }
         target->zck_state = ZckState::kBODY;
@@ -358,7 +361,7 @@ namespace powerloader
 
     bool prepare_zck_body(Target* target)
     {
-        zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
+        zckCtx* zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
         int fd = target->target->outfile->fd();
         if (zck && fd != zck_get_fd(zck) && !zck_set_fd(zck, fd))
         {
@@ -378,16 +381,16 @@ namespace powerloader
 
         spdlog::info("Chunks that still need to be downloaded: {}", zck_missing_chunks(zck));
 
-        zck_dl_reset(target->target->zck_dl);
+        zck_dl_reset(target->target->p_zck->zck_dl);
         zckRange* range
             = zck_get_missing_range(zck, target->mirror ? target->mirror->max_ranges : -1);
-        zckRange* old_range = zck_dl_get_range(target->target->zck_dl);
+        zckRange* old_range = zck_dl_get_range(target->target->p_zck->zck_dl);
         if (old_range)
         {
             zck_range_free(&old_range);
         }
 
-        if (!zck_dl_set_range(target->target->zck_dl, range))
+        if (!zck_dl_set_range(target->target->p_zck->zck_dl, range))
         {
             throw zchunk_error("Unable to set range for zchunk downloader");
             return false;
@@ -427,11 +430,11 @@ namespace powerloader
         spdlog::info("zck: Found header size: {}\n", header_length);
         spdlog::info("zck: Found header digest: {} ({})\n", digest, strlen(digest));
 
-        if (!target->target->zck_header_checksum)
-            target->target->zck_header_checksum
+        if (!target->target->p_zck->zck_header_checksum)
+            target->target->p_zck->zck_header_checksum
                 = std::make_unique<Checksum>(Checksum{ ChecksumType::kSHA256, digest });
-        if (target->target->zck_header_size == -1)
-            target->target->zck_header_size = header_length;
+        if (target->target->p_zck->zck_header_size == -1)
+            target->target->p_zck->zck_header_size = header_length;
         target->zck_state = ZckState::kHEADER_CK;
 
         free(digest);
@@ -456,15 +459,16 @@ namespace powerloader
 
         spdlog::info("checking zck");
 
-        if (target->target->zck_dl == nullptr)
+        if (target->target->p_zck->zck_dl == nullptr)
         {
-            target->target->zck_dl = zck_dl_init(nullptr);
-            if (target->target->zck_dl == nullptr)
+            target->target->p_zck->zck_dl = zck_dl_init(nullptr);
+            if (target->target->p_zck->zck_dl == nullptr)
             {
                 throw zchunk_error(zck_get_error(nullptr));
             }
-            target->zck_state = target->target->zck_header_size == -1 ? ZckState::kHEADER_LEAD
-                                                                      : ZckState::kHEADER_CK;
+            target->zck_state = target->target->p_zck->zck_header_size == -1
+                                    ? ZckState::kHEADER_LEAD
+                                    : ZckState::kHEADER_CK;
         }
 
         /* Reset range fail flag */
@@ -474,7 +478,7 @@ namespace powerloader
         if (target->zck_state == ZckState::kFINISHED)
             return true;
 
-        zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
+        zckCtx* zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
         if (target->zck_state == ZckState::kHEADER_LEAD)
         {
             spdlog::info("zck: downloading lead to find header size and hash");
@@ -483,10 +487,11 @@ namespace powerloader
             // Then we can read the "lead" using zck_read_lead(...) from that temporary file and
             // compare with what we have on disk
             target->target->range = zck_get_range(0, zck_get_min_download_size() - 1);
-            target->target->total_to_download = zck_get_min_download_size();
+            target->target->p_zck->total_to_download = zck_get_min_download_size();
             target->target->resume = false;
             target->zck_state = ZckState::kHEADER_LEAD;
-            spdlog::info("Header lead download prepared {}", target->target->total_to_download);
+            spdlog::info("Header lead download prepared {}",
+                         target->target->p_zck->total_to_download);
             return true;
         }
 
@@ -497,7 +502,7 @@ namespace powerloader
                 return false;
         }
 
-        zck = zck_dl_get_zck(target->target->zck_dl);
+        zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
         if (target->zck_state == ZckState::kHEADER)
         {
             if (!prepare_zck_header(target))
@@ -510,7 +515,7 @@ namespace powerloader
             }
         }
 
-        zck = zck_dl_get_zck(target->target->zck_dl);
+        zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
         if (target->zck_state == ZckState::kBODY_CK)
         {
             spdlog::info("Checking zchunk data checksum: {}", target->target->path);
@@ -527,8 +532,8 @@ namespace powerloader
             {
                 // All checksums good
                 spdlog::info("zchunk: File is complete");
-                if (target->target->zck_dl)
-                    zck_dl_free(&(target->target->zck_dl));
+                if (target->target->p_zck->zck_dl)
+                    zck_dl_free(&(target->target->p_zck->zck_dl));
                 target->zck_state = ZckState::kFINISHED;
                 return true;
             }
@@ -548,8 +553,8 @@ namespace powerloader
 
             if (cks_good == 1)
             {  // All checksums good
-                if (target->target->zck_dl)
-                    zck_dl_free(&(target->target->zck_dl));
+                if (target->target->p_zck->zck_dl)
+                    zck_dl_free(&(target->target->p_zck->zck_dl));
                 target->zck_state = ZckState::kFINISHED;
                 return true;
             }
@@ -558,11 +563,11 @@ namespace powerloader
 
         // Recalculate how many bytes remain to be downloaded by subtracting from
         // total_to_download
-        target->target->downloaded = target->target->total_to_download;
+        target->target->p_zck->downloaded = target->target->p_zck->total_to_download;
         for (zckChunk* idx = zck_get_first_chunk(zck); idx != nullptr;
              idx = zck_get_next_chunk(idx))
             if (zck_get_chunk_valid(idx) != 1)
-                target->target->downloaded -= zck_get_chunk_comp_size(idx) + 92;
+                target->target->p_zck->downloaded -= zck_get_chunk_comp_size(idx) + 92;
         return prepare_zck_body(target);
     }
 

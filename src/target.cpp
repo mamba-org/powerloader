@@ -1,4 +1,7 @@
 #include "target.hpp"
+#ifdef WITH_ZCHUNK
+#include "zck.hpp"
+#endif
 
 namespace powerloader
 {
@@ -53,7 +56,7 @@ namespace powerloader
     {
         reset_file(status);
 
-        EndCb end_cb = override_endcb ? override_endcb : target->endcb;
+        end_callback end_cb = override_endcb ? override_endcb : target->endcb;
         void* cb_data = override_endcb ? override_endcb_data : target->cbdata;
         CbReturnCode rc = CbReturnCode::kOK;
         if (end_cb)
@@ -129,7 +132,7 @@ namespace powerloader
             return 0;
         }
 
-        return zck_header_cb(buffer, size, nitems, self->target->zck_dl);
+        return zck_header_cb(buffer, size, nitems, self->target->p_zck->zck_dl);
     }
 #endif  // WITH_ZCHUNK
 
@@ -279,7 +282,7 @@ namespace powerloader
         if (self->zck_state == ZckState::kHEADER)
         {
             spdlog::info("zck: Writing header");
-            return zck_write_zck_header_cb(buffer, size, nitems, self->target->zck_dl);
+            return zck_write_zck_header_cb(buffer, size, nitems, self->target->p_zck->zck_dl);
         }
         else if (self->zck_state == ZckState::kHEADER_LEAD)
         {
@@ -289,7 +292,7 @@ namespace powerloader
         else
         {
             spdlog::info("zck: Writing body");
-            return zck_write_chunk_cb(buffer, size, nitems, self->target->zck_dl);
+            return zck_write_chunk_cb(buffer, size, nitems, self->target->p_zck->zck_dl);
         }
     }
 #endif
@@ -419,8 +422,8 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
         if (target->target->is_zchunk)
         {
-            total_to_download = target->target->total_to_download;
-            now_downloaded = now_downloaded + target->target->downloaded;
+            total_to_download = target->target->p_zck->total_to_download;
+            now_downloaded = now_downloaded + target->target->p_zck->downloaded;
         }
 #endif /* WITH_ZCHUNK */
 

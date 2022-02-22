@@ -9,6 +9,10 @@
 #include "utils.hpp"
 #include "downloader.hpp"
 
+#ifdef WITH_ZCHUNK
+#include "../zck.hpp"
+#endif
+
 using namespace powerloader;
 
 enum KindOf
@@ -282,10 +286,10 @@ handle_download(const std::vector<std::string>& urls,
             // TODO we should have two different fields for those two
 #ifdef WITH_ZCHUNK
         if (!metadata.zck_header_sha256.empty())
-            targets.back()->zck_header_checksum = std::make_unique<Checksum>(
+            targets.back()->p_zck->zck_header_checksum = std::make_unique<Checksum>(
                 Checksum{ ChecksumType::kSHA256, metadata.zck_header_sha256 });
         if (metadata.zck_header_size > 0)
-            targets.back()->zck_header_size = metadata.zck_header_size;
+            targets.back()->p_zck->zck_header_size = metadata.zck_header_size;
 #endif
 
         using namespace std::placeholders;
