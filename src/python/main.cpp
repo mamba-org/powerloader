@@ -15,9 +15,9 @@ PYBIND11_MODULE(pypowerloader, m)
     py::class_<fs::path>(m, "Path")
         .def(py::init<std::string>())
         .def("__str__", [](fs::path& self) -> std::string { return self.string(); })
-        .def("__repr__", [](fs::path& self) -> std::string {
-            return std::string("fs::path[") + std::string(self) + "]";
-        });
+        .def("__repr__",
+             [](fs::path& self) -> std::string
+             { return std::string("fs::path[") + std::string(self) + "]"; });
     py::implicitly_convertible<std::string, fs::path>();
 
     py::class_<DownloadTarget, std::shared_ptr<DownloadTarget>>(m, "DownloadTarget")

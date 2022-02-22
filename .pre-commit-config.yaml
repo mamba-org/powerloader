@@ -17,10 +17,11 @@ repos:
     -   id: debug-statements
         language_version: python3
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v11.1.0
+    rev: v13.0.1
     hooks:
     -   id: clang-format
-        args: [--style=file]
+        exclude: ".json$"
+        args: [--style=file, -i]
 -   repo: https://github.com/psf/black
     rev: 19.10b0
     hooks:

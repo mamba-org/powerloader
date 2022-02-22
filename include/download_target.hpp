@@ -64,7 +64,8 @@ namespace powerloader
             if (checksums.empty())
                 return false;
 
-            auto findchecksum = [&](const ChecksumType& t) -> Checksum* {
+            auto findchecksum = [&](const ChecksumType& t) -> Checksum*
+            {
                 for (auto& cs : checksums)
                 {
                     if (cs.type == t)

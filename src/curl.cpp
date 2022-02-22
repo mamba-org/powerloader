@@ -163,8 +163,7 @@ namespace powerloader
         CURLcode curl_result = curl_easy_perform(handle());
         if (curl_result != CURLE_OK)
         {
-            throw curl_error(
-                fmt::format("{} [{}]", curl_easy_strerror(curl_result), errorbuffer));
+            throw curl_error(fmt::format("{} [{}]", curl_easy_strerror(curl_result), errorbuffer));
         }
         finalize_transfer(*response);
         return std::move(*response.release());
@@ -263,10 +262,7 @@ namespace powerloader
     namespace
     {
         template <class T>
-        std::size_t ostream_callback(char* buffer,
-                                     std::size_t size,
-                                     std::size_t nitems,
-                                     T* stream)
+        std::size_t ostream_callback(char* buffer, std::size_t size, std::size_t nitems, T* stream)
         {
             stream->write(buffer, size * nitems);
             return size * nitems;
