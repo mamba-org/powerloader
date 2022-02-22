@@ -16,8 +16,8 @@ repos:
         args: [--autofix]
     -   id: debug-statements
         language_version: python3
--   repo: https://github.com/bmorcos/pre-commit-hooks-cpp
-    rev: 9a5aa38207bf557961110d6a4f7e3a9d352911f9
+-   repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v11.1.0
     hooks:
     -   id: clang-format
         args: [--style=file]
