@@ -27,7 +27,7 @@ namespace fs = std::filesystem;
 #include "target.hpp"
 #include "utils.hpp"
 #ifdef WITH_ZCHUNK
-#include <zck.hpp>
+#include "zck.hpp"
 #endif
 #include "result.hpp"
 
@@ -109,7 +109,7 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
             else if (target->range_fail)
             {
-                zckRange* range = zck_dl_get_range(target->target->zck_dl);
+                zckRange* range = zck_dl_get_range(target->target->p_zck->zck_dl);
                 int range_count = zck_get_range_count(range);
                 if (target->mirror->max_ranges >= range_count)
                 {
@@ -117,10 +117,10 @@ namespace powerloader
                     spdlog::debug("Setting mirror max_ranges to {}", target->mirror->max_ranges);
                 }
             }
-            else if (target->target->zck_dl != nullptr
-                     && zck_is_error(zck_dl_get_zck(target->target->zck_dl)) > 0)
+            else if (target->target->p_zck->zck_dl != nullptr
+                     && zck_is_error(zck_dl_get_zck(target->target->p_zck->zck_dl)) > 0)
             {
-                zckCtx* zck = zck_dl_get_zck(target->target->zck_dl);
+                zckCtx* zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
 
                 // Something went wrong while writing the zchunk file
                 if (zck_is_error(zck) == 1)
@@ -741,7 +741,7 @@ namespace powerloader
                     if (current_target->mirror->max_ranges > 0
                         && current_target->mirror->protocol == Protocol::kHTTP)
                     {
-                        zckCtx* zck = zck_dl_get_zck(current_target->target->zck_dl);
+                        zckCtx* zck = zck_dl_get_zck(current_target->target->p_zck->zck_dl);
                         if (zck == nullptr)
                         {
                             spdlog::error("Unable to get zchunk file from download context");

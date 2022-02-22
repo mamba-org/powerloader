@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PL_DOWNLOAD_TARGET_HPP
+#define PL_DOWNLOAD_TARGET_HPP
 
 #include <string>
 
@@ -8,113 +9,38 @@
 #include "fileio.hpp"
 #include "errors.hpp"
 
-#ifdef WITH_ZCHUNK
-extern "C"
-{
-#include <zck.h>
-}
-#endif
-
 namespace powerloader
 {
-    /** Called when a transfer is done (use transfer status to check
-     * if successful or failed).
-     * @param clientp           Pointer to user data.
-     * @param status            Transfer status
-     * @param msg               Error message or NULL.
-     * @return                  See LrCbReturnCode codes
-     */
-    typedef CbReturnCode (*EndCb)(TransferStatus status, const std::string& msg, void* clientp);
+
+    class zck_target;
 
     class DownloadTarget
     {
     public:
-        inline DownloadTarget(const std::string& path,
-                              const std::string& base_url,
-                              const fs::path& fn)
-            : path(path)
-            , fn(fn)
-            , base_url(base_url)
-            , is_zchunk(ends_with(path, ".zck"))
-        {
-            if (path.find("://") != std::string::npos)
-            {
-                complete_url = path;
-            }
-            else if (base_url.find("://") != std::string::npos)
-            {
-                complete_url = join_url(base_url, path);
-            }
+        /** Called when a transfer is done (use transfer status to check
+         * if successful or failed).
+         * @param clientp           Pointer to user data.
+         * @param status            Transfer status
+         * @param msg               Error message or NULL.
+         * @return                  See LrCbReturnCode codes
+         */
+        using end_callback
+            = CbReturnCode (*)(TransferStatus status, const std::string& msg, void* clientp);
 
-#if WITH_ZCHUNK
-            if (is_zchunk)
-            {
-                zck_cache_file = fn;
-            }
-#endif
-        }
+        DownloadTarget(const std::string& path, const std::string& base_url, const fs::path& fn);
+        ~DownloadTarget();
 
-        inline bool has_complete_url()
-        {
-            return !complete_url.empty();
-        }
+        DownloadTarget(const DownloadTarget&) = delete;
+        DownloadTarget& operator=(const DownloadTarget&) = delete;
+        DownloadTarget(DownloadTarget&&) = delete;
+        DownloadTarget& operator=(DownloadTarget&&) = delete;
 
-        inline bool validate_checksum(const fs::path& path)
-        {
-            if (checksums.empty())
-                return false;
+        bool has_complete_url() const;
+        bool validate_checksum(const fs::path& path);
+        bool already_downloaded();
 
-            auto findchecksum = [&](const ChecksumType& t) -> Checksum*
-            {
-                for (auto& cs : checksums)
-                {
-                    if (cs.type == t)
-                        return &cs;
-                }
-                return nullptr;
-            };
+        void set_error(const DownloaderError& err);
 
-            Checksum* cs;
-            if ((cs = findchecksum(ChecksumType::kSHA256)))
-            {
-                auto sum = sha256sum(path);
-
-                if (sum != cs->checksum)
-                {
-                    spdlog::error("SHA256 sum of downloaded file is wrong.\nIs {}. Should be {}",
-                                  sum,
-                                  cs->checksum);
-                    return false;
-                }
-                return true;
-            }
-            else if ((cs = findchecksum(ChecksumType::kSHA1)))
-            {
-                spdlog::error("Checking SHA1 sum not implemented!");
-                return false;
-            }
-            else if ((cs = findchecksum(ChecksumType::kMD5)))
-            {
-                spdlog::info("Checking MD5 sum");
-                auto sum = md5sum(path);
-                if (sum != cs->checksum)
-                {
-                    spdlog::error("MD5 sum of downloaded file is wrong.\nIs {}. Should be {}",
-                                  sum,
-                                  cs->checksum);
-                    return false;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        bool already_downloaded()
-        {
-            if (checksums.empty())
-                return false;
-            return fs::exists(fn) && validate_checksum(fn);
-        }
 
         bool is_zchunk = false;
         bool resume = true;
@@ -134,7 +60,7 @@ namespace powerloader
         std::function<int(curl_off_t, curl_off_t)> progress_callback;
 
 
-        EndCb endcb = nullptr;
+        end_callback endcb = nullptr;
         void* cbdata = nullptr;
 
         // these are available checksums for the entire file
@@ -144,27 +70,11 @@ namespace powerloader
         std::string effective_url;
         std::unique_ptr<DownloaderError> error;
 
-        inline void set_error(const DownloaderError& err)
-        {
-            error = std::make_unique<DownloaderError>(err);
-        }
-
-#ifdef WITH_ZCHUNK
-        // Zchunk download context
-        zckDL* zck_dl = nullptr;
-
-        // Zchunk header size
-        std::ptrdiff_t zck_header_size = -1;
-        std::unique_ptr<Checksum> zck_header_checksum;
-
-        fs::path zck_cache_file;
-
-        // Total to download in zchunk file
-        double total_to_download;
-
-        // Amount already downloaded in zchunk file
-        double downloaded;
-#endif /* WITH_ZCHUNK */
+        // We cannot use a unique_ptr here because of the python bindings
+        // which needs the sizeof zck_target
+        zck_target* p_zck;
     };
 
 }
+
+#endif

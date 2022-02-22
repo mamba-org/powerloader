@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PL_ZCK_HPP
+#define PL_ZCK_HPP
 
 #include <string>
 
@@ -25,6 +26,25 @@ namespace powerloader
             : std::runtime_error(what)
         {
         }
+    };
+
+    class zck_target
+    {
+    public:
+        // Zchunk download context
+        zckDL* zck_dl = nullptr;
+
+        // Zchunk header size
+        std::ptrdiff_t zck_header_size = -1;
+        std::unique_ptr<Checksum> zck_header_checksum;
+
+        fs::path zck_cache_file;
+
+        // Total to download in zchunk file
+        double total_to_download;
+
+        // Amount already downloaded in zchunk file
+        double downloaded;
     };
 
     zck_hash zck_hash_from_checksum(ChecksumType checksum_type);
@@ -66,3 +86,5 @@ namespace powerloader
 
     bool zck_extract(const fs::path& source, const fs::path& dst, bool validate);
 }
+
+#endif
