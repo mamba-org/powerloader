@@ -37,26 +37,29 @@ namespace powerloader
     //     ]
     // }
 
-    bool OCIMirror::need_auth() const
+    OCIMirror::OCIMirror(const std::string& host, const std::string& repo_prefix)
+        : Mirror(host)
+        , m_repo_prefix(repo_prefix)
+        , m_scope("pull")
     {
-        return username.size() && password.size();
     }
 
-    bool OCIMirror::need_preparation(Target* target)
+    OCIMirror::OCIMirror(const std::string& host,
+                         const std::string& repo_prefix,
+                         const std::string& scope,
+                         const std::string& username,
+                         const std::string& password)
+        : Mirror(host)
+        , m_repo_prefix(repo_prefix)
+        , m_scope(scope)
+        , m_username(username)
+        , m_password(password)
     {
-        auto* data = get_data(target);
-        if (data && data->token.empty() && need_auth())
-            return true;
+    }
 
-        if (data && !data->sha256sum.empty())
-            return false;
-
-        if (std::none_of(target->target->checksums.begin(),
-                         target->target->checksums.end(),
-                         [](auto& ck) { return ck.type == ChecksumType::kSHA256; }))
-            return true;
-
-        return false;
+    void OCIMirror::set_fn_tag_split_function(const split_function_type& func)
+    {
+        m_split_func = func;
     }
 
     std::pair<std::string, std::string> OCIMirror::split_path_tag(const std::string& path) const
@@ -74,45 +77,77 @@ namespace powerloader
         return std::make_pair(split_path, split_tag);
     }
 
+    std::string OCIMirror::get_repo(const std::string& repo) const
+    {
+        if (!m_repo_prefix.empty())
+            return fmt::format("{}/{}", m_repo_prefix, repo);
+        else
+            return repo;
+    }
+    std::string OCIMirror::get_auth_url(const std::string& repo, const std::string& scope) const
+    {
+        return fmt::format("{}/token?scope=repository:{}:{}", url, get_repo(repo), scope);
+    }
+
+    std::string OCIMirror::get_manifest_url(const std::string& repo,
+                                            const std::string& reference) const
+    {
+        return fmt::format("{}/v2/{}/manifests/{}", url, get_repo(repo), reference);
+    }
+
+    std::string OCIMirror::get_preupload_url(const std::string& repo) const
+    {
+        return fmt::format("{}/v2/{}/blobs/uploads/", url, get_repo(repo));
+    }
+
     OCIMirror::AuthCallbackData* OCIMirror::get_data(Target* target)
     {
         auto [split_path, _] = split_path_tag(target->target->path);
-        auto it = path_cb_map.find(split_path);
-        if (it != path_cb_map.end())
+        auto it = m_path_cb_map.find(split_path);
+        if (it != m_path_cb_map.end())
         {
             return it->second.get();
         }
         return nullptr;
     }
 
+    std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path)
+    {
+        if (m_username.empty() && m_password.empty())
+            return {};
+        auto [split_path, _] = split_path_tag(path);
+        auto& data = m_path_cb_map[split_path];
+        return { fmt::format("Authorization: Bearer {}", data->token) };
+    }
+
     bool OCIMirror::prepare(const std::string& path, CURLHandle& handle)
     {
         auto [split_path, split_tag] = split_path_tag(path);
 
-        auto it = path_cb_map.find(split_path);
-        if (it == path_cb_map.end())
+        auto it = m_path_cb_map.find(split_path);
+        if (it == m_path_cb_map.end())
         {
-            path_cb_map[split_path].reset(new AuthCallbackData);
-            auto data = path_cb_map[split_path].get();
+            m_path_cb_map[split_path].reset(new AuthCallbackData);
+            auto data = m_path_cb_map[split_path].get();
             data->self = this;
         }
 
-        auto& cbdata = path_cb_map[split_path];
+        auto& cbdata = m_path_cb_map[split_path];
 
         if (cbdata->token.empty() && need_auth())
         {
-            std::string auth_url = get_auth_url(split_path, scope);
+            std::string auth_url = get_auth_url(split_path, m_scope);
             handle.url(auth_url);
 
             handle.set_default_callbacks();
 
-            if (!username.empty())
+            if (!m_username.empty())
             {
-                handle.setopt(CURLOPT_USERNAME, username.c_str());
+                handle.setopt(CURLOPT_USERNAME, m_username.c_str());
             }
-            if (!password.empty())
+            if (!m_password.empty())
             {
-                handle.setopt(CURLOPT_PASSWORD, password.c_str());
+                handle.setopt(CURLOPT_PASSWORD, m_password.c_str());
             }
 
             auto end_callback = [this, &cbdata](const Response& response)
@@ -174,6 +209,28 @@ namespace powerloader
         return true;
     }
 
+    bool OCIMirror::need_auth() const
+    {
+        return m_username.size() && m_password.size();
+    }
+
+    bool OCIMirror::need_preparation(Target* target)
+    {
+        auto* data = get_data(target);
+        if (data && data->token.empty() && need_auth())
+            return true;
+
+        if (data && !data->sha256sum.empty())
+            return false;
+
+        if (std::none_of(target->target->checksums.begin(),
+                         target->target->checksums.end(),
+                         [](auto& ck) { return ck.type == ChecksumType::kSHA256; }))
+            return true;
+
+        return false;
+    }
+
     std::string OCIMirror::format_url(Target* target)
     {
         std::string* checksum = nullptr;
@@ -194,16 +251,12 @@ namespace powerloader
         return fmt::format("{}/v2/{}/blobs/sha256:{}", url, get_repo(split_path), *checksum);
     }
 
-    std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path)
+    std::string OCIMirror::get_digest(const fs::path& p) const
     {
-        if (username.empty() && password.empty())
-            return {};
-        auto [split_path, _] = split_path_tag(path);
-        auto& data = path_cb_map[split_path];
-        return { fmt::format("Authorization: Bearer {}", data->token) };
+        return fmt::format("sha256:{}", sha256sum(p));
     }
 
-    std::string OCIMirror::create_manifest(std::size_t size, const std::string& digest)
+    std::string OCIMirror::create_manifest(std::size_t size, const std::string& digest) const
     {
         std::stringstream ss;
         nlohmann::json j;
@@ -225,10 +278,5 @@ namespace powerloader
 
         j["layers"].push_back(layer);
         return j.dump(4);
-    }
-
-    std::string OCIMirror::get_digest(const fs::path& p)
-    {
-        return fmt::format("sha256:{}", sha256sum(p));
     }
 }
