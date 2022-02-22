@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PW_CONTEXT_HPP
+#define PW_CONTEXT_HPP
 
 #include <vector>
 #include <string>
@@ -47,7 +48,8 @@ namespace powerloader
         std::size_t max_resume_count = 3;
         std::chrono::steady_clock::duration retry_default_timeout = std::chrono::seconds(2);
 
-        std::map<std::string, std::vector<std::shared_ptr<Mirror>>> mirror_map;
+        using mirror_map_type = std::map<std::string, std::vector<std::shared_ptr<Mirror>>>;
+        mirror_map_type mirror_map;
 
         std::vector<std::string> additional_httpheaders;
 
@@ -72,6 +74,14 @@ namespace powerloader
     private:
         Context();
         ~Context() = default;
+
+        Context(const Context&) = delete;
+        Context& operator=(const Context&) = delete;
+        Context(Context&&) = delete;
+        Context& operator=(Context&&) = delete;
     };
 
 }
+
+#endif
+
