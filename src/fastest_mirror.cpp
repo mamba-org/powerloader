@@ -3,9 +3,6 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
-#define LENGTH_OF_MEASUREMENT 2.0  // Number of seconds (float point!)
-#define HALF_OF_SECOND_IN_MICROS 500000
-
 #include "curl.hpp"
 #include "utils.hpp"
 
@@ -22,6 +19,11 @@ namespace powerloader
 
         bool fastestmirror_perform(std::vector<InternalMirror>& mirrors,
                                    std::size_t length_of_measurement);
+    }
+
+    namespace
+    {
+        long HALF_OF_SECOND_IN_MICROS = 500000;
     }
 
     void fastest_mirror(const std::vector<std::string>& urls)
@@ -103,7 +105,7 @@ namespace powerloader
         std::size_t elapsed_micros = 0;
         do
         {
-            struct timeval timeout;
+            timeval timeout;
             int rc, cm_rc;
             int maxfd = -1;
             long curl_timeout = -1;

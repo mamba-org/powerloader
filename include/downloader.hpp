@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PL_DOWNLOADER_HPP
+#define DL_DOWNLOADER_HPP
 
 #include <cassert>
 #include <filesystem>
@@ -92,3 +93,5 @@ namespace powerloader
     };
 
 }
+
+#endif

@@ -32,6 +32,27 @@ namespace powerloader
         return iso8601;
     }
 
+    /**********************
+     * S3CanonicalRequest *
+     **********************/
+
+    S3CanonicalRequest::S3CanonicalRequest(const std::string& http_verb,
+                                           const URLHandler& uh,
+                                           const std::string& sha256sum)
+        : http_verb(http_verb)
+        , hashed_payload(sha256sum.empty() ? EMPTY_SHA : sha256sum)
+        , date(std::chrono::system_clock::now())
+    {
+        bucket_url = uh.url_without_path();
+        resource = uh.path();
+        if (resource.size() >= 1 && resource[0] == '/')
+        {
+            resource = resource.substr(1, std::string::npos);
+        }
+
+        init_default_headers();
+    }
+
     void S3CanonicalRequest::init_default_headers()
     {
         URLHandler uh(bucket_url);
@@ -85,6 +106,45 @@ namespace powerloader
     /***************
      * S3Mirror    *
      ***************/
+
+    S3Mirror::S3Mirror(const std::string& bucket_url,
+                       const std::string& region,
+                       const std::string& aws_access_key,
+                       const std::string& aws_secret_key)
+        : bucket_url(bucket_url)
+        , region(region)
+        , aws_access_key_id(aws_access_key)
+        , aws_secret_access_key(aws_secret_key)
+        , Mirror(bucket_url)
+    {
+        if (bucket_url.back() == '/')
+            this->bucket_url = this->bucket_url.substr(0, this->bucket_url.size() - 1);
+    }
+
+    S3Mirror::S3Mirror(const std::string& url)
+        : Mirror(url)
+    {
+    }
+
+    bool S3Mirror::authenticate(CURLHandle& handle, const std::string& path)
+    {
+        return true;
+    };
+
+    std::string S3Mirror::format_url(Target* target)
+    {
+        return fmt::format("{}/{}", bucket_url, target->target->path);
+    }
+
+    bool S3Mirror::need_preparation(Target* target)
+    {
+        return false;
+    }
+
+    bool S3Mirror::prepare(Target* target)
+    {
+        return true;
+    }
 
     std::string S3Mirror::calculate_signature(
         const std::chrono::system_clock::time_point& request_date,

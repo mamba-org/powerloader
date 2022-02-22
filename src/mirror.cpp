@@ -6,6 +6,86 @@
 
 namespace powerloader
 {
+    Mirror::Mirror(const std::string& url)
+        : url(url)
+        , preference(0)
+        , protocol(Protocol::kHTTP)
+    {
+        if (url.back() == '/')
+            this->url = this->url.substr(0, this->url.size() - 1);
+
+        auto& ctx = Context::instance();
+        if (ctx.max_downloads_per_mirror > 0)
+        {
+            allowed_parallel_connections = ctx.max_downloads_per_mirror;
+        }
+    }
+
+    bool Mirror::need_wait_for_retry() const
+    {
+        return retry_counter != 0 && next_retry > std::chrono::system_clock::now();
+    }
+
+    bool Mirror::has_running_transfers() const
+    {
+        return running_transfers > 0;
+    }
+
+    void Mirror::set_allowed_parallel_connections(int max_allowed_parallel_connections)
+    {
+        allowed_parallel_connections = max_allowed_parallel_connections;
+    }
+
+    void Mirror::increase_running_transfers()
+    {
+        running_transfers++;
+        if (max_tried_parallel_connections < running_transfers)
+        {
+            max_tried_parallel_connections = running_transfers;
+        }
+    }
+
+    bool Mirror::is_parallel_connections_limited_and_reached() const
+    {
+        return allowed_parallel_connections != -1
+               && running_transfers >= allowed_parallel_connections;
+    }
+
+    void Mirror::update_statistics(bool transfer_success)
+    {
+        running_transfers--;
+        if (transfer_success)
+        {
+            successful_transfers++;
+        }
+        else
+        {
+            failed_transfers++;
+            if (failed_transfers == 1 || next_retry < std::chrono::system_clock::now())
+            {
+                retry_counter++;
+                retry_wait_seconds = retry_wait_seconds * retry_backoff_factor;
+                next_retry = std::chrono::system_clock::now() + retry_wait_seconds;
+            }
+        }
+    }
+
+    double Mirror::rank() const
+    {
+        double rank = -1.0;
+
+        int successful = successful_transfers;
+        int failed = failed_transfers;
+        int finished_transfers = successful + failed;
+
+        if (finished_transfers < 3)
+            return rank;  // Do not judge too early
+
+        rank = successful / (double) finished_transfers;
+
+        return rank;
+    }
+
     bool Mirror::prepare(Target* target)
     {
         state = MirrorState::READY;
@@ -23,14 +103,19 @@ namespace powerloader
         return false;
     }
 
-    std::string Mirror::format_url(Target* target)
+    bool Mirror::authenticate(CURLHandle& handle, const std::string& path)
     {
-        return fmt::format("{}/{}", url, target->target->path);
+        return true;
     }
 
     std::vector<std::string> Mirror::get_auth_headers(const std::string& path)
     {
         return {};
+    }
+
+    std::string Mirror::format_url(Target* target)
+    {
+        return fmt::format("{}/{}", url, target->target->path);
     }
 
     /** Sort mirrors. Penalize the error ones.

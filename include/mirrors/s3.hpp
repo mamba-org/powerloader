@@ -1,3 +1,6 @@
+#ifndef PL_S3_HPP
+#define PL_S3_HPP
+
 #include <spdlog/fmt/fmt.h>
 
 #include "mirror.hpp"
@@ -5,8 +8,6 @@
 
 namespace powerloader
 {
-    std::string get_yyyymmdd(const std::chrono::system_clock::time_point& t);
-    std::string get_iso8601(const std::chrono::system_clock::time_point& t);
 
     struct S3CanonicalRequest
     {
@@ -19,22 +20,9 @@ namespace powerloader
 
         std::chrono::system_clock::time_point date;
 
-        inline S3CanonicalRequest(const std::string& http_verb,
-                                  const URLHandler& uh,
-                                  const std::string& sha256sum = "")
-            : http_verb(http_verb)
-            , hashed_payload(sha256sum.empty() ? EMPTY_SHA : sha256sum)
-            , date(std::chrono::system_clock::now())
-        {
-            bucket_url = uh.url_without_path();
-            resource = uh.path();
-            if (resource.size() >= 1 && resource[0] == '/')
-            {
-                resource = resource.substr(1, std::string::npos);
-            }
-
-            init_default_headers();
-        }
+        S3CanonicalRequest(const std::string& http_verb,
+                           const URLHandler& uh,
+                           const std::string& sha256sum = "");
 
         void init_default_headers();
         std::string get_signed_headers();
@@ -51,44 +39,17 @@ namespace powerloader
         std::string aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
         std::string region = "eu-central-1";
 
-        inline S3Mirror(const std::string& bucket_url,
-                        const std::string& region,
-                        const std::string& aws_access_key,
-                        const std::string& aws_secret_key)
-            : bucket_url(bucket_url)
-            , region(region)
-            , aws_access_key_id(aws_access_key)
-            , aws_secret_access_key(aws_secret_key)
-            , Mirror(bucket_url)
-        {
-            if (bucket_url.back() == '/')
-                this->bucket_url = this->bucket_url.substr(0, this->bucket_url.size() - 1);
-        }
+        S3Mirror(const std::string& bucket_url,
+                 const std::string& region,
+                 const std::string& aws_access_key,
+                 const std::string& aws_secret_key);
 
-        inline S3Mirror(const std::string& url)
-            : Mirror(url)
-        {
-        }
+        S3Mirror(const std::string& url);
 
-        inline bool authenticate(CURLHandle& handle, const std::string& path)
-        {
-            return true;
-        };
-
-        inline std::string format_url(Target* target)
-        {
-            return fmt::format("{}/{}", bucket_url, target->target->path);
-        }
-
-        inline bool need_preparation(Target* target)
-        {
-            return false;
-        }
-
-        inline bool prepare(Target* target)
-        {
-            return true;
-        }
+        bool authenticate(CURLHandle& handle, const std::string& path) override;
+        std::string format_url(Target* target) override;
+        bool need_preparation(Target* target) override;
+        bool prepare(Target* target) override;
 
         std::string calculate_signature(const std::chrono::system_clock::time_point& request_date,
                                         const std::string& secret,
@@ -102,3 +63,5 @@ namespace powerloader
 
     Response s3_upload(S3Mirror& mirror, const std::string& path, const fs::path& file);
 }
+
+#endif
