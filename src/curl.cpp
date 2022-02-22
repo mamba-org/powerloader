@@ -233,7 +233,7 @@ namespace powerloader
     {
         return m_handle;
     }
-    
+
     CURLHandle& CURLHandle::add_header(const std::string& header)
     {
         p_headers = curl_slist_append(p_headers, header.c_str());
