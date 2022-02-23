@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PL_ERRORS_HPP
+#define PL_ERRORS_HPP
 
 #include <spdlog/spdlog.h>
 #include "result.hpp"
@@ -118,3 +119,5 @@ namespace powerloader
         }
     };
 }
+
+#endif

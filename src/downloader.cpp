@@ -6,13 +6,10 @@
 #include <sstream>
 #include <thread>
 
-extern "C"
-{
 #include <fcntl.h>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
-}
 
 #include <spdlog/fmt/fmt.h>
 

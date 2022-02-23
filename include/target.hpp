@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PL_TARGET_HPP
+#define PL_TARGET_HPP
 
 #include <filesystem>
 #include <spdlog/spdlog.h>
@@ -33,37 +34,14 @@ namespace powerloader
                                           std::size_t nitems,
                                           Target* self);
 
-        inline Target(const std::shared_ptr<DownloadTarget>& dl_target)
-            : state(DownloadState::kWAITING)
-            , target(dl_target)
-            , original_offset(-1)
-            , resume(dl_target->resume)
-        {
-        }
+        Target(const std::shared_ptr<DownloadTarget>& dl_target);
 
-        inline Target(const std::shared_ptr<DownloadTarget>& dl_target,
-                      const std::vector<std::shared_ptr<Mirror>>& mirrors)
-            : state(DownloadState::kWAITING)
-            , target(dl_target)
-            , original_offset(-1)
-            , resume(dl_target->resume)
-            , mirrors(mirrors)
-        {
-        }
+        Target(const std::shared_ptr<DownloadTarget>& dl_target,
+               const std::vector<std::shared_ptr<Mirror>>& mirrors);
 
-        inline ~Target()
-        {
-            reset();
-        }
+        ~Target();
 
-        inline bool zck_running()
-        {
-#ifdef WITH_ZCHUNK
-            return target->is_zchunk && zck_state != ZckState::kFINISHED;
-#else
-            return false;
-#endif
-        }
+        bool zck_running() const;
 
         CbReturnCode call_endcallback(TransferStatus status);
         void reset_file(TransferStatus status);
@@ -122,3 +100,5 @@ namespace powerloader
         ZckState zck_state;
     };
 }
+
+#endif

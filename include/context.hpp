@@ -1,5 +1,5 @@
-#ifndef PW_CONTEXT_HPP
-#define PW_CONTEXT_HPP
+#ifndef PL_CONTEXT_HPP
+#define PL_CONTEXT_HPP
 
 #include <vector>
 #include <string>
