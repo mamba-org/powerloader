@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <regex>
+#include <openssl/evp.h>
 
 namespace fs = std::filesystem;
 

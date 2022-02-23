@@ -18,6 +18,7 @@ set(LIBPOWERLOADER_SRCS
     src/target.cpp
     src/curl.cpp
     src/url.cpp
+    src/utils.cpp
     src/mirrors/oci.cpp
     src/mirrors/s3.cpp
     src/uploader/s3_upload.cpp

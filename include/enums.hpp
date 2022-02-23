@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PL_ENUMS_HPP
+#define PL_ENUMS_HPP
 
 #define PARTEXT ".pdpart"
 #define EMPTY_SHA "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -86,3 +87,5 @@ namespace powerloader
         std::string checksum;
     };
 }
+
+#endif

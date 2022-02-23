@@ -5,6 +5,38 @@
 
 namespace powerloader
 {
+    Target::Target(const std::shared_ptr<DownloadTarget>& dl_target)
+        : state(DownloadState::kWAITING)
+        , target(dl_target)
+        , original_offset(-1)
+        , resume(dl_target->resume)
+    {
+    }
+
+    Target::Target(const std::shared_ptr<DownloadTarget>& dl_target,
+                   const std::vector<std::shared_ptr<Mirror>>& mirrors)
+        : state(DownloadState::kWAITING)
+        , target(dl_target)
+        , original_offset(-1)
+        , resume(dl_target->resume)
+        , mirrors(mirrors)
+    {
+    }
+
+    Target::~Target()
+    {
+        reset();
+    }
+
+    bool Target::zck_running() const
+    {
+#ifdef WITH_ZCHUNK
+        return target->is_zchunk && zck_state != ZckState::kFINISHED;
+#else
+        return false;
+#endif
+    }
+
     void Target::reset()
     {
         if (target->outfile && !zck_running())

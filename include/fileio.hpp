@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PL_FILEIO_HPP
+#define PL_FILEIO_HPP
 
 #include <filesystem>
 #include <spdlog/spdlog.h>
@@ -256,3 +257,5 @@ namespace powerloader
         }
     };
 }
+
+#endif
