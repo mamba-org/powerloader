@@ -10,8 +10,8 @@
 
 #include <spdlog/fmt/fmt.h>
 #include <nlohmann/json.hpp>
+#include <tl/expected.hpp>
 
-#include "result.hpp"
 #include "utils.hpp"
 #include "enums.hpp"
 
@@ -67,7 +67,7 @@ namespace powerloader
         void finalize_transfer(Response& response);
 
         template <class T>
-        cpp::result<T, CURLcode> getinfo(CURLINFO option);
+        tl::expected<T, CURLcode> getinfo(CURLINFO option);
 
         // TODO: why do we need to expose these three methods
         CURL* handle();

@@ -202,19 +202,19 @@ namespace powerloader
     }
 
     template <class T>
-    cpp::result<T, CURLcode> CURLHandle::getinfo(CURLINFO option)
+    tl::expected<T, CURLcode> CURLHandle::getinfo(CURLINFO option)
     {
         T val;
         CURLcode result = curl_easy_getinfo(m_handle, option, &val);
         if (result != CURLE_OK)
-            return cpp::fail(result);
+            return tl::unexpected(result);
         return val;
     }
 
-    template cpp::result<long, CURLcode> CURLHandle::getinfo(CURLINFO option);
-    template cpp::result<char*, CURLcode> CURLHandle::getinfo(CURLINFO option);
-    template cpp::result<double, CURLcode> CURLHandle::getinfo(CURLINFO option);
-    template cpp::result<curl_slist*, CURLcode> CURLHandle::getinfo(CURLINFO option);
+    template tl::expected<long, CURLcode> CURLHandle::getinfo(CURLINFO option);
+    template tl::expected<char*, CURLcode> CURLHandle::getinfo(CURLINFO option);
+    template tl::expected<double, CURLcode> CURLHandle::getinfo(CURLINFO option);
+    template tl::expected<curl_slist*, CURLcode> CURLHandle::getinfo(CURLINFO option);
 
     CURL* CURLHandle::handle()
     {

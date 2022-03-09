@@ -9,6 +9,8 @@
 #include <sstream>
 #include <thread>
 
+#include <tl/expected.hpp>
+
 extern "C"
 {
 #ifndef _WIN32
@@ -51,15 +53,15 @@ namespace powerloader
          *                          we cannot write to a socket, we cannot write
          *                          data to disk, bad function argument, ...
          */
-        cpp::result<void, DownloaderError> check_finished_transfer_status(CURLMsg* msg,
-                                                                          Target* target);
+        tl::expected<void, DownloaderError> check_finished_transfer_status(CURLMsg* msg,
+                                                                           Target* target);
 
         bool is_max_mirrors_unlimited();
 
-        cpp::result<std::shared_ptr<Mirror>, DownloaderError> select_suitable_mirror(
+        tl::expected<std::shared_ptr<Mirror>, DownloaderError> select_suitable_mirror(
             Target* target);
 
-        cpp::result<std::pair<Target*, std::string>, DownloaderError> select_next_target();
+        tl::expected<std::pair<Target*, std::string>, DownloaderError> select_next_target();
 
         bool prepare_next_transfer(bool* candidate_found);
 

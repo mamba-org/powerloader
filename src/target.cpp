@@ -62,7 +62,7 @@ namespace powerloader
             if (!ec && Context::instance().preserve_filetime)
             {
                 auto remote_filetime = curl_handle->getinfo<curl_off_t>(CURLINFO_FILETIME_T);
-                if (remote_filetime.has_error() || remote_filetime.value() < 0)
+                if (!remote_filetime || remote_filetime.value() < 0)
                     spdlog::debug("Unable to get remote time of retrieved document");
 
                 if (remote_filetime.value() >= 0)
