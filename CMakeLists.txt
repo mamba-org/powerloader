@@ -36,7 +36,6 @@ set(LIBPOWERLOADER_HEADERS
     include/fileio.hpp
     include/mirror.hpp
     include/url.hpp
-    include/result.hpp
     include/target.hpp
     include/utils.hpp
 )

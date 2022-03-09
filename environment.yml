@@ -21,5 +21,6 @@ dependencies:
   - python
   - pybind11
   - requests
+  - cpp-expected
   - pip:
     - pytest-xprocess

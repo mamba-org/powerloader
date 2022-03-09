@@ -2,7 +2,6 @@
 #define PL_ERRORS_HPP
 
 #include <spdlog/spdlog.h>
-#include "result.hpp"
 
 namespace powerloader
 {

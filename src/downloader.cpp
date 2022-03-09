@@ -26,7 +26,6 @@ namespace fs = std::filesystem;
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
 #endif
-#include "result.hpp"
 
 namespace powerloader
 {
@@ -71,8 +70,8 @@ namespace powerloader
      *                          we cannot write to a socket, we cannot write
      *                          data to disk, bad function argument, ...
      */
-    cpp::result<void, DownloaderError> Downloader::check_finished_transfer_status(CURLMsg* msg,
-                                                                                  Target* target)
+    tl::expected<void, DownloaderError> Downloader::check_finished_transfer_status(CURLMsg* msg,
+                                                                                   Target* target)
     {
         long code = 0;
         char* effective_url = NULL;
@@ -98,10 +97,11 @@ namespace powerloader
             else if (target->headercb_state == HeaderCbState::kINTERRUPTED)
             {
                 // Download was interrupted by header callback
-                return cpp::fail(DownloaderError{ ErrorLevel::FATAL,
-                                                  ErrorCode::PD_CBINTERRUPTED,
-                                                  fmt::format("Interrupted by header callback: {}",
-                                                              target->headercb_interrupt_reason) });
+                return tl::unexpected(
+                    DownloaderError{ ErrorLevel::FATAL,
+                                     ErrorCode::PD_CBINTERRUPTED,
+                                     fmt::format("Interrupted by header callback: {}",
+                                                 target->headercb_interrupt_reason) });
             }
 #ifdef WITH_ZCHUNK
             else if (target->range_fail)
@@ -124,14 +124,14 @@ namespace powerloader
                 {
                     // Non-fatal zchunk error
                     spdlog::warn("Serious zchunk error: {}", zck_get_error(zck));
-                    return cpp::fail(DownloaderError{
+                    return tl::unexpected(DownloaderError{
                         ErrorLevel::SERIOUS, ErrorCode::PD_ZCK, fmt::format(zck_get_error(zck)) });
                 }
                 else
                 {
                     // Fatal zchunk error (zck_is_error(zck) == 2)
                     spdlog::error("Fatal zchunk error: {}", zck_get_error(zck));
-                    return cpp::fail(DownloaderError{
+                    return tl::unexpected(DownloaderError{
                         ErrorLevel::FATAL, ErrorCode::PD_ZCK, fmt::format(zck_get_error(zck)) });
                 }
             }
@@ -161,17 +161,17 @@ namespace powerloader
                     case CURLE_SSL_CRL_BADFILE:
                     case CURLE_WRITE_ERROR:
                         // Fatal error
-                        return cpp::fail(
+                        return tl::unexpected(
                             DownloaderError{ ErrorLevel::FATAL, ErrorCode::PD_CURL, error });
                         break;
                     case CURLE_OPERATION_TIMEDOUT:
                         // Serious error
-                        return cpp::fail(
+                        return tl::unexpected(
                             DownloaderError{ ErrorLevel::SERIOUS, ErrorCode::PD_CURL, error });
                         break;
                     default:
                         // Other error are not considered fatal
-                        return cpp::fail(
+                        return tl::unexpected(
                             DownloaderError{ ErrorLevel::INFO, ErrorCode::PD_CURL, error });
                 }
             }
@@ -187,7 +187,7 @@ namespace powerloader
             // Check HTTP(S) code / or FTP
             if (code / 100 != 2)
             {
-                return cpp::fail(DownloaderError{
+                return tl::unexpected(DownloaderError{
                     ErrorLevel::INFO,
                     ErrorCode::PD_CURL,
                     fmt::format(
@@ -202,7 +202,7 @@ namespace powerloader
         return max_mirrors_to_try <= 0;
     }
 
-    cpp::result<std::shared_ptr<Mirror>, DownloaderError> Downloader::select_suitable_mirror(
+    tl::expected<std::shared_ptr<Mirror>, DownloaderError> Downloader::select_suitable_mirror(
         Target* target)
     {
         // This variable is used to indentify that all possible mirrors
@@ -213,7 +213,7 @@ namespace powerloader
 
         if (target->mirrors.empty())
         {
-            return cpp::fail(DownloaderError{
+            return tl::unexpected(DownloaderError{
                 ErrorLevel::FATAL, ErrorCode::PD_MIRRORS, "No mirrors added for target" });
         }
 
@@ -300,14 +300,14 @@ namespace powerloader
         } while (reiterate && target->retries < allowed_mirror_failures
                  && ++mirrors_iterated < allowed_mirror_failures);
 
-        return cpp::fail(DownloaderError(
+        return tl::unexpected(DownloaderError(
             { ErrorLevel::FATAL,
               ErrorCode::PD_NOURL,
               fmt::format("No suitable mirror found for {}", target->target->complete_url) }));
     }
 
     // Select next target
-    cpp::result<std::pair<Target*, std::string>, DownloaderError> Downloader::select_next_target()
+    tl::expected<std::pair<Target*, std::string>, DownloaderError> Downloader::select_next_target()
     {
         Target* selected_target = nullptr;
         Mirror* mirror = nullptr;
@@ -329,7 +329,7 @@ namespace powerloader
             if (target->target->base_url.empty() && !have_mirrors && !complete_url_in_path)
             {
                 // Used relative path with empty internal mirrorlist and no basepath specified!
-                return cpp::fail(DownloaderError{
+                return tl::unexpected(DownloaderError{
                     ErrorLevel::FATAL,
                     ErrorCode::PD_UNFINISHED,
                     "Empty mirrorlist and no basepath specified in DownloadTarget" });
@@ -346,10 +346,10 @@ namespace powerloader
             {
                 // Find a suitable mirror
                 auto res = select_suitable_mirror(target);
-                if (res.has_error())
+                if (!res)
                 {
                     target->call_endcallback(TransferStatus::kERROR);
-                    return cpp::fail(res.error());
+                    return tl::unexpected(res.error());
                 }
 
                 mirror = res.value();
@@ -416,7 +416,7 @@ namespace powerloader
         auto next_target = select_next_target();
 
         // Error
-        if (next_target.has_error())
+        if (!next_target)
             return false;
 
         auto [target, full_url] = next_target.value();
@@ -700,7 +700,7 @@ namespace powerloader
             bool fail_fast_err = false;
 
             auto result = check_finished_transfer_status(msg, current_target);
-            if (result.has_error())
+            if (!result)
             {
                 transfer_err = true;
                 serious_err = result.error().is_serious();
@@ -742,7 +742,7 @@ namespace powerloader
                         if (zck == nullptr)
                         {
                             spdlog::error("Unable to get zchunk file from download context");
-                            result = cpp::fail(DownloaderError{
+                            result = tl::unexpected(DownloaderError{
                                 ErrorLevel::SERIOUS,
                                 ErrorCode::PD_ZCK,
                                 "Unable to get zchunk file from download context" });
@@ -769,7 +769,7 @@ namespace powerloader
                         spdlog::error("At least one of the zchunk checksums doesn't match in {}",
                                       effective_url);
 
-                        result = cpp::fail(DownloaderError{
+                        result = tl::unexpected(DownloaderError{
                             ErrorLevel::SERIOUS,
                             ErrorCode::PD_BADCHECKSUM,
                             fmt::format("At least one of the zchunk checksums doesn't match in {}",
@@ -786,7 +786,7 @@ namespace powerloader
                 // New file was downloaded
                 if (!transfer_err && !current_target->check_filesize())
                 {
-                    result = cpp::fail(
+                    result = tl::unexpected(
                         DownloaderError({ ErrorLevel::SERIOUS,
                                           ErrorCode::PD_BADCHECKSUM,
                                           "Result file does not have expected filesize" }));
@@ -795,14 +795,14 @@ namespace powerloader
                 }
                 if (!transfer_err && !current_target->check_checksums())
                 {
-                    result = cpp::fail(
+                    result = tl::unexpected(
                         DownloaderError({ ErrorLevel::SERIOUS,
                                           ErrorCode::PD_BADCHECKSUM,
                                           "Result file does not have expected checksum" }));
                     transfer_err = true;
                     goto transfer_error;
                 }
-                if (result.has_error())
+                if (!result)
                 {
                     current_target->reset_file(TransferStatus::kERROR);
                 }
@@ -815,7 +815,7 @@ namespace powerloader
             curl_multi_remove_handle(multi_handle, current_target->curl_handle->ptr());
 
             // call_endcallback()
-            if (result.has_error())
+            if (!result)
             {
                 result.error().log();
             }
@@ -841,7 +841,7 @@ namespace powerloader
             }
 
             // There was an error during transfer
-            if (result.has_error())
+            if (!result)
             {
                 // int complete_url_in_path = strstr(target->target->path, "://") ? 1 : 0;
                 int complete_url_in_path = false;
@@ -958,7 +958,7 @@ namespace powerloader
                     CbReturnCode rc = current_target->call_endcallback(TransferStatus::kERROR);
                     spdlog::error("Retries exceeded for {}", current_target->target->complete_url);
 
-                    assert(result.has_error());
+                    assert(!result);
                     current_target->target->set_error(result.error());
 
                     if (failfast || rc == CbReturnCode::kERROR)
