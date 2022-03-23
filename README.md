@@ -2,11 +2,9 @@
 
 # The POWERLOADER
 
-**Note: the code in here is very, very much a work in progress. Please do not use it!**
-
 This is a tool to download large files. This is to be used in `mamba` and potentially other package managers. It's a port of `librepo`, but extends it in several ways as well as being cross-platform (it should support Windows as well).
 
-Current WIP features are:
+Current features are:
 
 - Mirror support and automatic mirror selection
 - Native OCI registry and S3 bucket support
@@ -32,3 +30,10 @@ ninja
 
 ./powerloader --help
 ```
+
+### Uploading files
+
+The following uplaods the xtensor-0.24.0.tar.bz2 file to the xtensor:0.24.0 name/tag on ghcr.io.
+The file will appear under the user authenticated by the GHA_TOKEN.
+
+`powerloader upload xtensor-0.24.0.tar.bz2:xtensor:0.24.0 -m oci://ghcr.io`

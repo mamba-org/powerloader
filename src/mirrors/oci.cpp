@@ -111,12 +111,12 @@ namespace powerloader
         return nullptr;
     }
 
-    std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path)
+    std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path) const
     {
         if (m_username.empty() && m_password.empty())
             return {};
         auto [split_path, _] = split_path_tag(path);
-        auto& data = m_path_cb_map[split_path];
+        auto& data = m_path_cb_map.at(split_path);
         return { fmt::format("Authorization: Bearer {}", data->token) };
     }
 
@@ -254,29 +254,5 @@ namespace powerloader
     std::string OCIMirror::get_digest(const fs::path& p) const
     {
         return fmt::format("sha256:{}", sha256sum(p));
-    }
-
-    std::string OCIMirror::create_manifest(std::size_t size, const std::string& digest) const
-    {
-        std::stringstream ss;
-        nlohmann::json j;
-        j["schemaVersion"] = 2;
-
-        auto config = nlohmann::json::object();
-        config["mediaType"] = "application/vnd.unknown.config.v1+json";
-        // this is the sha256 of an empty string!
-        config["digest"] = "sha256:" EMPTY_SHA;
-        config["size"] = 0;
-        j["config"] = config;
-
-        j["layers"] = nlohmann::json::array();
-
-        auto layer = nlohmann::json::object();
-        layer["mediaType"] = "application/octet-stream";
-        layer["size"] = size;
-        layer["digest"] = digest;
-
-        j["layers"].push_back(layer);
-        return j.dump(4);
     }
 }

@@ -1,13 +1,16 @@
 #ifndef PL_OCI_HPP
 #define PL_OCI_HPP
 
+#include <optional>
+
 #include <spdlog/fmt/fmt.h>
 #include "mirror.hpp"
 
 namespace powerloader
 {
-    struct OCIMirror : public Mirror
+    class OCIMirror : public Mirror
     {
+    public:
         struct AuthCallbackData
         {
             OCIMirror* self;
@@ -36,7 +39,7 @@ namespace powerloader
         std::string get_preupload_url(const std::string& repo) const;
 
         AuthCallbackData* get_data(Target* target);
-        std::vector<std::string> get_auth_headers(const std::string& path) override;
+        std::vector<std::string> get_auth_headers(const std::string& path) const override;
 
         // authenticate per target, and authentication state
         // is also dependent on each target unfortunately?!
@@ -49,7 +52,6 @@ namespace powerloader
 
         // upload specific functions
         std::string get_digest(const fs::path& p) const;
-        std::string create_manifest(std::size_t size, const std::string& digest) const;
 
     private:
         std::map<std::string, std::unique_ptr<AuthCallbackData>> m_path_cb_map;
@@ -60,10 +62,46 @@ namespace powerloader
         split_function_type m_split_func;
     };
 
+    struct OCILayer
+    {
+        std::string mime_type;
+
+        // The OCI Layer can either contain a file or string contents
+        std::optional<fs::path> file;
+        std::optional<std::string> contents;
+
+        // sha256 digest and size computed in the constructor
+        std::string digest;
+        std::size_t size;
+
+        // optional annotations that can be added to each layer or config
+        std::optional<nlohmann::json> annotations;
+
+        static OCILayer from_file(const std::string& mime_type,
+                                  const fs::path& file,
+                                  const std::optional<nlohmann::json>& annotations = std::nullopt);
+
+        static OCILayer from_string(const std::string& mime_type,
+                                    const std::string& content,
+                                    const std::optional<nlohmann::json>& annotations
+                                    = std::nullopt);
+
+        Response upload(const OCIMirror& mirror, const std::string& reference) const;
+
+        nlohmann::json to_json() const;
+
+    private:
+        OCILayer(const std::string& mime_type,
+                 const std::optional<fs::path>& path,
+                 const std::optional<std::string>& content,
+                 const std::optional<nlohmann::json>& annotations = std::nullopt);
+    };
+
     Response oci_upload(OCIMirror& mirror,
                         const std::string& reference,
                         const std::string& tag,
-                        const fs::path& file);
+                        const std::vector<OCILayer>& layers,
+                        const std::optional<OCILayer>& config = std::nullopt);
 
 }
 

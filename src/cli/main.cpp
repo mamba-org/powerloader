@@ -157,7 +157,11 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
             OCIMirror mirror(url.url(), GH_USER, "push", GH_USER, GH_SECRET);
             try
             {
-                auto res = oci_upload(mirror, dest, elems[2], elems[0]);
+                auto res
+                    = oci_upload(mirror,
+                                 dest,
+                                 elems[2],
+                                 { OCILayer::from_file("application/octet-stream", elems[0]) });
                 if (res.ok())
                 {
                     std::cout << "Finished upload for " << f << " to OCI Registry at " << url.url()
