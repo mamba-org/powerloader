@@ -1,6 +1,8 @@
 #ifndef PL_OCI_HPP
 #define PL_OCI_HPP
 
+#include <optional>
+
 #include <spdlog/fmt/fmt.h>
 #include "mirror.hpp"
 
