@@ -65,8 +65,8 @@ namespace powerloader
         std::string mime_type;
 
         // The OCI Layer can either contain a file or string contents
-        fs::path file;
-        std::string contents;
+        std::optional<fs::path> file;
+        std::optional<std::string> contents;
 
         // sha256 digest and size computed in the constructor
         std::string digest;
@@ -75,17 +75,24 @@ namespace powerloader
         // optional annotations that can be added to each layer or config
         std::optional<nlohmann::json> annotations;
 
-        explicit OCILayer(const std::string& mime_type,
-                          const fs::path& file,
-                          const std::optional<nlohmann::json>& annotations = std::nullopt);
+        static OCILayer from_file(const std::string& mime_type,
+                                  const fs::path& file,
+                                  const std::optional<nlohmann::json>& annotations = std::nullopt);
 
-        explicit OCILayer(const std::string& mime_type,
-                          const std::string& content,
-                          const std::optional<nlohmann::json>& annotations = std::nullopt);
+        static OCILayer from_string(const std::string& mime_type,
+                                    const std::string& content,
+                                    const std::optional<nlohmann::json>& annotations
+                                    = std::nullopt);
 
         Response upload(const OCIMirror& mirror, const std::string& reference) const;
 
         nlohmann::json to_json() const;
+
+    private:
+        OCILayer(const std::string& mime_type,
+                 const std::optional<fs::path>& path,
+                 const std::optional<std::string>& content,
+                 const std::optional<nlohmann::json>& annotations = std::nullopt);
     };
 
     Response oci_upload(OCIMirror& mirror,

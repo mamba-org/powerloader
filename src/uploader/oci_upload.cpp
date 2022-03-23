@@ -47,27 +47,41 @@ namespace powerloader
         return j.dump(4);
     }
 
-    OCILayer::OCILayer(const std::string& mime_type,
-                       const fs::path& file,
-                       const std::optional<nlohmann::json>& annotations)
-        : mime_type(mime_type)
-        , file(file)
-        , annotations(annotations)
+    OCILayer OCILayer::from_file(const std::string& mime_type,
+                                 const fs::path& file,
+                                 const std::optional<nlohmann::json>& annotations)
     {
-        digest = fmt::format("sha256:{}", sha256sum(file));
-        size = fs::file_size(file);
+        return OCILayer(mime_type, file, std::nullopt, annotations);
+    }
+
+    OCILayer OCILayer::from_string(const std::string& mime_type,
+                                   const std::string& content,
+                                   const std::optional<nlohmann::json>& annotations)
+    {
+        return OCILayer(mime_type, std::nullopt, content, annotations);
     }
 
     OCILayer::OCILayer(const std::string& mime_type,
-                       const std::string& content,
+                       const std::optional<fs::path>& path,
+                       const std::optional<std::string>& content,
                        const std::optional<nlohmann::json>& annotations)
         : mime_type(mime_type)
+        , file(path)
         , contents(content)
         , annotations(annotations)
     {
-        digest = fmt::format("sha256:{}", sha256(content));
-        size = content.size();
+        if (file)
+        {
+            digest = fmt::format("sha256:{}", sha256sum(file.value()));
+            size = fs::file_size(file.value());
+        }
+        else
+        {
+            digest = fmt::format("sha256:{}", sha256(contents.value()));
+            size = contents.value().size();
+        }
     }
+
 
     Response OCILayer::upload(const OCIMirror& mirror, const std::string& reference) const
     {
@@ -94,15 +108,15 @@ namespace powerloader
             .add_headers(mirror.get_auth_headers(reference))
             .add_header(fmt::format("Content-Type: application/octet-stream", mime_type));
 
-        if (!file.empty())
+        if (file)
         {
-            std::ifstream ufile(contents, std::ios::in | std::ios::binary);
+            std::ifstream ufile(file.value(), std::ios::in | std::ios::binary);
             chandle.upload(ufile);
             return chandle.perform();
         }
         else
         {
-            std::istringstream config_stream(contents);
+            std::istringstream config_stream(contents.value());
             chandle.upload(config_stream);
             return chandle.perform();
         }
@@ -128,7 +142,8 @@ namespace powerloader
                         const std::optional<OCILayer>& config)
     {
         // default is a empty json object
-        OCILayer default_config("application/vnd.unknown.config.v1+json", std::string("{}"));
+        OCILayer default_config
+            = OCILayer::from_string("application/vnd.unknown.config.v1+json", std::string("{}"));
         OCILayer oci_layer_config = config.value_or(default_config);
 
         CURLHandle auth_handle;
