@@ -29,27 +29,48 @@ namespace powerloader
         return upload_url;
     }
 
-    Response oci_upload(OCIMirror& mirror,
-                        const std::string& reference,
-                        const std::string& tag,
-                        const fs::path& file)
+    std::string create_manifest(const OCILayer& config, const std::vector<OCILayer>& layers)
     {
-        std::string digest = fmt::format("sha256:{}", sha256sum(file));
-        std::size_t fsize = fs::file_size(file);
+        std::stringstream ss;
+        nlohmann::json j;
+        j["schemaVersion"] = 2;
 
-        spdlog::info("Uploading {} with digest {}", file.string(), digest);
+        j["config"] = config.to_json();
 
-        CURLHandle auth_handle;
-        if (mirror.need_auth() && mirror.prepare(reference, auth_handle))
+        j["layers"] = nlohmann::json::array();
+
+        for (auto& layer : layers)
         {
-            auto auth_res = auth_handle.perform();
-            if (!auth_res.ok())
-            {
-                spdlog::error("Could not authenticate to OCI Registry");
-                return auth_res;
-            }
+            j["layers"].push_back(layer.to_json());
         }
 
+        return j.dump(4);
+    }
+
+    OCILayer::OCILayer(const std::string& mime_type,
+                       const fs::path& file,
+                       const std::optional<nlohmann::json>& annotations)
+        : mime_type(mime_type)
+        , file(file)
+        , annotations(annotations)
+    {
+        digest = fmt::format("sha256:{}", sha256sum(file));
+        size = fs::file_size(file);
+    }
+
+    OCILayer::OCILayer(const std::string& mime_type,
+                       const std::string& content,
+                       const std::optional<nlohmann::json>& annotations)
+        : mime_type(mime_type)
+        , contents(content)
+        , annotations(annotations)
+    {
+        digest = fmt::format("sha256:{}", sha256(content));
+        size = content.size();
+    }
+
+    Response OCILayer::upload(const OCIMirror& mirror, const std::string& reference) const
+    {
         std::string preupload_url = mirror.get_preupload_url(reference);
         auto response = CURLHandle(preupload_url)
                             .setopt(CURLOPT_CUSTOMREQUEST, "POST")
@@ -62,55 +83,83 @@ namespace powerloader
         std::string temp_upload_location = response.header["location"];
 
         auto upload_url = format_upload_url(mirror.url, temp_upload_location, digest);
+
+        spdlog::info("Uploading digest {}", digest);
         spdlog::info("Upload url: {}", upload_url);
 
         CURLHandle chandle(upload_url);
-
-        std::ifstream ufile(file, std::ios::in | std::ios::binary);
+        // for uploading we always use application/octet-stream. The proper mimetypes
+        // are defined in the manifest
         chandle.setopt(CURLOPT_UPLOAD, 1L)
             .add_headers(mirror.get_auth_headers(reference))
-            .add_header("Content-Type: application/octet-stream")
-            .upload(ufile);
-        auto upload_res = chandle.perform();
-        if (!upload_res.ok())
-            return upload_res;
+            .add_header(fmt::format("Content-Type: application/octet-stream", mime_type));
 
-
-        // On certain registries, we also need to push the empty config
-        if (!contains(upload_url, "ghcr.io"))
+        if (!file.empty())
         {
-            std::string preupload_url = mirror.get_preupload_url(reference);
-            auto response = CURLHandle(preupload_url)
-                                .setopt(CURLOPT_CUSTOMREQUEST, "POST")
-                                .add_headers(mirror.get_auth_headers(reference))
-                                .perform();
-            if (!response.ok())
-                return response;
+            std::ifstream ufile(contents, std::ios::in | std::ios::binary);
+            chandle.upload(ufile);
+            return chandle.perform();
+        }
+        else
+        {
+            std::istringstream config_stream(contents);
+            chandle.upload(config_stream);
+            return chandle.perform();
+        }
+    }
 
-            std::string temp_upload_location = response.header["location"];
+    nlohmann::json OCILayer::to_json() const
+    {
+        auto json_layer = nlohmann::json::object();
+        json_layer["mediaType"] = mime_type;
+        json_layer["size"] = size;
+        json_layer["digest"] = digest;
+        if (annotations)
+        {
+            json_layer["annotations"] = annotations.value();
+        }
+        return json_layer;
+    }
 
-            // On certain registries, we also need to push the empty config
-            upload_url = format_upload_url(
-                mirror.url, temp_upload_location, fmt::format("sha256:{}", EMPTY_SHA));
+    Response oci_upload(OCIMirror& mirror,
+                        const std::string& reference,
+                        const std::string& tag,
+                        const std::vector<OCILayer>& layers,
+                        const std::optional<OCILayer>& config)
+    {
+        // default is a empty json object
+        OCILayer default_config("application/vnd.unknown.config.v1+json", std::string("{}"));
+        OCILayer oci_layer_config = config.value_or(default_config);
 
-            spdlog::info("Upload url: {}", upload_url);
+        CURLHandle auth_handle;
+        if (mirror.need_auth() && mirror.prepare(reference, auth_handle))
+        {
+            auto auth_res = auth_handle.perform();
+            if (!auth_res.ok())
+            {
+                spdlog::error("Could not authenticate to OCI Registry");
+                return auth_res;
+            }
+        }
 
-            spdlog::info("Uploading empty config file");
-            CURLHandle chandle_config(upload_url);
-            std::istringstream emptyfile;
-            chandle_config.setopt(CURLOPT_UPLOAD, 1L)
-                .add_headers(mirror.get_auth_headers(reference))
-                .add_header("Content-Type: application/vnd.unknown.config.v1+json")
-                .upload(emptyfile);
+        for (auto& layer : layers)
+        {
+            auto upload_res = layer.upload(mirror, reference);
 
-            auto cres = chandle_config.perform();
-            if (!cres.ok())
-                return cres;
+            if (!upload_res.ok())
+                return upload_res;
+        }
+
+        // Upload the config, too
+        {
+            auto upload_res = oci_layer_config.upload(mirror, reference);
+            if (!upload_res.ok())
+                return upload_res;
         }
 
         // Now we need to upload the manifest for OCI servers
         std::string manifest_url = mirror.get_manifest_url(reference, tag);
-        std::string manifest = mirror.create_manifest(fsize, digest);
+        std::string manifest = create_manifest(oci_layer_config, layers);
 
         spdlog::info("Manifest: {}", manifest);
         std::istringstream manifest_stream(manifest);
@@ -121,7 +170,7 @@ namespace powerloader
             .upload(manifest_stream);
 
         Response result = mhandle.perform();
-        spdlog::info("Uploaded {} to {}:{}", file.string(), mirror.get_repo(reference), tag);
+        spdlog::info("Uploaded {} layers to {}:{}", layers.size(), mirror.get_repo(reference), tag);
         return result;
     }
 

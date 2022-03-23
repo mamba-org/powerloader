@@ -108,7 +108,7 @@ namespace powerloader
         return true;
     }
 
-    std::vector<std::string> Mirror::get_auth_headers(const std::string& path)
+    std::vector<std::string> Mirror::get_auth_headers(const std::string& path) const
     {
         return {};
     }

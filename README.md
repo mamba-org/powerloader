@@ -32,3 +32,10 @@ ninja
 
 ./powerloader --help
 ```
+
+### Uploading files
+
+The following uplaods the xtensor-0.24.0.tar.bz2 file to the xtensor:0.24.0 name/tag on ghcr.io.
+The file will appear under the user authenticated by the GHA_TOKEN.
+
+`powerloader upload xtensor-0.24.0.tar.bz2:xtensor:0.24.0 -m oci://ghcr.io`

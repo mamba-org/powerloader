@@ -56,21 +56,21 @@ namespace powerloader
         return str.find(sub_str) != std::string::npos;
     }
 
-    std::string sha256sum(const fs::path& path)
+    template <class I>
+    std::string sha256sum(I& instream)
     {
         unsigned char hash[32];
         EVP_MD_CTX* mdctx;
         mdctx = EVP_MD_CTX_create();
         EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
 
-        std::ifstream infile(path, std::ios::binary);
         constexpr std::size_t BUFSIZE = 32768;
         std::vector<char> buffer(BUFSIZE);
 
-        while (infile)
+        while (instream)
         {
-            infile.read(buffer.data(), BUFSIZE);
-            size_t count = infile.gcount();
+            instream.read(buffer.data(), BUFSIZE);
+            size_t count = instream.gcount();
             if (!count)
                 break;
             EVP_DigestUpdate(mdctx, buffer.data(), count);
@@ -80,6 +80,12 @@ namespace powerloader
         EVP_MD_CTX_destroy(mdctx);
 
         return hex_string(hash, 32);
+    }
+
+    std::string sha256sum(const fs::path& path)
+    {
+        std::ifstream stream(path);
+        return sha256sum(stream);
     }
 
     std::string md5sum(const fs::path& path)

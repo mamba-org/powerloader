@@ -151,7 +151,7 @@ namespace powerloader
         const std::string& secret,
         const std::string& region,
         const std::string& service,
-        const std::string& string_to_sign)
+        const std::string& string_to_sign) const
     {
         std::string yyyymmdd = get_yyyymmdd(request_date);
 
@@ -211,7 +211,7 @@ namespace powerloader
         return hex_string(Signature, SHA256_DIGEST_LENGTH);
     }
 
-    std::vector<std::string> S3Mirror::get_auth_headers(S3CanonicalRequest& request)
+    std::vector<std::string> S3Mirror::get_auth_headers(S3CanonicalRequest& request) const
     {
         std::vector<std::string> headers;
 
@@ -236,7 +236,7 @@ namespace powerloader
         return headers;
     }
 
-    std::vector<std::string> S3Mirror::get_auth_headers(const std::string& path)
+    std::vector<std::string> S3Mirror::get_auth_headers(const std::string& path) const
     {
         URLHandler uh(fmt::format("{}/{}", bucket_url, path));
         S3CanonicalRequest req_data("GET", uh);

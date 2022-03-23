@@ -32,13 +32,9 @@ namespace powerloader
     };
 
     // https://gist.github.com/mmaday/c82743b1683ce4d27bfa6615b3ba2332
-    struct S3Mirror : public Mirror
+    class S3Mirror : public Mirror
     {
-        std::string bucket_url;
-        std::string aws_access_key_id = "AKIAIOSFODNN7EXAMPLE";
-        std::string aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
-        std::string region = "eu-central-1";
-
+    public:
         S3Mirror(const std::string& bucket_url,
                  const std::string& region,
                  const std::string& aws_access_key,
@@ -55,10 +51,16 @@ namespace powerloader
                                         const std::string& secret,
                                         const std::string& region,
                                         const std::string& service,
-                                        const std::string& string_to_sign);
+                                        const std::string& string_to_sign) const;
 
-        std::vector<std::string> get_auth_headers(const std::string& path);
-        std::vector<std::string> get_auth_headers(S3CanonicalRequest& request);
+        std::vector<std::string> get_auth_headers(const std::string& path) const override;
+        std::vector<std::string> get_auth_headers(S3CanonicalRequest& request) const;
+
+    private:
+        std::string bucket_url;
+        std::string aws_access_key_id = "AKIAIOSFODNN7EXAMPLE";
+        std::string aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
+        std::string region = "eu-central-1";
     };
 
     Response s3_upload(S3Mirror& mirror, const std::string& path, const fs::path& file);
