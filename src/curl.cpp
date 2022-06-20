@@ -294,9 +294,9 @@ namespace powerloader
         setopt(CURLOPT_WRITEDATA, &response->content);
     }
 
-    CURLHandle& CURLHandle::set_end_callback(const end_callback_type& func)
+    CURLHandle& CURLHandle::set_end_callback(end_callback_type func)
     {
-        end_callback = func;
+        end_callback = std::move(func);
         return *this;
     }
 

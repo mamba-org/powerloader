@@ -82,7 +82,7 @@ namespace powerloader
         CURLHandle& setopt(CURLoption opt, const T& val);
 
         void set_default_callbacks();
-        CURLHandle& set_end_callback(const end_callback_type& func);
+        CURLHandle& set_end_callback(end_callback_type func);
 
         CURLHandle& upload(std::ifstream& stream);
         CURLHandle& upload(std::istringstream& stream);
