@@ -1,4 +1,10 @@
-build
+/build
+/build-*
+
+/.pytest_cache
+*.pyc
+*.log
+*.PID
 
 .vscode
 .DS_Store
