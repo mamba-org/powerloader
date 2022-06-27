@@ -24,8 +24,8 @@ namespace powerloader
          * @param msg               Error message or NULL.
          * @return                  See LrCbReturnCode codes
          */
-        using end_callback
-            = std::function<CbReturnCode(TransferStatus status, const std::string& msg, void* clientp)>;
+        using end_callback = std::function<CbReturnCode(
+            TransferStatus status, const std::string& msg, void* clientp)>;
 
         DownloadTarget(const std::string& path, const std::string& base_url, const fs::path& fn);
         ~DownloadTarget();

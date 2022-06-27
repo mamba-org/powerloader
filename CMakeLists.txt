@@ -103,7 +103,7 @@ target_link_libraries(libpowerloader
                       ${SPDLOG_TARGET}
                       ${ZCK_LIBRARY}
                       ${OPENSSL_LIBRARIES}
-                      ${YAML_CPP_LIBRARIES})
+                      yaml-cpp)
 target_link_libraries(powerloader libpowerloader CLI11::CLI11)
 
 include(GNUInstallDirs)
