@@ -1,22 +1,33 @@
+from distutils import command
+from shutil import copyfile
+from growing_file import *
 from fixtures import *
 
 
 class TestAll:
+    @classmethod
+    def setup_class(cls):
+        pass
+
+    @classmethod
+    def teardown_class(cls):
+        pass
+
     # Download the expected file
     def test_working_download(
         self, file, powerloader_binary, mock_server_working, checksums
     ):
         remove_all(file)
 
-        out = subprocess.check_output(
-            [
-                powerloader_binary,
-                "download",
-                f"{mock_server_working}/static/packages/{file['name']}",
-                "-o",
-                file["output_path"],
-            ]
-        )
+        command = [
+            powerloader_binary,
+            "download",
+            f"{mock_server_working}/static/packages/{file['name']}",
+            "-o",
+            file["output_path"],
+        ]
+
+        out = run_command(command)
 
         assert calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert Path(file["output_path"]).exists()
@@ -29,15 +40,15 @@ class TestAll:
     ):
         remove_all(file)
 
-        out = subprocess.check_output(
-            [
-                powerloader_binary,
-                "download",
-                f"{mock_server_password}/static/packages/{file['name']}",
-                "-o",
-                file["output_path"],
-            ]
-        )
+        command = [
+            powerloader_binary,
+            "download",
+            f"{mock_server_password}/static/packages/{file['name']}",
+            "-o",
+            file["output_path"],
+        ]
+
+        out = run_command(command)
 
         assert calculate_sha256(file["output_path"]) == checksums[file["name"]]
         assert Path(file["output_path"]).exists()
@@ -244,7 +255,6 @@ class TestAll:
         for fn in sparse_mirrors_with_names["names"]:
             assert calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
-    # TODO: Parse outputs?, Randomized tests?
     def test_yml_with_interruptions(
         self,
         file,
@@ -298,127 +308,144 @@ class TestAll:
         for fn in sparse_mirrors_with_names["names"]:
             assert calculate_sha256(file["tmp_path"] / fn) == checksums[str(fn)]
 
-    def test_zchunk_basic(file, powerloader_binary, mock_server_working):
+    def test_zchunk_basic(self, file, powerloader_binary, mock_server_working):
         # Download the expected file
-        assert not Path("lorem.txt.zck").exists()
+        name = Path("lorem.txt.zck")
+        localpath = file["tmp_path"] / name
+        filepath = file["lorem_zck"] / name
+        assert not localpath.exists()
 
-        args = [
+        get_zchunk_regular(
+            file,
+            filepath,
+            "static/zchunk/" + str(name),
             powerloader_binary,
-            "download",
-            f"{mock_server_working}/static/zchunk/lorem.txt.zck",
-            "--zck-header-size",
-            "257",
-            "--zck-header-sha",
-            "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b",
-            "-v",
-        ]
-
-        out = subprocess.check_output(args)
+            mock_server_working,
+            outpath=localpath,
+        )
 
         headers = get_prev_headers(mock_server_working, 2)
         assert headers[0]["Range"] == "bytes=0-256"
         assert headers[1]["Range"] == "bytes=257-4822"
-        assert Path("lorem.txt.zck").exists()
-        assert Path("lorem.txt.zck").stat().st_size == 4823
-        assert not Path("lorem.txt.zck.pdpart").exists()
 
+        assert localpath.exists()
+        assert localpath.stat().st_size == 4823
+        assert not Path(str(localpath) + ".pdpart").exists()
+
+        # Confirm that no further content is downloaded
         clear_prev_headers(mock_server_working)
-        out = subprocess.check_output(args)
+        assert localpath.exists()
+        assert not Path(str(localpath) + ".pdpart").exists()
+
+        get_zchunk_regular(
+            file,
+            filepath,
+            "static/zchunk/" + str(name),
+            powerloader_binary,
+            mock_server_working,
+            outpath=localpath,
+        )
+
+        assert localpath.exists()
+        assert not Path(str(localpath) + ".pdpart").exists()
         headers = get_prev_headers(mock_server_working, 100)
         assert headers is None
 
-        assert Path("lorem.txt.zck").exists()
-        assert Path("lorem.txt.zck").stat().st_size == 4823
-        assert not Path("lorem.txt.zck.pdpart").exists()
+        assert localpath.exists()
+        assert localpath.stat().st_size == 4823
+        assert not Path(str(localpath) + ".pdpart").exists()
 
         # grow the file by tripling the original
         root = proj_root()
-        new_file = (
-            root / "test" / "conda_mock" / "static" / "zchunk" / "lorem.txt.x3.zck"
-        )
+
+        new_name = Path("lorem.txt.x3.zck")
+        new_filepath = file["lorem_zck"] / new_name
 
         clear_prev_headers(mock_server_working)
 
-        args_o3 = [
-            powerloader_binary,
-            "download",
-            f"{mock_server_working}/static/zchunk/lorem.txt.x3.zck",
-            "-v",
-            "-o",
-            "lorem.txt.zck",
-        ]
-        out = subprocess.check_output(args_o3)
+        get_zchunk_regular(
+            file,
+            filepath=new_filepath,
+            name="static/zchunk/" + str(new_name),
+            powerloader_binary=powerloader_binary,
+            mock_server_working=mock_server_working,
+            outpath=localpath,
+        )
 
         headers = get_prev_headers(mock_server_working, 100)
+        assert len(headers) == 2
 
         # lead
-        assert headers[0]["Range"] == "bytes=0-88"
+        assert headers[0]["Range"] == "bytes=0-257"
         # header
-        assert headers[1]["Range"] == "bytes=0-257"
-        range_start = int(headers[2]["Range"][len("bytes=") :].split("-")[0])
+        range_start = int(headers[1]["Range"][len("bytes=") :].split("-")[0])
         assert range_start > 4000
 
-        assert Path("lorem.txt.zck").stat().st_size == new_file.stat().st_size
-        assert calculate_sha256(new_file) == calculate_sha256("lorem.txt.zck")
-        assert Path("lorem.txt.zck").exists()
-        assert not Path("lorem.txt.zck.pdpart").exists()
+        assert localpath.stat().st_size == new_filepath.stat().st_size
+        assert calculate_sha256(new_filepath) == calculate_sha256(str(localpath))
+        assert localpath.exists()
+        assert not Path(str(localpath) + ".pdpart").exists()
+        localpath.unlink()
 
-        Path("lorem.txt.zck").unlink()
-
-    def test_zchunk_basic_nochksum(file, powerloader_binary, mock_server_working):
+    def test_zchunk_extract(self, file, powerloader_binary, mock_server_working):
         # Download the expected file
-        assert not Path("lorem.txt.zck").exists()
-
-        out = subprocess.check_output(
-            [
-                powerloader_binary,
-                "download",
-                f"{mock_server_working}/static/zchunk/lorem.txt.zck",
-            ]
+        name = Path("lorem.txt.zck")
+        name_extracted = Path("lorem.txt")
+        localpath = file["tmp_path"] / name
+        filepath = file["lorem_zck"] / name
+        extracted_fp = localpath.parents[0] / name_extracted
+        get_zchunk_regular(
+            file,
+            filepath,
+            "static/zchunk/" + str(name),
+            powerloader_binary,
+            mock_server_working,
+            outpath=localpath,
+            extra_params=["-x"],
         )
 
-        headers = get_prev_headers(mock_server_working, 3)
-        assert headers[0]["Range"] == "bytes=0-88"
-        assert headers[1]["Range"] == "bytes=0-256"
-        assert headers[2]["Range"] == "bytes=257-4822"
-        assert Path("lorem.txt.zck").exists()
-        Path("lorem.txt.zck").unlink()
+        assert localpath.exists()
+        assert extracted_fp.exists()
+        assert not Path(str(localpath) + ".pdpart").exists()
+        extracted_fp.unlink()
+        localpath.unlink()
 
-    def test_zchunk_basic_extract(file, powerloader_binary, mock_server_working):
+    def test_zchunk_basic_nochksum(
+        self, file, powerloader_binary, mock_server_working, unique_filename
+    ):
         # Download the expected file
-        assert not Path("lorem.txt.zck").exists()
-        assert not Path("lorem.txt").exists()
+        name = Path("lorem.txt.zck")
+        localpath = file["tmp_path"] / name
+        filepath = file["lorem_zck"] / name
+        assert not localpath.exists()
 
-        out = subprocess.check_output(
-            [
-                powerloader_binary,
-                "download",
-                f"{mock_server_working}/static/zchunk/lorem.txt.zck",
-                "-x",
-                "--zck-header-size",
-                "257",
-                "--zck-header-sha",
-                "57937bf55851d111a497c1fe2ad706a4df70e02c9b8ba3698b9ab5f8887d8a8b",
-            ]
+        get_zchunk_regular(
+            file,
+            filepath,
+            "static/zchunk/" + str(name),
+            powerloader_binary,
+            mock_server_working,
+            outpath=localpath,
         )
 
-        assert Path("lorem.txt.zck").exists()
-        assert Path("lorem.txt").exists()
-        Path("lorem.txt.zck").unlink()
-        Path("lorem.txt").unlink()
+        headers = get_prev_headers(mock_server_working, 2)
+        assert headers[0]["Range"] == "bytes=0-256"
+        assert headers[1]["Range"] == "bytes=257-4822"
+        assert localpath.exists()
+        localpath.unlink()
 
-    def test_zchunk_random_file(self, file):
+    def test_zchunk_random_file(self, file, unique_filename):
         remove_all(file)
         name = "_random_file"
 
         path1 = str(
-            Path(file["tmp_path"]) / Path(str(platform.system()) + name + "1.txt")
+            Path(file["tmp_path"]) / Path(str(unique_filename) + name + "1.txt")
         )
         path2 = str(
-            Path(file["tmp_path"]) / Path(str(platform.system()) + name + "2.txt")
+            Path(file["tmp_path"]) / Path(str(unique_filename) + name + "2.txt")
         )
         path3 = str(
-            Path(file["tmp_path"]) / Path(str(platform.system()) + name + "3.txt")
+            Path(file["tmp_path"]) / Path(str(unique_filename) + name + "3.txt")
         )
         exponent = 20
         generate_random_file(path1, size=2 ** exponent)
@@ -433,7 +460,7 @@ class TestAll:
         f3.write(f1.read())
         f3.write(f2.read())
 
-        # Comput zchunks
+        # Compute zchunks
         out1 = subprocess.check_output(["zck", path1, "-o", path1 + ".zck"])
         out2 = subprocess.check_output(["zck", path2, "-o", path2 + ".zck"])
         out3 = subprocess.check_output(["zck", path3, "-o", path3 + ".zck"])
@@ -446,27 +473,60 @@ class TestAll:
             ["zck_delta_size", path2 + ".zck", path3 + ".zck"]
         )
 
-        pf_1, pch_1, num_chunks_1 = get_percentage(dsize1)
-        pf_2, pch_2, num_chunks_2 = get_percentage(dsize2)
+        map1 = get_percentage(dsize1, get_header_map(path1 + ".zck"))
+        map2 = get_percentage(dsize2, get_header_map(path2 + ".zck"))
 
         print(
             "Will download "
-            + str(round(pf_1))
+            + str(round(map1["percentage to download"]))
             + "% of file1, that's "
-            + str(round(pch_1))
-            + "% of chunks. Total: "
-            + str(num_chunks_1)
-            + " chunks."
+            + str(round(map2["percentage matched chunks"]))
+            + "% of chunks."
         )
         print(
             "Will download "
-            + str(round(pf_2))
+            + str(round(map2["percentage to download"]))
             + "% of file2, that's "
-            + str(round(pch_2))
-            + "% of chunks. Total: "
-            + str(num_chunks_2)
-            + " chunks."
+            + str(round(map2["percentage matched chunks"]))
+            + "% of chunks."
         )
 
-        assert round(pf_1) < 65
-        assert round(pf_2) < 65
+        assert map1["percentage to download"] < 65
+        assert map2["percentage to download"] < 65
+
+    def test_growing_file(
+        self,
+        file,
+        powerloader_binary,
+        mock_server_working,
+        zchunk_expectations,
+        unique_filename,
+    ):
+
+        remove_all(file)
+        name = Path("static/zchunk/growing_file/gf" + unique_filename + ".zck")
+        filepath = file["test_path"] / Path("conda_mock") / name
+        outpath = file["tmp_path"] / name.name
+
+        for i in range(16):
+            get_zchunk_regular(
+                file, filepath, name, powerloader_binary, mock_server_working, outpath
+            )
+            percentage_map = get_zck_percent_delta(outpath, first_time=(i == 0))
+            if percentage_map != False:
+                assert zchunk_expectations[i] == percentage_map
+
+                if False:
+                    print(
+                        "\n\ni: "
+                        + str(i)
+                        + ", percentage_map: "
+                        + str(percentage_map)
+                        + "\n expectations[i]: "
+                        + str(zchunk_expectations[i])
+                    )
+
+                if False:
+                    print("i: " + str(i) + ", percentage_map: " + str(percentage_map))
+            resize_zchunk(powerloader_binary, mock_server_working)
+        # TODO: check headers

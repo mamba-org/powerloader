@@ -1,4 +1,5 @@
-import sys, socket, pytest, py, pathlib
+import sys, socket, py, pathlib
+from tabnanny import verbose
 from urllib.request import urlopen
 import platform, datetime
 import shutil, subprocess
@@ -26,21 +27,27 @@ def get_powerloader_binary(proj_root=proj_root()):
             return Path(proj_root) / "build" / "powerloader"
 
 
-@pytest.fixture
+@pytest.fixture(scope="module", autouse=True)
+def unique_filename():
+    return str(Path(str(platform.system()).lower().replace("_", "") + "test"))
+
+
+@pytest.fixture(scope="module", autouse=True)
+def unique_filename_txt(unique_filename):
+    return unique_filename + ".txt"
+
+
+@pytest.fixture(scope="module")
 def get_proj_root(cwd=os.getcwd()):
     return proj_root(cwd)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def powerloader_binary(get_proj_root):
     return get_powerloader_binary(get_proj_root)
 
 
-def no_docker():
-    return shutil.which("docker") is None
-
-
-@pytest.fixture
+@pytest.fixture(scope="module")
 def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map = {}
     file_map["name"] = name
@@ -61,7 +68,9 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["authentication"] = file_map["test_path"] / Path("passwd_format_one.yml")
     file_map["s3_server"] = "s3://powerloadertestbucket.s3.eu-central-1.amazonaws.com"
     file_map["s3_mock_server"] = "s3://127.0.0.1:9000"
+    file_map["s3_mock_endpoint"] = "http://127.0.0.1:9000"
     file_map["s3_yml_template"] = file_map["test_path"] / Path("s3template.yml")
+    file_map["s3_bucketpath"] = "s3://testbucket"
     file_map["s3_bucketname"] = Path("testbucket")
     file_map["tmp_yml"] = file_map["tmp_path"] / Path("tmp.yml")
     file_map["xtensor_path"] = file_map["test_path"] / Path(
@@ -72,6 +81,17 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
     file_map["name_on_server"] = "artifact"
     file_map["tag"] = "1.0"
     file_map["username"] = "wolfv"
+    file_map["lorem_zck"] = file_map["test_path"] / Path("conda_mock/static/zchunk/")
+    file_map["lorem_zck_file"] = file_map["test_path"] / Path(
+        "conda_mock/static/zchunk/lorem.txt.zck"
+    )
+    file_map["lorem_zck_file_x3"] = file_map["test_path"] / Path(
+        "conda_mock/static/zchunk/lorem.txt.x3.zck"
+    )
+    file_map["server_path"] = file_map["test_path"] / Path("conda_mock/static/packages")
+    file_map["AWS_ACCESS_KEY_ID"] = "minioadmin"
+    file_map["AWS_SECRET_ACCESS_KEY"] = "minioadmin"
+    file_map["AWS_DEFAULT_REGION"] = "eu-central-1"
 
     try:
         os.mkdir(file_map["tmp_path"])
@@ -82,6 +102,8 @@ def file(get_proj_root, name="xtensor-0.24.0-hc021e02_0.tar.bz2"):
 
     yield file_map
     shutil.rmtree(file_map["tmp_path"])
+    # Ensure that tests don't depend on previous runs:
+    delete_content(file_map["server_path"])
 
 
 @pytest.fixture
@@ -101,8 +123,127 @@ def checksums():
         "boa-0.8.1.tar.gz": "b824237d80155efd97b79469534d602637b40a2a27c4f71417d5e6977238ff74",
         "artifact": "c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4",
         "mock_artifact": "5b3513f580c8397212ff2c8f459c199efc0c90e4354a5f3533adf0a3fff3a530",
+        "random": "98df12664c9cff65bdc764c7a73f2c905f8ee639b4579471d704eaef175f5cf2",
     }
     return cksums
+
+
+@pytest.fixture
+def zchunk_expectations():
+    expect = {}
+
+    expect[1] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size": 115.0,
+    }
+
+    expect[2] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size": 115.0,
+    }
+
+    expect[3] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size": 115.0,
+    }
+
+    expect[4] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size": 115.0,
+    }
+
+    expect[5] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size": 116.0,
+    }
+
+    expect[6] = {
+        "percentage to download": 100,
+        "percentage matched chunks": 50,
+        "header size": 137.0,
+    }
+
+    expect[7] = {
+        "percentage to download": 29,
+        "percentage matched chunks": 67,
+        "header size": 157.0,
+    }
+
+    expect[8] = {
+        "percentage to download": 5,
+        "percentage matched chunks": 75,
+        "header size": 243.0,
+    }
+
+    expect[9] = {
+        "percentage to download": 14,
+        "percentage matched chunks": 88,
+        "header size": 368.0,
+    }
+
+    expect[10] = {
+        "percentage to download": 3,
+        "percentage matched chunks": 93,
+        "header size": 701.0,
+    }
+
+    expect[11] = {
+        "percentage to download": 1,
+        "percentage matched chunks": 97,
+        "header size": 1138.0,
+    }
+
+    expect[12] = {
+        "percentage to download": 3,
+        "percentage matched chunks": 98,
+        "header size": 2222.0,
+    }
+
+    expect[13] = {
+        "percentage to download": 0,
+        "percentage matched chunks": 99,
+        "header size": 4411.0,
+    }
+
+    expect[14] = {
+        "percentage to download": 0,
+        "percentage matched chunks": 100,
+        "header size": 8682.0,
+    }
+
+    expect[15] = {
+        "percentage to download": 0,
+        "percentage matched chunks": 100,
+        "header size": 17259.0,
+    }
+
+    return expect
+
+
+@pytest.fixture(scope="module", autouse=True)
+def fs_ready(xprocess, file, powerloader_binary):
+    if not os.path.exists(file["server_path"]):
+        os.mkdir(file["server_path"])
+
+    command = [
+        powerloader_binary,
+        "download",
+        "-f",
+        "test/remote_mirrors.yml",
+        "-d",
+        str(file["server_path"]),
+    ]
+    out = run_command(command)
+
+
+@pytest.fixture
+def uniform_rand_sequence(file, checksums):
+    return generate_content(file, checksums)
 
 
 @pytest.fixture
@@ -127,10 +268,19 @@ def mock_server_broken(xprocess, checksums):
 
 
 @pytest.fixture
-def mock_server_working(xprocess, checksums):
+def mock_server_working(xprocess, uniform_rand_sequence, unique_filename):
     port = 5004
     pkgs = {}
-    yield from mock_server(xprocess, "m4", port, pkgs, error_type=None)
+    assert Path(uniform_rand_sequence).exists()
+    yield from mock_server(
+        xprocess,
+        "m4",
+        port,
+        pkgs,
+        error_type=None,
+        content_path=uniform_rand_sequence,
+        outfile=unique_filename,
+    )
 
 
 @pytest.fixture

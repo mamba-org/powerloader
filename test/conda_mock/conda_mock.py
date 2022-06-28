@@ -1,7 +1,7 @@
 from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler, HTTPServer
 import os, sys, time, re, json
 import hashlib, base64
-
+from helpers import *
 from .config import AUTH_USER, AUTH_PASS
 
 
@@ -32,8 +32,11 @@ def parse_byte_range(byte_range):
     return first, last
 
 
-def conda_mock_handler(port, pkgs, err_type, username, pwd):
+def conda_mock_handler(
+    port, pkgs, err_type, username, pwd, host, content_path, output_file
+):
     class CondaMockHandler(BaseHTTPRequestHandler):
+        content_present, gf = setup_file(content_path, output_file)
         _port, _pkgs, _err_type = port, pkgs, err_type
         _username, _pwd = username, pwd
         count_thresh = 3
@@ -81,6 +84,15 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
             if keyword_expected:
                 return keyword, path
             return path
+
+        def grow_file(self):
+            self.gf.add_content()
+            self.send_response(200)
+            self.end_headers()
+
+        def serve_growing_file(self):
+            path = self.parse_path()
+            return self.serve_file(path)
 
         def serve_harm_checksum(self):
             """Append two newlines to content of a file (from the static dir) with
@@ -211,6 +223,16 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
 
             if self.path.startswith("/harm_checksum/static/"):
                 return self.serve_harm_checksum()
+
+            if self.path.startswith("/static/zchunk/growing_file"):
+                if not self.content_present:
+                    raise Exception("Didn't specify a path to the content!")
+                return self.serve_growing_file()
+
+            if self.path.startswith("/add_content"):
+                if not self.content_present:
+                    raise Exception("Didn't specify a path to the content!")
+                return self.grow_file()
 
             return self.serve_static()
 

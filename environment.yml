@@ -24,3 +24,8 @@ dependencies:
   - cpp-expected
   - pip:
     - pytest-xprocess
+    - requests
+    - numpy
+    - clang-format
+    - docker
+    - awscli
