@@ -7,7 +7,8 @@ using namespace powerloader;
 TEST(s3, signdata)
 {
     // S3Mirror::SignData s3mirror_signdata("GET", "");
-    S3Mirror s3mirror_signdata("someurl");
+    Context ctx;
+    S3Mirror s3mirror_signdata(ctx, "someurl");
 
     const auto p0 = std::chrono::time_point<std::chrono::system_clock>{};
 

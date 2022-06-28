@@ -29,9 +29,10 @@ namespace fs = std::filesystem;
 
 namespace powerloader
 {
-    Downloader::Downloader()
+    Downloader::Downloader(const Context& ctx)
+        : ctx(ctx)
     {
-        max_parallel_connections = Context::instance().max_parallel_downloads;
+        max_parallel_connections = ctx.max_parallel_downloads;
         multi_handle = curl_multi_init();
         curl_multi_setopt(multi_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, max_parallel_connections);
     }
@@ -49,12 +50,12 @@ namespace powerloader
 
         if (mirror_map.find(dl_target->base_url) != mirror_map.end())
         {
-            m_targets.emplace_back(new Target(dl_target, mirror_map[dl_target->base_url]));
+            m_targets.emplace_back(new Target(ctx, dl_target, mirror_map[dl_target->base_url]));
             dl_target->base_url.clear();
         }
         else
         {
-            m_targets.emplace_back(new Target(dl_target));
+            m_targets.emplace_back(new Target(ctx, dl_target));
         }
     }
 
@@ -271,7 +272,7 @@ namespace powerloader
                 }
 
                 // Skip each url that doesn't have "file://" or "file:" prefix
-                if (Context::instance().offline && mirror->protocol != Protocol::kFILE)
+                if (ctx.offline && mirror->protocol != Protocol::kFILE)
                 {
                     if (mirrors_iterated == 0)
                         spdlog::info("Skipping mirror {} - Offline mode enabled", mirror->url);
@@ -372,7 +373,7 @@ namespace powerloader
             // This condition should never be true for a full_url built from a mirror, because
             // select_suitable_mirror() checks if the URL is local if LRO_OFFLINE is enabled by
             // itself.
-            if (!full_url.empty() && Context::instance().offline
+            if (!full_url.empty() && ctx.offline
                 && !starts_with(full_url, "file://"))
             {
                 spdlog::info("Skipping {} because offline mode is active", full_url);
@@ -451,7 +452,7 @@ namespace powerloader
         protocol = Protocol::kHTTP;
 
         // Prepare CURL easy handle
-        target->curl_handle.reset(new CURLHandle());
+        target->curl_handle.reset(new CURLHandle(ctx));
         CURLHandle& h = *(target->curl_handle);
 
         if (target->mirror && target->mirror->need_preparation(target))
@@ -512,7 +513,7 @@ namespace powerloader
         }
 #endif /* WITH_ZCHUNK */
 
-        if (target->resume && target->resume_count >= Context::instance().max_resume_count)
+        if (target->resume && target->resume_count >= ctx.max_resume_count)
         {
             target->resume = false;
             spdlog::info("Download resume ignored, maximal number of attempts has been reached");
@@ -581,7 +582,7 @@ namespace powerloader
             h.add_headers(target->mirror->get_auth_headers(target->target->path));
         }
 
-        h.add_headers(Context::instance().additional_httpheaders);
+        h.add_headers(ctx.additional_httpheaders);
 
         if (target->target->no_cache)
         {
@@ -833,7 +834,7 @@ namespace powerloader
             {
                 bool success = transfer_err == false;
                 current_target->mirror->update_statistics(success);
-                if (Context::instance().adaptive_mirror_sorting)
+                if (ctx.adaptive_mirror_sorting)
                     sort_mirrors(current_target->mirrors,
                                  current_target->mirror,
                                  success,
@@ -1141,7 +1142,6 @@ namespace powerloader
     bool Downloader::set_max_speeds_to_transfers()
     {
         // Nothing to do
-        auto& ctx = Context::instance();
         if (m_running_transfers.empty() || ctx.max_speed_limit <= 0)
             return true;
 

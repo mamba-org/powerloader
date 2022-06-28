@@ -33,10 +33,12 @@ namespace powerloader
 {
     namespace fs = std::filesystem;
 
+    class Context;
+
     class Downloader
     {
     public:
-        Downloader();
+        explicit Downloader(const Context& ctx);
         ~Downloader();
 
         void add(const std::shared_ptr<DownloadTarget>& dl_target);
@@ -83,6 +85,7 @@ namespace powerloader
 
         bool failfast = false;
         CURLM* multi_handle;
+        const Context& ctx;
 
         std::vector<Target*> m_targets;
         std::vector<Target*> m_running_transfers;

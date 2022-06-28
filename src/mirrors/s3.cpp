@@ -107,22 +107,23 @@ namespace powerloader
      * S3Mirror    *
      ***************/
 
-    S3Mirror::S3Mirror(const std::string& bucket_url,
+    S3Mirror::S3Mirror(const Context& ctx,
+                       const std::string& bucket_url,
                        const std::string& region,
                        const std::string& aws_access_key,
                        const std::string& aws_secret_key)
-        : bucket_url(bucket_url)
+        : Mirror(ctx, bucket_url)
+        , bucket_url(bucket_url)
         , region(region)
         , aws_access_key_id(aws_access_key)
         , aws_secret_access_key(aws_secret_key)
-        , Mirror(bucket_url)
     {
         if (bucket_url.back() == '/')
             this->bucket_url = this->bucket_url.substr(0, this->bucket_url.size() - 1);
     }
 
-    S3Mirror::S3Mirror(const std::string& url)
-        : Mirror(url)
+    S3Mirror::S3Mirror(const Context& ctx, const std::string& url)
+        : Mirror(ctx, url)
     {
     }
 

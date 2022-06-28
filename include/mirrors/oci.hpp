@@ -22,8 +22,9 @@ namespace powerloader
         using split_function_type
             = std::function<std::pair<std::string, std::string>(const std::string&)>;
 
-        OCIMirror(const std::string& host, const std::string& repo_prefix);
-        OCIMirror(const std::string& host,
+        OCIMirror(const Context& ctx, const std::string& host, const std::string& repo_prefix);
+        OCIMirror(const Context& ctx,
+                  const std::string& host,
                   const std::string& repo_prefix,
                   const std::string& scope,
                   const std::string& username,
@@ -86,7 +87,7 @@ namespace powerloader
                                     const std::optional<nlohmann::json>& annotations
                                     = std::nullopt);
 
-        Response upload(const OCIMirror& mirror, const std::string& reference) const;
+        Response upload(const Context& ctx, const OCIMirror& mirror, const std::string& reference) const;
 
         nlohmann::json to_json() const;
 
@@ -97,7 +98,8 @@ namespace powerloader
                  const std::optional<nlohmann::json>& annotations = std::nullopt);
     };
 
-    Response oci_upload(OCIMirror& mirror,
+    Response oci_upload(const Context& ctx,
+                        OCIMirror& mirror,
                         const std::string& reference,
                         const std::string& tag,
                         const std::vector<OCILayer>& layers,

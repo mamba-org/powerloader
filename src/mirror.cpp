@@ -6,7 +6,7 @@
 
 namespace powerloader
 {
-    Mirror::Mirror(const std::string& url)
+    Mirror::Mirror(const Context& ctx, const std::string& url)
         : url(url)
         , preference(0)
         , protocol(Protocol::kHTTP)
@@ -14,7 +14,6 @@ namespace powerloader
         if (url.back() == '/')
             this->url = this->url.substr(0, this->url.size() - 1);
 
-        auto& ctx = Context::instance();
         if (ctx.max_downloads_per_mirror > 0)
         {
             allowed_parallel_connections = ctx.max_downloads_per_mirror;

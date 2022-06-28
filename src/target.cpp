@@ -5,21 +5,13 @@
 
 namespace powerloader
 {
-    Target::Target(const std::shared_ptr<DownloadTarget>& dl_target)
-        : state(DownloadState::kWAITING)
-        , target(dl_target)
-        , original_offset(-1)
-        , resume(dl_target->resume)
-    {
-    }
-
-    Target::Target(const std::shared_ptr<DownloadTarget>& dl_target,
-                   const std::vector<std::shared_ptr<Mirror>>& mirrors)
+    Target::Target(const Context& ctx, std::shared_ptr<DownloadTarget> dl_target, std::vector<std::shared_ptr<Mirror>> mirrors)
         : state(DownloadState::kWAITING)
         , target(dl_target)
         , original_offset(-1)
         , resume(dl_target->resume)
         , mirrors(mirrors)
+        , ctx(ctx)
     {
     }
 
@@ -59,7 +51,7 @@ namespace powerloader
             std::error_code ec;
             fs::rename(temp_file, target->fn, ec);
 
-            if (!ec && Context::instance().preserve_filetime)
+            if (!ec && ctx.preserve_filetime)
             {
                 auto remote_filetime = curl_handle->getinfo<curl_off_t>(CURLINFO_FILETIME_T);
                 if (!remote_filetime || remote_filetime.value() < 0)
@@ -484,7 +476,7 @@ namespace powerloader
 
     bool Target::check_checksums()
     {
-        if (!Context::instance().validate_checksum)
+        if (!ctx.validate_checksum)
         {
             return true;
         }

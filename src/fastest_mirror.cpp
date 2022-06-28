@@ -26,12 +26,12 @@ namespace powerloader
         long HALF_OF_SECOND_IN_MICROS = 500000;
     }
 
-    void fastest_mirror(const std::vector<std::string>& urls)
+    void fastest_mirror(const Context& ctx, const std::vector<std::string>& urls)
     {
         std::vector<detail::InternalMirror> check_mirrors;
         for (const std::string& u : urls)
         {
-            CURL* handle = get_handle();
+            CURL* handle = get_handle(ctx);
 
             int curlcode = curl_easy_setopt(handle, CURLOPT_URL, u.c_str());
             if (curlcode != CURLE_OK)
