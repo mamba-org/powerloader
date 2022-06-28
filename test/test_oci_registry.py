@@ -253,7 +253,10 @@ class TestOCImock:
         temp_txt_file[0].unlink()
 
         tmp_yaml = generate_oci_download_yml(
-            name_on_server, tag, f"https://ghcr.io/{username}", temp_folder,
+            name_on_server,
+            tag,
+            f"https://ghcr.io/{username}",
+            temp_folder,
         )
         dl_folder = temp_folder / "dl"
         dl_folder.mkdir()

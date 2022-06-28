@@ -421,8 +421,8 @@ class TestAll:
             Path(file["tmp_path"]) / Path(str(platform.system()) + name + "3.txt")
         )
         exponent = 20
-        generate_random_file(path1, size=2 ** exponent)
-        generate_random_file(path2, size=2 ** exponent)
+        generate_random_file(path1, size=2**exponent)
+        generate_random_file(path2, size=2**exponent)
 
         # opening first file in append mode and second file in read mode
         f1 = open(path1, "rb")
