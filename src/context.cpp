@@ -11,13 +11,14 @@ extern "C"
 
 namespace powerloader
 {
-    static std::atomic<bool> is_context_alive { false };
+    static std::atomic<bool> is_context_alive{ false };
 
     Context::Context()
     {
         bool expected = false;
-        if(!is_context_alive.compare_exchange_strong(expected, true))
-            throw std::runtime_error("powerloader::Context created more than once - instance must be unique");
+        if (!is_context_alive.compare_exchange_strong(expected, true))
+            throw std::runtime_error(
+                "powerloader::Context created more than once - instance must be unique");
 
         cache_dir = fs::absolute(fs::path(".pdcache"));
         if (!fs::exists(cache_dir))

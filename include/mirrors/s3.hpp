@@ -64,7 +64,10 @@ namespace powerloader
         std::string region = "eu-central-1";
     };
 
-    Response s3_upload(const Context& ctx, S3Mirror& mirror, const std::string& path, const fs::path& file);
+    Response s3_upload(const Context& ctx,
+                       S3Mirror& mirror,
+                       const std::string& path,
+                       const fs::path& file);
 }
 
 #endif

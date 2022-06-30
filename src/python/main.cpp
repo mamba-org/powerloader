@@ -29,7 +29,7 @@ PYBIND11_MODULE(pypowerloader, m)
         .def(py::init<const Context&, const std::string&>());
 
     py::class_<Context, std::unique_ptr<Context>>(m, "Context")
-        .def(py::init([]{ return std::make_unique<Context>(); }))
+        .def(py::init([] { return std::make_unique<Context>(); }))
         .def_readwrite("verbosity", &Context::verbosity)
         .def_readwrite("mirror_map", &Context::mirror_map);
 

@@ -83,7 +83,9 @@ namespace powerloader
     }
 
 
-    Response OCILayer::upload(const Context& ctx, const OCIMirror& mirror, const std::string& reference) const
+    Response OCILayer::upload(const Context& ctx,
+                              const OCIMirror& mirror,
+                              const std::string& reference) const
     {
         std::string preupload_url = mirror.get_preupload_url(reference);
         auto response = CURLHandle(ctx, preupload_url)
@@ -147,7 +149,7 @@ namespace powerloader
             = OCILayer::from_string("application/vnd.unknown.config.v1+json", std::string("{}"));
         OCILayer oci_layer_config = config.value_or(default_config);
 
-        CURLHandle auth_handle{ctx};
+        CURLHandle auth_handle{ ctx };
         if (mirror.need_auth() && mirror.prepare(reference, auth_handle))
         {
             auto auth_res = auth_handle.perform();

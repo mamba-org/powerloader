@@ -37,7 +37,9 @@ namespace powerloader
     //     ]
     // }
 
-    OCIMirror::OCIMirror(const Context& ctx, const std::string& host, const std::string& repo_prefix)
+    OCIMirror::OCIMirror(const Context& ctx,
+                         const std::string& host,
+                         const std::string& repo_prefix)
         : Mirror(ctx, host)
         , m_repo_prefix(repo_prefix)
         , m_scope("pull")

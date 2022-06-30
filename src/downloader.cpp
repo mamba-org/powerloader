@@ -373,8 +373,7 @@ namespace powerloader
             // This condition should never be true for a full_url built from a mirror, because
             // select_suitable_mirror() checks if the URL is local if LRO_OFFLINE is enabled by
             // itself.
-            if (!full_url.empty() && ctx.offline
-                && !starts_with(full_url, "file://"))
+            if (!full_url.empty() && ctx.offline && !starts_with(full_url, "file://"))
             {
                 spdlog::info("Skipping {} because offline mode is active", full_url);
 

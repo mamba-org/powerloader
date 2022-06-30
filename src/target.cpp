@@ -5,7 +5,9 @@
 
 namespace powerloader
 {
-    Target::Target(const Context& ctx, std::shared_ptr<DownloadTarget> dl_target, std::vector<std::shared_ptr<Mirror>> mirrors)
+    Target::Target(const Context& ctx,
+                   std::shared_ptr<DownloadTarget> dl_target,
+                   std::vector<std::shared_ptr<Mirror>> mirrors)
         : state(DownloadState::kWAITING)
         , target(dl_target)
         , original_offset(-1)

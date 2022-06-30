@@ -87,7 +87,9 @@ namespace powerloader
                                     const std::optional<nlohmann::json>& annotations
                                     = std::nullopt);
 
-        Response upload(const Context& ctx, const OCIMirror& mirror, const std::string& reference) const;
+        Response upload(const Context& ctx,
+                        const OCIMirror& mirror,
+                        const std::string& reference) const;
 
         nlohmann::json to_json() const;
 

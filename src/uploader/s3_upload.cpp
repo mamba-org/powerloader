@@ -5,7 +5,10 @@
 
 namespace powerloader
 {
-    Response s3_upload(const Context& ctx, S3Mirror& mirror, const std::string& path, const fs::path& file)
+    Response s3_upload(const Context& ctx,
+                       S3Mirror& mirror,
+                       const std::string& path,
+                       const fs::path& file)
     {
         std::string digest = sha256sum(file);
         std::size_t fsize = fs::file_size(file);

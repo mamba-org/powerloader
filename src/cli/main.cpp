@@ -117,7 +117,9 @@ oci_fn_split_tag(const std::string& fn)
 }
 
 int
-handle_upload(const Context& ctx, const std::vector<std::string>& files, const std::vector<std::string>& mirrors)
+handle_upload(const Context& ctx,
+              const std::vector<std::string>& files,
+              const std::vector<std::string>& mirrors)
 {
     std::string mirror_url = mirrors[0];
     if (mirrors.size() > 1)
@@ -154,7 +156,7 @@ handle_upload(const Context& ctx, const std::vector<std::string>& files, const s
             std::string GH_SECRET = get_env("GHA_PAT", "");
             std::string GH_USER = get_env("GHA_USER", "");
 
-            OCIMirror mirror{ctx, url.url(), GH_USER, "push", GH_USER, GH_SECRET};
+            OCIMirror mirror{ ctx, url.url(), GH_USER, "push", GH_USER, GH_SECRET };
             try
             {
                 auto res
@@ -197,7 +199,7 @@ handle_upload(const Context& ctx, const std::vector<std::string>& files, const s
             if (url_.back() == '/')
                 url_ = url_.substr(0, url_.size() - 1);
 
-            S3Mirror s3mirror{ctx, url_, aws_region, aws_ackey, aws_sekey};
+            S3Mirror s3mirror{ ctx, url_, aws_region, aws_ackey, aws_sekey };
             try
             {
                 s3_upload(ctx, s3mirror, elems[1], elems[0]);
@@ -408,24 +410,24 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
             {
                 spdlog::info("Adding S3 mirror: {} -> {}", mirror_name, creds.url.url());
                 res[mirror_name].emplace_back(
-                    new S3Mirror{ctx, creds.url.url(), creds.region, creds.user, creds.password});
+                    new S3Mirror{ ctx, creds.url.url(), creds.region, creds.user, creds.password });
             }
             else if (kof == KindOf::kOCI)
             {
                 spdlog::info("Adding OCI mirror: {} -> {}", mirror_name, creds.url.url());
                 if (!creds.password.empty())
                 {
-                    res[mirror_name].emplace_back(new OCIMirror{ctx,
-                                                                creds.url.url_without_path(),
-                                                                creds.url.path(),
-                                                                "pull",
-                                                                creds.user,
-                                                                creds.password});
+                    res[mirror_name].emplace_back(new OCIMirror{ ctx,
+                                                                 creds.url.url_without_path(),
+                                                                 creds.url.path(),
+                                                                 "pull",
+                                                                 creds.user,
+                                                                 creds.password });
                 }
                 else
                 {
                     res[mirror_name].emplace_back(
-                        new OCIMirror{ctx, creds.url.url_without_path(), creds.url.path()});
+                        new OCIMirror{ ctx, creds.url.url_without_path(), creds.url.path() });
                 }
                 std::dynamic_pointer_cast<OCIMirror>(res[mirror_name].back())
                     ->set_fn_tag_split_function(oci_fn_split_tag);

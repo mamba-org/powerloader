@@ -34,7 +34,8 @@ namespace powerloader
                                           std::size_t nitems,
                                           Target* self);
 
-        Target(const Context& ctx, std::shared_ptr<DownloadTarget> dl_target,
+        Target(const Context& ctx,
+               std::shared_ptr<DownloadTarget> dl_target,
                std::vector<std::shared_ptr<Mirror>> mirrors = {});
 
         ~Target();
