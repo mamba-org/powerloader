@@ -45,13 +45,11 @@ namespace powerloader
 
         std::vector<std::string> additional_httpheaders;
 
-        static Context& instance();
-
         void set_verbosity(int v);
 
-    private:
+        // Throws if another instance already exists: there can only be one at any time!
         Context();
-        ~Context() = default;
+        ~Context();
 
         Context(const Context&) = delete;
         Context& operator=(const Context&) = delete;

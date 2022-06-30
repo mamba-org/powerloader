@@ -35,12 +35,13 @@ namespace powerloader
     class S3Mirror : public Mirror
     {
     public:
-        S3Mirror(const std::string& bucket_url,
+        S3Mirror(const Context& ctx,
+                 const std::string& bucket_url,
                  const std::string& region,
                  const std::string& aws_access_key,
                  const std::string& aws_secret_key);
 
-        S3Mirror(const std::string& url);
+        S3Mirror(const Context& ctx, const std::string& url);
 
         bool authenticate(CURLHandle& handle, const std::string& path) override;
         std::string format_url(Target* target) override;
@@ -63,7 +64,10 @@ namespace powerloader
         std::string region = "eu-central-1";
     };
 
-    Response s3_upload(S3Mirror& mirror, const std::string& path, const fs::path& file);
+    Response s3_upload(const Context& ctx,
+                       S3Mirror& mirror,
+                       const std::string& path,
+                       const fs::path& file);
 }
 
 #endif

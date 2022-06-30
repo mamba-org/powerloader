@@ -18,6 +18,7 @@
 namespace powerloader
 {
     class Target;
+    class Context;
 
     enum class MirrorState
     {
@@ -32,7 +33,7 @@ namespace powerloader
     // mirrors should be dict -> urls mapping
     struct Mirror
     {
-        Mirror(const std::string& url);
+        Mirror(const Context& ctx, const std::string& url);
         virtual ~Mirror() = default;
 
         Mirror(const Mirror&) = delete;

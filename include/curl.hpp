@@ -17,6 +17,8 @@
 
 namespace powerloader
 {
+    class Context;
+
     extern "C"
     {
 #include <curl/curl.h>
@@ -47,14 +49,14 @@ namespace powerloader
     };
 
     // TODO: rename this, try to not expose it
-    CURL* get_handle();
+    CURL* get_handle(const Context& ctx);
 
     class CURLHandle
     {
     public:
         using end_callback_type = std::function<CbReturnCode(const Response&)>;
-        CURLHandle();
-        CURLHandle(const std::string& url);
+        explicit CURLHandle(const Context& ctx);
+        CURLHandle(const Context& ctx, const std::string& url);
         ~CURLHandle();
 
         CURLHandle& url(const std::string& url);
@@ -98,7 +100,7 @@ namespace powerloader
 
     // TODO: restrict the possible implementations in the cpp file
     template <class T>
-    inline CURLHandle& CURLHandle::setopt(CURLoption opt, const T& val)
+    CURLHandle& CURLHandle::setopt(CURLoption opt, const T& val)
     {
         CURLcode ok;
         if constexpr (std::is_same<T, std::string>())

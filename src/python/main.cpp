@@ -25,16 +25,16 @@ PYBIND11_MODULE(pypowerloader, m)
         .def_readonly("complete_url", &DownloadTarget::complete_url)
         .def_readwrite("progress_callback", &DownloadTarget::progress_callback);
 
-    py::class_<Mirror, std::shared_ptr<Mirror>>(m, "Mirror").def(py::init<const std::string&>());
+    py::class_<Mirror, std::shared_ptr<Mirror>>(m, "Mirror")
+        .def(py::init<const Context&, const std::string&>());
 
-    py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
-        .def(
-            py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
+    py::class_<Context, std::unique_ptr<Context>>(m, "Context")
+        .def(py::init([] { return std::make_unique<Context>(); }))
         .def_readwrite("verbosity", &Context::verbosity)
         .def_readwrite("mirror_map", &Context::mirror_map);
 
     py::class_<Downloader>(m, "Downloader")
-        .def(py::init<>())
+        .def(py::init<const Context&>())
         .def("download", &Downloader::download)
         .def("add", &Downloader::add);
 }

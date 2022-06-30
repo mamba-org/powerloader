@@ -117,7 +117,9 @@ oci_fn_split_tag(const std::string& fn)
 }
 
 int
-handle_upload(const std::vector<std::string>& files, const std::vector<std::string>& mirrors)
+handle_upload(const Context& ctx,
+              const std::vector<std::string>& files,
+              const std::vector<std::string>& mirrors)
 {
     std::string mirror_url = mirrors[0];
     if (mirrors.size() > 1)
@@ -154,11 +156,12 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
             std::string GH_SECRET = get_env("GHA_PAT", "");
             std::string GH_USER = get_env("GHA_USER", "");
 
-            OCIMirror mirror(url.url(), GH_USER, "push", GH_USER, GH_SECRET);
+            OCIMirror mirror{ ctx, url.url(), GH_USER, "push", GH_USER, GH_SECRET };
             try
             {
                 auto res
-                    = oci_upload(mirror,
+                    = oci_upload(ctx,
+                                 mirror,
                                  dest,
                                  elems[2],
                                  { OCILayer::from_file("application/octet-stream", elems[0]) });
@@ -196,10 +199,10 @@ handle_upload(const std::vector<std::string>& files, const std::vector<std::stri
             if (url_.back() == '/')
                 url_ = url_.substr(0, url_.size() - 1);
 
-            S3Mirror s3mirror(url_, aws_region, aws_ackey, aws_sekey);
+            S3Mirror s3mirror{ ctx, url_, aws_region, aws_ackey, aws_sekey };
             try
             {
-                s3_upload(s3mirror, elems[1], elems[0]);
+                s3_upload(ctx, s3mirror, elems[1], elems[0]);
                 std::cout << "Finished upload for " << f << " to S3 bucket at" << url_ << std::endl;
             }
             catch (std::exception& e)
@@ -224,7 +227,8 @@ struct DownloadMetadata
 };
 
 int
-handle_download(const std::vector<std::string>& urls,
+handle_download(Context& ctx,
+                const std::vector<std::string>& urls,
                 const std::vector<std::string>& mirrors,
                 bool resume,
                 const std::string& dest_folder,
@@ -234,8 +238,6 @@ handle_download(const std::vector<std::string>& urls,
     // the format for URLs is: <mirror>:<path> (e.g. conda-forge:linux-64/xtensor-123.tar.bz2) or
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2
     std::vector<std::shared_ptr<DownloadTarget>> targets;
-
-    auto& ctx = Context::instance();
 
     for (auto& x : urls)
     {
@@ -256,7 +258,7 @@ handle_download(const std::vector<std::string>& urls,
             {
                 ctx.mirror_map[host] = std::vector<std::shared_ptr<Mirror>>();
             }
-            ctx.mirror_map[host].push_back(std::make_shared<Mirror>(mirror_url));
+            ctx.mirror_map[host].push_back(std::make_shared<Mirror>(ctx, mirror_url));
             targets.emplace_back(new DownloadTarget(path.substr(1, std::string::npos), host, dst));
         }
         else
@@ -301,7 +303,7 @@ handle_download(const std::vector<std::string>& urls,
             = std::bind(&progress_callback, targets.back().get(), _1, _2);
     }
 
-    Downloader dl;
+    Downloader dl{ ctx };
     dl.mirror_map = ctx.mirror_map;
 
     for (auto& t : targets)
@@ -335,7 +337,7 @@ handle_download(const std::vector<std::string>& urls,
 }
 
 std::map<std::string, std::vector<std::shared_ptr<Mirror>>>
-parse_mirrors(const YAML::Node& node)
+parse_mirrors(const Context& ctx, const YAML::Node& node)
 {
     assert(node.IsMap());
     std::map<std::string, std::vector<std::shared_ptr<Mirror>>> res;
@@ -408,23 +410,24 @@ parse_mirrors(const YAML::Node& node)
             {
                 spdlog::info("Adding S3 mirror: {} -> {}", mirror_name, creds.url.url());
                 res[mirror_name].emplace_back(
-                    new S3Mirror(creds.url.url(), creds.region, creds.user, creds.password));
+                    new S3Mirror{ ctx, creds.url.url(), creds.region, creds.user, creds.password });
             }
             else if (kof == KindOf::kOCI)
             {
                 spdlog::info("Adding OCI mirror: {} -> {}", mirror_name, creds.url.url());
                 if (!creds.password.empty())
                 {
-                    res[mirror_name].emplace_back(new OCIMirror(creds.url.url_without_path(),
-                                                                creds.url.path(),
-                                                                "pull",
-                                                                creds.user,
-                                                                creds.password));
+                    res[mirror_name].emplace_back(new OCIMirror{ ctx,
+                                                                 creds.url.url_without_path(),
+                                                                 creds.url.path(),
+                                                                 "pull",
+                                                                 creds.user,
+                                                                 creds.password });
                 }
                 else
                 {
                     res[mirror_name].emplace_back(
-                        new OCIMirror(creds.url.url_without_path(), creds.url.path()));
+                        new OCIMirror{ ctx, creds.url.url_without_path(), creds.url.path() });
                 }
                 std::dynamic_pointer_cast<OCIMirror>(res[mirror_name].back())
                     ->set_fn_tag_split_function(oci_fn_split_tag);
@@ -432,7 +435,7 @@ parse_mirrors(const YAML::Node& node)
             else if (kof == KindOf::kHTTP)
             {
                 spdlog::info("Adding HTTP mirror: {} -> {}", mirror_name, creds.url.url());
-                res[mirror_name].emplace_back(std::make_shared<Mirror>(creds.url.url()));
+                res[mirror_name].emplace_back(std::make_shared<Mirror>(ctx, creds.url.url()));
             }
         }
     }
@@ -489,12 +492,14 @@ main(int argc, char** argv)
 
     CLI11_PARSE(app, argc, argv);
 
+    powerloader::Context ctx;
+
     if (verbose)
     {
         show_progress_bars = false;
-        Context::instance().set_verbosity(1);
+        ctx.set_verbosity(1);
     }
-    Context::instance().disable_ssl = disable_ssl;
+    ctx.disable_ssl = disable_ssl;
 
     std::vector<Mirror> mlist;
     if (!file.empty())
@@ -502,22 +507,20 @@ main(int argc, char** argv)
         spdlog::info("Loading file {}", file);
         YAML::Node config = YAML::LoadFile(file);
 
-        auto& ctx = Context::instance();
-
         du_files = config["targets"].as<std::vector<std::string>>();
         if (config["mirrors"])
         {
             spdlog::info("Loading mirrors", file);
-            ctx.mirror_map = parse_mirrors(config["mirrors"]);
+            ctx.mirror_map = parse_mirrors(ctx, config["mirrors"]);
         }
     }
     if (app.got_subcommand("upload"))
     {
-        return handle_upload(du_files, mirrors);
+        return handle_upload(ctx, du_files, mirrors);
     }
     if (app.got_subcommand("download"))
     {
-        return handle_download(du_files, mirrors, resume, outdir, dl_meta, do_zck_extract);
+        return handle_download(ctx, du_files, mirrors, resume, outdir, dl_meta, do_zck_extract);
     }
 
     return 0;

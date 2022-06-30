@@ -83,10 +83,12 @@ namespace powerloader
     }
 
 
-    Response OCILayer::upload(const OCIMirror& mirror, const std::string& reference) const
+    Response OCILayer::upload(const Context& ctx,
+                              const OCIMirror& mirror,
+                              const std::string& reference) const
     {
         std::string preupload_url = mirror.get_preupload_url(reference);
-        auto response = CURLHandle(preupload_url)
+        auto response = CURLHandle(ctx, preupload_url)
                             .setopt(CURLOPT_CUSTOMREQUEST, "POST")
                             .add_headers(mirror.get_auth_headers(reference))
                             .perform();
@@ -101,7 +103,7 @@ namespace powerloader
         spdlog::info("Uploading digest {}", digest);
         spdlog::info("Upload url: {}", upload_url);
 
-        CURLHandle chandle(upload_url);
+        CURLHandle chandle(ctx, upload_url);
         // for uploading we always use application/octet-stream. The proper mimetypes
         // are defined in the manifest
         chandle.setopt(CURLOPT_UPLOAD, 1L)
@@ -135,7 +137,8 @@ namespace powerloader
         return json_layer;
     }
 
-    Response oci_upload(OCIMirror& mirror,
+    Response oci_upload(const Context& ctx,
+                        OCIMirror& mirror,
                         const std::string& reference,
                         const std::string& tag,
                         const std::vector<OCILayer>& layers,
@@ -146,7 +149,7 @@ namespace powerloader
             = OCILayer::from_string("application/vnd.unknown.config.v1+json", std::string("{}"));
         OCILayer oci_layer_config = config.value_or(default_config);
 
-        CURLHandle auth_handle;
+        CURLHandle auth_handle{ ctx };
         if (mirror.need_auth() && mirror.prepare(reference, auth_handle))
         {
             auto auth_res = auth_handle.perform();
@@ -159,7 +162,7 @@ namespace powerloader
 
         for (auto& layer : layers)
         {
-            auto upload_res = layer.upload(mirror, reference);
+            auto upload_res = layer.upload(ctx, mirror, reference);
 
             if (!upload_res.ok())
                 return upload_res;
@@ -167,7 +170,7 @@ namespace powerloader
 
         // Upload the config, too
         {
-            auto upload_res = oci_layer_config.upload(mirror, reference);
+            auto upload_res = oci_layer_config.upload(ctx, mirror, reference);
             if (!upload_res.ok())
                 return upload_res;
         }
@@ -179,7 +182,7 @@ namespace powerloader
         spdlog::info("Manifest: {}", manifest);
         std::istringstream manifest_stream(manifest);
 
-        CURLHandle mhandle(manifest_url);
+        CURLHandle mhandle(ctx, manifest_url);
         mhandle.add_headers(mirror.get_auth_headers(reference))
             .add_header("Content-Type: application/vnd.oci.image.manifest.v1+json")
             .upload(manifest_stream);

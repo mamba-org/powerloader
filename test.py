@@ -20,13 +20,13 @@ def progress(total, done):
 
 downTarg.progress_callback = progress
 
-dl = pypowerloader.Downloader()
-dl.add(downTarg)
-
 con = pypowerloader.Context()
 
+dl = pypowerloader.Downloader(con)
+dl.add(downTarg)
+
 # dl.download()
-mirror = pypowerloader.Mirror(baseurl)
+mirror = pypowerloader.Mirror(con, baseurl)
 
 print("mirror_map1: " + str(con.mirror_map))
 con.mirror_map = {"conda-forge": [mirror], "test": []}

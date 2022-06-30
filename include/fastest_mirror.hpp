@@ -6,7 +6,9 @@
 
 namespace powerloader
 {
-    void fastest_mirror(const std::vector<std::string>& urls);
+    class Context;
+
+    void fastest_mirror(const Context& ctx, const std::vector<std::string>& urls);
 }
 
 #endif

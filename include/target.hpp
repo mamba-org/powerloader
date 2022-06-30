@@ -34,10 +34,9 @@ namespace powerloader
                                           std::size_t nitems,
                                           Target* self);
 
-        Target(const std::shared_ptr<DownloadTarget>& dl_target);
-
-        Target(const std::shared_ptr<DownloadTarget>& dl_target,
-               const std::vector<std::shared_ptr<Mirror>>& mirrors);
+        Target(const Context& ctx,
+               std::shared_ptr<DownloadTarget> dl_target,
+               std::vector<std::shared_ptr<Mirror>> mirrors = {});
 
         ~Target();
 
@@ -85,7 +84,7 @@ namespace powerloader
         std::size_t writecb_received;
         bool writecb_required_range_written;
 
-        char errorbuffer[CURL_ERROR_SIZE];
+        char errorbuffer[CURL_ERROR_SIZE] = {};
 
         using end_callback = DownloadTarget::end_callback;
         end_callback override_endcb;
@@ -98,6 +97,8 @@ namespace powerloader
 
         bool range_fail = false;
         ZckState zck_state;
+
+        const Context& ctx;
     };
 }
 

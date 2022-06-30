@@ -53,10 +53,9 @@ namespace powerloader
      * CURLHandle*
      **************/
 
-    CURL* get_handle()
+    CURL* get_handle(const Context& ctx)
     {
         // TODO: get rid of goto
-        auto& ctx = Context::instance();
         CURL* h = curl_easy_init();
         if (!h)
             return nullptr;
@@ -98,7 +97,7 @@ namespace powerloader
         if (curl_easy_setopt(h, CURLOPT_FILETIME, (long) ctx.preserve_filetime) != CURLE_OK)
             goto err;
 
-        if (Context::instance().verbosity > 0)
+        if (ctx.verbosity > 0)
             if (curl_easy_setopt(h, CURLOPT_VERBOSE, 1) != CURLE_OK)
                 goto err;
 
@@ -109,8 +108,8 @@ namespace powerloader
         return nullptr;
     }
 
-    CURLHandle::CURLHandle()
-        : m_handle(get_handle())
+    CURLHandle::CURLHandle(const Context& ctx)
+        : m_handle(get_handle(ctx))
     {
         if (m_handle == nullptr)
         {
@@ -121,8 +120,8 @@ namespace powerloader
         setopt(CURLOPT_ERRORBUFFER, errorbuffer);
     }
 
-    CURLHandle::CURLHandle(const std::string& url)
-        : CURLHandle()
+    CURLHandle::CURLHandle(const Context& ctx, const std::string& url)
+        : CURLHandle(ctx)
     {
         this->url(url);
     }
