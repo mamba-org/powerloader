@@ -42,7 +42,7 @@ namespace powerloader
 
         bool zck_running() const;
 
-        CbReturnCode call_endcallback(TransferStatus status);
+        CbReturnCode call_end_callback(TransferStatus status);
         void reset_file(TransferStatus status);
 
         static int progress_callback(Target* ptr,
@@ -86,11 +86,10 @@ namespace powerloader
 
         char errorbuffer[CURL_ERROR_SIZE] = {};
 
-        using end_callback = DownloadTarget::end_callback;
-        end_callback override_endcb;
-        void* override_endcb_data = nullptr;
+        using end_callback_t = DownloadTarget::end_callback_t;
+        end_callback_t override_end_callback;
 
-        CbReturnCode cb_return_code;
+        CbReturnCode callback_return_code;
 
         std::unique_ptr<CURLHandle> curl_handle;
         Protocol protocol;

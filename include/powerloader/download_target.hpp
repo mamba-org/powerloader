@@ -24,8 +24,8 @@ namespace powerloader
          * @param msg               Error message or NULL.
          * @return                  See LrCbReturnCode codes
          */
-        using end_callback = std::function<CbReturnCode(
-            TransferStatus status, const std::string& msg, void* clientp)>;
+        using end_callback_t = std::function<CbReturnCode(TransferStatus, const std::string&)>;
+        using progress_callback_t = std::function<int(curl_off_t, curl_off_t)>;
 
         DownloadTarget(const std::string& path, const std::string& base_url, const fs::path& fn);
         ~DownloadTarget();
@@ -57,11 +57,8 @@ namespace powerloader
         std::ptrdiff_t expected_size = 0;
         std::ptrdiff_t orig_size = 0;
 
-        std::function<int(curl_off_t, curl_off_t)> progress_callback;
-
-
-        end_callback endcb;
-        void* cbdata = nullptr;
+        progress_callback_t progress_callback;
+        end_callback_t end_callback;
 
         // these are available checksums for the entire file
         std::vector<Checksum> checksums;
