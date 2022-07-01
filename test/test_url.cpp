@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "url.hpp"
+#include <powerloader/url.hpp>
 
 namespace powerloader
 {

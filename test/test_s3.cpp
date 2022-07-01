@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "mirrors/s3.hpp"
+#include <powerloader/mirrors/s3.hpp>
 
 using namespace powerloader;
 

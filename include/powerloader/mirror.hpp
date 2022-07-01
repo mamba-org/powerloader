@@ -8,10 +8,10 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
-#include "context.hpp"
-#include "curl.hpp"
-#include "enums.hpp"
-#include "utils.hpp"
+#include <powerloader/context.hpp>
+#include <powerloader/curl.hpp>
+#include <powerloader/enums.hpp>
+#include <powerloader/utils.hpp>
 
 #include "nlohmann/json.hpp"
 

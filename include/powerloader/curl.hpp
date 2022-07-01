@@ -12,8 +12,8 @@
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 
-#include "utils.hpp"
-#include "enums.hpp"
+#include <powerloader/utils.hpp>
+#include <powerloader/enums.hpp>
 
 namespace powerloader
 {

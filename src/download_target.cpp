@@ -1,4 +1,4 @@
-#include "download_target.hpp"
+#include <powerloader/download_target.hpp>
 
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
