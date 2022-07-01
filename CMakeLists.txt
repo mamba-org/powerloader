@@ -4,6 +4,7 @@ find_package(CURL REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(CLI11 REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(tl-expected REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -99,11 +100,15 @@ else()
     set(SPDLOG_TARGET spdlog::spdlog)
 endif()
 target_link_libraries(libpowerloader
-                      ${CURL_LIBRARIES}
-                      ${SPDLOG_TARGET}
-                      ${ZCK_LIBRARY}
-                      ${OPENSSL_LIBRARIES}
-                      yaml-cpp)
+                    INTERFACE
+                        tl::expected
+                    PRIVATE
+                        ${CURL_LIBRARIES}
+                        ${SPDLOG_TARGET}
+                        ${ZCK_LIBRARY}
+                        ${OPENSSL_LIBRARIES}
+                        yaml-cpp
+                    )
 target_link_libraries(powerloader libpowerloader CLI11::CLI11)
 
 include(GNUInstallDirs)
