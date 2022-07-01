@@ -349,7 +349,7 @@ namespace powerloader
                 auto res = select_suitable_mirror(target);
                 if (!res)
                 {
-                    target->call_endcallback(TransferStatus::kERROR);
+                    target->call_end_callback(TransferStatus::kERROR);
                     return tl::unexpected(res.error());
                 }
 
@@ -384,7 +384,7 @@ namespace powerloader
                     ErrorCode::PD_NOURL,
                     "Cannot download: offline mode is specified and no local URL is available." });
 
-                auto cb_ret = target->call_endcallback(TransferStatus::kERROR);
+                auto cb_ret = target->call_end_callback(TransferStatus::kERROR);
                 // TODO
                 // if (cb_ret == CbReturnCode::kERROR || failfast)
                 // {
@@ -506,7 +506,7 @@ namespace powerloader
                 target->state = DownloadState::kFINISHED;
                 target->reset();
                 target->headercb_interrupt_reason.clear();
-                target->call_endcallback(TransferStatus::kSUCCESSFUL);
+                target->call_end_callback(TransferStatus::kSUCCESSFUL);
                 return prepare_next_transfer(candidate_found);
             }
         }
@@ -556,7 +556,7 @@ namespace powerloader
         }
 
         // Prepare progress callback
-        target->cb_return_code = CbReturnCode::kOK;
+        target->callback_return_code = CbReturnCode::kOK;
         if (target->target->progress_callback)
         {
             h.setopt(CURLOPT_XFERINFOFUNCTION, &Target::progress_callback);
@@ -814,7 +814,7 @@ namespace powerloader
             // Cleanup
             curl_multi_remove_handle(multi_handle, current_target->curl_handle->ptr());
 
-            // call_endcallback()
+            // call_end_callback()
             if (!result)
             {
                 result.error().log();
@@ -877,7 +877,7 @@ namespace powerloader
                 //                     original_err_msg);
                 //         g_free(original_err_msg);
                 //         fatal_error = TRUE;
-                //         target->cb_return_code = LR_CB_ERROR;
+                //         target->callback_return_code = LR_CB_ERROR;
                 //     }
                 // }
 
@@ -955,7 +955,7 @@ namespace powerloader
                     current_target->state = DownloadState::kFAILED;
 
                     // Call end callback
-                    CbReturnCode rc = current_target->call_endcallback(TransferStatus::kERROR);
+                    CbReturnCode rc = current_target->call_end_callback(TransferStatus::kERROR);
                     spdlog::error("Retries exceeded for {}", current_target->target->complete_url);
 
                     assert(!result);
@@ -1004,7 +1004,8 @@ namespace powerloader
 
                     // Call end callback
                     current_target->curl_handle->finalize_transfer();
-                    CbReturnCode rc = current_target->call_endcallback(TransferStatus::kSUCCESSFUL);
+                    CbReturnCode rc
+                        = current_target->call_end_callback(TransferStatus::kSUCCESSFUL);
                     if (rc == CbReturnCode::kERROR)
                     {
                         throw fatal_download_error("Interrupted by error from end callback");
@@ -1044,7 +1045,7 @@ namespace powerloader
             if (target->target->already_downloaded())
             {
                 spdlog::info("Found already downloaded file!");
-                target->call_endcallback(TransferStatus::kALREADYEXISTS);
+                target->call_end_callback(TransferStatus::kALREADYEXISTS);
                 target->state = DownloadState::kFINISHED;
             }
         }
@@ -1068,7 +1069,7 @@ namespace powerloader
                     target->target->set_error(DownloaderError{ ErrorLevel::FATAL,
                                                                ErrorCode::PD_INTERRUPTED,
                                                                "Download interrupted by error" });
-                    target->call_endcallback(TransferStatus::kERROR);
+                    target->call_end_callback(TransferStatus::kERROR);
                 }
                 return false;
             }
