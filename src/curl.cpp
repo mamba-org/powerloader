@@ -214,6 +214,7 @@ namespace powerloader
     template tl::expected<char*, CURLcode> CURLHandle::getinfo(CURLINFO option);
     template tl::expected<double, CURLcode> CURLHandle::getinfo(CURLINFO option);
     template tl::expected<curl_slist*, CURLcode> CURLHandle::getinfo(CURLINFO option);
+    template tl::expected<curl_off_t, CURLcode> CURLHandle::getinfo(CURLINFO option);
 
     CURL* CURLHandle::handle()
     {
