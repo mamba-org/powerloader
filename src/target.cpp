@@ -82,7 +82,7 @@ namespace powerloader
     {
         reset_file(status);
 
-        end_callback_t end_cb
+        end_callback_t& end_cb
             = override_end_callback ? override_end_callback : target->end_callback;
         CbReturnCode rc = CbReturnCode::kOK;
         if (end_cb)
