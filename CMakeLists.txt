@@ -27,18 +27,18 @@ set(LIBPOWERLOADER_SRCS
 )
 
 set(LIBPOWERLOADER_HEADERS
-    include/context.hpp
-    include/curl.hpp
-    include/download_target.hpp
-    include/downloader.hpp
-    include/enums.hpp
-    include/errors.hpp
-    include/fastest_mirror.hpp
-    include/fileio.hpp
-    include/mirror.hpp
-    include/url.hpp
-    include/target.hpp
-    include/utils.hpp
+    include/powerloader/context.hpp
+    include/powerloader/curl.hpp
+    include/powerloader/download_target.hpp
+    include/powerloader/downloader.hpp
+    include/powerloader/enums.hpp
+    include/powerloader/errors.hpp
+    include/powerloader/fastest_mirror.hpp
+    include/powerloader/fileio.hpp
+    include/powerloader/mirror.hpp
+    include/powerloader/url.hpp
+    include/powerloader/target.hpp
+    include/powerloader/utils.hpp
 )
 
 
@@ -121,7 +121,7 @@ install(TARGETS powerloader libpowerloader
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        PUBLIC_HEADER DESTINATION  ${CMAKE_INSTALL_INCLUDEDIR}/powerloader
+        PUBLIC_HEADER DESTINATION  ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 option(ENABLE_TESTS "Enable tests" ON)
