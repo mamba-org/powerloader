@@ -3,8 +3,8 @@
 
 #include <spdlog/fmt/fmt.h>
 
-#include "mirror.hpp"
-#include "target.hpp"
+#include <powerloader/mirror.hpp>
+#include <powerloader/target.hpp>
 
 namespace powerloader
 {

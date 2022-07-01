@@ -3,8 +3,8 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
-#include "curl.hpp"
-#include "utils.hpp"
+#include <powerloader/curl.hpp>
+#include <powerloader/utils.hpp>
 
 namespace powerloader
 {

@@ -3,11 +3,11 @@
 
 #include <string>
 
-#include "enums.hpp"
-#include "url.hpp"
-#include "mirror.hpp"
-#include "fileio.hpp"
-#include "errors.hpp"
+#include <powerloader/enums.hpp>
+#include <powerloader/url.hpp>
+#include <powerloader/mirror.hpp>
+#include <powerloader/fileio.hpp>
+#include <powerloader/errors.hpp>
 
 namespace powerloader
 {

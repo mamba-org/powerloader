@@ -3,9 +3,9 @@
 #include <sstream>
 #include <spdlog/spdlog.h>
 
-#include "curl.hpp"
-#include "utils.hpp"
-#include "context.hpp"
+#include <powerloader/curl.hpp>
+#include <powerloader/utils.hpp>
+#include <powerloader/context.hpp>
 
 namespace powerloader
 {

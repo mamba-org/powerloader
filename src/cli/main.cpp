@@ -2,12 +2,13 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
 #include <yaml-cpp/yaml.h>
-#include "mirror.hpp"
-#include "mirrors/oci.hpp"
-#include "mirrors/s3.hpp"
-#include "url.hpp"
-#include "utils.hpp"
-#include "downloader.hpp"
+
+#include <powerloader/mirror.hpp>
+#include <powerloader/mirrors/oci.hpp>
+#include <powerloader/mirrors/s3.hpp>
+#include <powerloader/url.hpp>
+#include <powerloader/utils.hpp>
+#include <powerloader/downloader.hpp>
 
 #ifdef WITH_ZCHUNK
 #include "../zck.hpp"

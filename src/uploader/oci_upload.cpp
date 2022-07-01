@@ -1,7 +1,7 @@
 #include <filesystem>
 #include <spdlog/fmt/fmt.h>
 
-#include "mirrors/oci.hpp"
+#include <powerloader/mirrors/oci.hpp>
 
 namespace powerloader
 {

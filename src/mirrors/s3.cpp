@@ -7,10 +7,10 @@ extern "C"
 #include <openssl/sha.h>
 }
 
-#include "mirrors/s3.hpp"
-#include "mirror.hpp"
-#include "target.hpp"
-#include "url.hpp"
+#include <powerloader/mirrors/s3.hpp>
+#include <powerloader/mirror.hpp>
+#include <powerloader/target.hpp>
+#include <powerloader/url.hpp>
 
 namespace powerloader
 {

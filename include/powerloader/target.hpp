@@ -6,11 +6,11 @@
 #include <fstream>
 #include <set>
 
-#include "curl.hpp"
-#include "download_target.hpp"
-#include "enums.hpp"
-#include "mirror.hpp"
-#include "utils.hpp"
+#include <powerloader/curl.hpp>
+#include <powerloader/download_target.hpp>
+#include <powerloader/enums.hpp>
+#include <powerloader/mirror.hpp>
+#include <powerloader/utils.hpp>
 
 namespace powerloader
 {

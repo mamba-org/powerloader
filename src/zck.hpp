@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "enums.hpp"
-#include "target.hpp"
+#include <powerloader/enums.hpp>
+#include <powerloader/target.hpp>
 
 extern "C"
 {

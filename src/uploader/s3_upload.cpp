@@ -1,7 +1,7 @@
 #include <filesystem>
 #include <spdlog/fmt/fmt.h>
 
-#include "mirrors/s3.hpp"
+#include <powerloader/mirrors/s3.hpp>
 
 namespace powerloader
 {

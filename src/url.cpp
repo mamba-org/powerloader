@@ -6,8 +6,8 @@
 
 #include <filesystem>
 
-#include "url.hpp"
-#include "utils.hpp"
+#include <powerloader/url.hpp>
+#include <powerloader/utils.hpp>
 
 #include <iostream>
 #include <regex>

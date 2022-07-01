@@ -1,9 +1,9 @@
 #include <spdlog/fmt/fmt.h>
 
 #include "zck.hpp"
-#include "context.hpp"
-#include "target.hpp"
-#include "download_target.hpp"
+#include <powerloader/context.hpp>
+#include <powerloader/target.hpp>
+#include <powerloader/download_target.hpp>
 
 namespace powerloader
 {

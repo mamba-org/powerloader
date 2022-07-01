@@ -20,14 +20,14 @@ extern "C"
 }
 
 
-#include "context.hpp"
-#include "curl.hpp"
-#include "download_target.hpp"
-#include "enums.hpp"
-#include "mirror.hpp"
-#include "target.hpp"
-#include "utils.hpp"
-#include "errors.hpp"
+#include <powerloader/context.hpp>
+#include <powerloader/curl.hpp>
+#include <powerloader/download_target.hpp>
+#include <powerloader/enums.hpp>
+#include <powerloader/mirror.hpp>
+#include <powerloader/target.hpp>
+#include <powerloader/utils.hpp>
+#include <powerloader/errors.hpp>
 
 namespace powerloader
 {

@@ -4,7 +4,7 @@
 #include <optional>
 
 #include <spdlog/fmt/fmt.h>
-#include "mirror.hpp"
+#include <powerloader/mirror.hpp>
 
 namespace powerloader
 {
