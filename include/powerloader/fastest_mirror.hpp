@@ -1,5 +1,5 @@
-#ifndef PL_FASTEST_MIRROR_HPP
-#define PL_FASTEST_MIRROR_HPP
+#ifndef POWERLOADER_FASTEST_MIRROR_HPP
+#define POWERLOADER_FASTEST_MIRROR_HPP
 
 #include <string>
 #include <vector>

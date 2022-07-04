@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef PL_URL_HPP
-#define PL_URL_HPP
+#ifndef POWERLOADER_URL_HPP
+#define POWERLOADER_URL_HPP
 
 extern "C"
 {

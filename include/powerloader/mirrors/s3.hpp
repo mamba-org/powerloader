@@ -1,5 +1,5 @@
-#ifndef PL_S3_HPP
-#define PL_S3_HPP
+#ifndef POWERLOADER_S3_HPP
+#define POWERLOADER_S3_HPP
 
 #include <spdlog/fmt/fmt.h>
 

@@ -1,5 +1,5 @@
-#ifndef PL_DOWNLOADER_HPP
-#define PL_DOWNLOADER_HPP
+#ifndef POWERLOADER_DOWNLOADER_HPP
+#define POWERLOADER_DOWNLOADER_HPP
 
 #include <cassert>
 #include <filesystem>

@@ -1,5 +1,5 @@
-#ifndef PL_FILEIO_HPP
-#define PL_FILEIO_HPP
+#ifndef POWERLOADER_FILEIO_HPP
+#define POWERLOADER_FILEIO_HPP
 
 #include <filesystem>
 #include <spdlog/spdlog.h>

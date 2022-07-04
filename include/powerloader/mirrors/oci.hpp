@@ -1,5 +1,5 @@
-#ifndef PL_OCI_HPP
-#define PL_OCI_HPP
+#ifndef POWERLOADER_OCI_HPP
+#define POWERLOADER_OCI_HPP
 
 #include <optional>
 

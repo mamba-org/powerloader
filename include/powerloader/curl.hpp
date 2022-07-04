@@ -1,5 +1,5 @@
-#ifndef PW_CURL_HPP
-#define PW_CURL_HPP
+#ifndef POWERLOADER_CURL_HPP
+#define POWERLOADER_CURL_HPP
 
 #include <filesystem>
 #include <functional>

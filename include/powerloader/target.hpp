@@ -1,5 +1,5 @@
-#ifndef PL_TARGET_HPP
-#define PL_TARGET_HPP
+#ifndef POWERLOADER_TARGET_HPP
+#define POWERLOADER_TARGET_HPP
 
 #include <filesystem>
 #include <spdlog/spdlog.h>
