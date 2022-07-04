@@ -41,10 +41,10 @@ namespace powerloader
         fs::path zck_cache_file;
 
         // Total to download in zchunk file
-        double total_to_download;
+        std::uint64_t total_to_download;
 
         // Amount already downloaded in zchunk file
-        double downloaded;
+        std::uint64_t downloaded;
     };
 
     zck_hash zck_hash_from_checksum(ChecksumType checksum_type);

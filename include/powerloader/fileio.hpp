@@ -197,7 +197,7 @@ namespace powerloader
         {
             constexpr std::size_t bufsize = 2048;
             char buf[bufsize];
-            unsigned long size;
+            std::size_t size;
 
             this->seek(0, SEEK_SET);
             other.seek(0, SEEK_SET);
