@@ -162,7 +162,7 @@ namespace powerloader
         unsigned int DateKeyLen;
         DateKey = HMAC(EVP_sha256(),
                        key1.c_str(),
-                       key1.size(),
+                       static_cast<int>(key1.size()),
                        reinterpret_cast<const unsigned char*>(yyyymmdd.c_str()),
                        yyyymmdd.size(),
                        NULL,

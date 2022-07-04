@@ -77,7 +77,7 @@ namespace powerloader
         CURL* curl = curl_easy_init();
         if (curl)
         {
-            char* output = curl_easy_escape(curl, url.c_str(), url.size());
+            char* output = curl_easy_escape(curl, url.c_str(), static_cast<int>(url.size()));
             if (output)
             {
                 std::string result(output);
@@ -95,7 +95,8 @@ namespace powerloader
         if (curl)
         {
             int out_length;
-            char* output = curl_easy_unescape(curl, url.c_str(), url.size(), &out_length);
+            char* output
+                = curl_easy_unescape(curl, url.c_str(), static_cast<int>(url.size()), &out_length);
             if (output)
             {
                 std::string result(output, out_length);

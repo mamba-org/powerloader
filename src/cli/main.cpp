@@ -61,15 +61,15 @@ progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
         global_progress.total_done[t] = done;
     }
 
-    double total_done = 0;
+    std::uint64_t total_done = 0;
     for (auto& [k, v] : global_progress.total_done)
         total_done += v;
     total_done /= global_progress.total;
 
     std::size_t bar_width = 50;
     std::cout << "[";
-    int pos = bar_width * total_done;
-    for (int i = 0; i < bar_width; ++i)
+    std::size_t pos = bar_width * total_done;
+    for (std::size_t i = 0; i < bar_width; ++i)
     {
         if (i < pos)
             std::cout << "=";
@@ -78,7 +78,7 @@ progress_callback(DownloadTarget* t, curl_off_t total, curl_off_t done)
         else
             std::cout << " ";
     }
-    std::cout << "] " << int(total_done * 100.0) << " %\n";
+    std::cout << "] " << total_done * 100 << " %\n";
     std::cout.flush();
 
     return 0;

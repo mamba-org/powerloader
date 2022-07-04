@@ -410,7 +410,6 @@ namespace powerloader
     bool Downloader::prepare_next_transfer(bool* candidate_found)
     {
         Protocol protocol = Protocol::kOTHER;
-        bool ret;
 
         *candidate_found = false;
         auto next_target = select_next_target();
@@ -914,7 +913,8 @@ namespace powerloader
                     std::string complete_url_or_base_url = complete_url_in_path
                                                                ? current_target->target->path
                                                                : current_target->target->base_url;
-                    if (can_retry_download(current_target->retries, complete_url_or_base_url))
+                    if (can_retry_download(static_cast<int>(current_target->retries),
+                                           complete_url_or_base_url))
                     {
                         // Try another mirror or retry
                         if (!complete_url_or_base_url.empty())

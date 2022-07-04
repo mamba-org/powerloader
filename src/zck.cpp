@@ -595,7 +595,7 @@ namespace powerloader
         size_t total = 0;
         while (true)
         {
-            off_t read = zck_read(zck, buf.data(), BUF_SIZE);
+            size_t read = zck_read(zck, buf.data(), BUF_SIZE);
             if (read < 0)
             {
                 spdlog::error("Error reading file {}: {}", source.string(), zck_get_error(zck));
