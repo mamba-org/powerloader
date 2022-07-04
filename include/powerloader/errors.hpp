@@ -1,5 +1,5 @@
-#ifndef PL_ERRORS_HPP
-#define PL_ERRORS_HPP
+#ifndef POWERLOADER_ERRORS_HPP
+#define POWERLOADER_ERRORS_HPP
 
 #include <spdlog/spdlog.h>
 

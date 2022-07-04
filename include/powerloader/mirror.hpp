@@ -1,5 +1,5 @@
-#ifndef PL_MIRROR_HPP
-#define PL_MIRROR_HPP
+#ifndef POWERLOADER_MIRROR_HPP
+#define POWERLOADER_MIRROR_HPP
 
 #include <chrono>
 #include <iostream>

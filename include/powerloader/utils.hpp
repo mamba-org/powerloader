@@ -1,5 +1,5 @@
-#ifndef PL_UTILS_HPP
-#define PL_UTILS_HPP
+#ifndef POWERLOADER_UTILS_HPP
+#define POWERLOADER_UTILS_HPP
 
 #include <array>
 #include <algorithm>

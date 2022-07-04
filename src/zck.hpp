@@ -1,5 +1,5 @@
-#ifndef PL_ZCK_HPP
-#define PL_ZCK_HPP
+#ifndef POWERLOADER_ZCK_HPP
+#define POWERLOADER_ZCK_HPP
 
 #include <string>
 

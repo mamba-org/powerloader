@@ -1,5 +1,5 @@
-#ifndef PL_CONTEXT_HPP
-#define PL_CONTEXT_HPP
+#ifndef POWERLOADER_CONTEXT_HPP
+#define POWERLOADER_CONTEXT_HPP
 
 #include <vector>
 #include <string>
