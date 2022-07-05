@@ -220,20 +220,25 @@ namespace powerloader
     bool OCIMirror::need_preparation(Target* target)
     {
         auto* data = get_data(target);
+        // Do we need to authenticate first?
         if ((!data || data && data->token.empty()) && need_auth())
         {
             return true;
         }
-        // if (data && !data->sha256sum.empty())
-        // {
-        //     std::cout << "We got data and a SHA256?" << std::endl;
-        //     return false;
-        // }
 
-        // if (std::none_of(target->target->checksums.begin(),
-        //                  target->target->checksums.end(),
-        //                  [](auto& ck) { return ck.type == ChecksumType::kSHA256; }))
-        //     return true;
+        // If we already have a sha256 and authentication, we're good to go
+        if (data && !data->sha256sum.empty())
+        {
+            return false;
+        }
+
+        // If we have no checksums, we need to check the `latest` tag and find the matching checksum
+        if (std::none_of(target->target->checksums.begin(),
+                         target->target->checksums.end(),
+                         [](auto& ck) { return ck.type == ChecksumType::kSHA256; }))
+        {
+            return true;
+        }
 
         return false;
     }

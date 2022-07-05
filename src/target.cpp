@@ -465,7 +465,6 @@ namespace powerloader
             if (!fs::exists(temp_file))
             {
                 spdlog::error("File does not exist!");
-
             }
             if (fs::file_size(temp_file) != target->expected_size)
             {
