@@ -786,28 +786,31 @@ namespace powerloader
             else
             {
 #endif
-                // New file was downloaded
-                if (!transfer_err && !current_target->check_filesize())
+                if (current_target->target->outfile)
                 {
-                    result = tl::unexpected(
-                        DownloaderError({ ErrorLevel::SERIOUS,
-                                          ErrorCode::PD_BADCHECKSUM,
-                                          "Result file does not have expected filesize" }));
-                    transfer_err = true;
-                    goto transfer_error;
-                }
-                if (!transfer_err && !current_target->check_checksums())
-                {
-                    result = tl::unexpected(
-                        DownloaderError({ ErrorLevel::SERIOUS,
-                                          ErrorCode::PD_BADCHECKSUM,
-                                          "Result file does not have expected checksum" }));
-                    transfer_err = true;
-                    goto transfer_error;
-                }
-                if (!result)
-                {
-                    current_target->reset_file(TransferStatus::kERROR);
+                    // New file was downloaded
+                    if (!transfer_err && !current_target->check_filesize())
+                    {
+                        result = tl::unexpected(
+                            DownloaderError({ ErrorLevel::SERIOUS,
+                                              ErrorCode::PD_BADCHECKSUM,
+                                              "Result file does not have expected filesize" }));
+                        transfer_err = true;
+                        goto transfer_error;
+                    }
+                    if (!transfer_err && !current_target->check_checksums())
+                    {
+                        result = tl::unexpected(
+                            DownloaderError({ ErrorLevel::SERIOUS,
+                                              ErrorCode::PD_BADCHECKSUM,
+                                              "Result file does not have expected checksum" }));
+                        transfer_err = true;
+                        goto transfer_error;
+                    }
+                    if (!result)
+                    {
+                        current_target->reset_file(TransferStatus::kERROR);
+                    }
                 }
 #ifdef WITH_ZCHUNK
             }
