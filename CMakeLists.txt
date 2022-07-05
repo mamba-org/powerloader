@@ -47,6 +47,7 @@ set(LIBPOWERLOADER_HEADERS
 
 option(WITH_ZCHUNK "Enable zchunk" ON)
 option(DEV "Enable dev" OFF)
+option(BUILD_SHARED_LIBS "Build as shared libraries" ON)
 
 if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp src/zck.hpp)
