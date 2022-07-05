@@ -47,12 +47,6 @@ namespace powerloader
         // this function converts a DownloadTarget into a "Target"
         if (!dl_target)
             return;
-
-        // std::cout << "Mirror maps size: " << ctx.mirror_map.size() << std::endl;
-        // for (auto& k : ctx.mirror_map)
-        // {
-        //     std::cout << "K: " << k.first << std::endl;
-        // }
         if (ctx.mirror_map.find(dl_target->base_url) != ctx.mirror_map.end())
         {
             m_targets.emplace_back(

@@ -115,7 +115,7 @@ target_link_libraries(libpowerloader
                         ${ZCK_LIBRARY}
                         ${OPENSSL_LIBRARIES}
                     )
-target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
+target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp ${SPDLOG_TARGET})
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
