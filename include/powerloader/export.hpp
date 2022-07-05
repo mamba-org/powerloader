@@ -10,10 +10,18 @@
  // As a shared library: export symbols on build, import symbols on use.
 #  ifdef POWERLOADER_EXPORTS
      // We are building this library
-#    define POWERLOADER_API __declspec(dllexport)
+#    ifdef _MSC_VER
+#         define POWERLOADER_API __declspec(dllexport)
+#    else
+#         define POWERLOADER_API __attribute__((__visibility__("default")))
+#    endif
 #  else
      // We are using this library
-#    define POWERLOADER_API __declspec(dllimport)
+#    ifdef _MSC_VER
+#         define POWERLOADER_API __declspec(dllimport)
+#    else
+#         define POWERLOADER_API // Symbol import is implicit on non-msvc compilers.
+#    endif
 #  endif
 #endif
 
