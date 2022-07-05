@@ -5,6 +5,7 @@ find_package(OpenSSL REQUIRED)
 find_package(CLI11 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(tl-expected REQUIRED)
+find_package(spdlog REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -44,14 +45,9 @@ set(LIBPOWERLOADER_HEADERS
     include/powerloader/mirrors/s3.hpp
 )
 
-
-
-add_executable(powerloader src/cli/main.cpp)
-
-set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
-
 option(WITH_ZCHUNK "Enable zchunk" ON)
 option(DEV "Enable dev" OFF)
+
 
 if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp src/zck.hpp)
@@ -73,12 +69,32 @@ set_target_properties(libpowerloader
     PROPERTIES PREFIX ""
 )
 
+if (MSVC)
+    set(SPDLOG_TARGET spdlog::spdlog_header_only)
+    set(WINSOCK_LIBS wsock32 ws2_32)
+else()
+    set(SPDLOG_TARGET spdlog::spdlog)
+endif()
+target_link_libraries(libpowerloader
+    INTERFACE
+        tl::expected
+    PRIVATE
+        ${CURL_LIBRARIES}
+        ${SPDLOG_TARGET}
+        ${ZCK_LIBRARY}
+        ${OPENSSL_LIBRARIES}
+        ${WINSOCK_LIBS}
+)
+
+
+add_executable(powerloader src/cli/main.cpp)
+set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
 target_include_directories(powerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
     ${ZCK_INCLUDE_DIRS}
 )
-
+target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
 set_target_properties(powerloader PROPERTIES PUBLIC_HEADER "${LIBPOWERLOADER_HEADERS}")
 
 if (DEV)
@@ -96,25 +112,6 @@ if (WITH_ZCHUNK)
         target_compile_definitions(libpowerloader PUBLIC /wd4996)
     endif()
 endif()
-
-find_package(spdlog REQUIRED)
-if (MSVC)
-    set(SPDLOG_TARGET spdlog::spdlog_header_only)
-    set(WINSOCK_LIBS wsock32 ws2_32)
-else()
-    set(SPDLOG_TARGET spdlog::spdlog)
-endif()
-target_link_libraries(libpowerloader
-                    INTERFACE
-                        tl::expected
-                    PRIVATE
-                        ${CURL_LIBRARIES}
-                        ${SPDLOG_TARGET}
-                        ${ZCK_LIBRARY}
-                        ${OPENSSL_LIBRARIES}
-                        ${WINSOCK_LIBS}
-                    )
-target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
