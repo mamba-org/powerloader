@@ -16,6 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        shared-library: [ON, OFF]
 
     name: test
     steps:
@@ -37,7 +38,8 @@ jobs:
             -GNinja \
             -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
             -DWITH_ZCHUNK=$USE_ZCHUNK \
-            -DENABLE_TESTS=ON
+            -DENABLE_TESTS=ON \
+            -DBUILD_SHARED_LIBS=${{matrix.shared-library}}
           ninja
       - name: run powerloader tests
         if: runner.os != 'Windows'
@@ -62,6 +64,7 @@ jobs:
           cmake .. -DCMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library ^
                    -DENABLE_TESTS=ON ^
                    -DWITH_ZCHUNK=OFF ^
+                   -DBUILD_SHARED_LIBS=${{matrix.shared-library}} ^
                    -G "Ninja"
           ninja
           ninja test

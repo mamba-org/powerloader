@@ -19,7 +19,7 @@ extern "C"
 #include <fcntl.h>
 }
 
-
+#include <powerloader/export.hpp>
 #include <powerloader/context.hpp>
 #include <powerloader/curl.hpp>
 #include <powerloader/download_target.hpp>
@@ -35,7 +35,7 @@ namespace powerloader
 
     class Context;
 
-    class Downloader
+    class POWERLOADER_API Downloader
     {
     public:
         explicit Downloader(const Context& ctx);

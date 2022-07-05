@@ -12,13 +12,15 @@
 #include <cctype>
 #include <vector>
 
+#include <powerloader/export.hpp>
+
 namespace powerloader
 {
     namespace fs = std::filesystem;
 
-    bool is_sig_interrupted();
-    bool starts_with(const std::string_view& str, const std::string_view& prefix);
-    bool ends_with(const std::string_view& str, const std::string_view& suffix);
+    POWERLOADER_API bool is_sig_interrupted();
+    POWERLOADER_API bool starts_with(const std::string_view& str, const std::string_view& prefix);
+    POWERLOADER_API bool ends_with(const std::string_view& str, const std::string_view& suffix);
 
     template <class B>
     inline std::vector<char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
@@ -60,9 +62,9 @@ namespace powerloader
         return hex_string(buffer, buffer.size());
     }
 
-    std::string sha256(const std::string& str) noexcept;
+    POWERLOADER_API std::string sha256(const std::string& str) noexcept;
 
-    class download_error : public std::runtime_error
+    class POWERLOADER_API download_error : public std::runtime_error
     {
     public:
         download_error(const std::string& what = "download error", bool serious = false)
@@ -82,22 +84,26 @@ namespace powerloader
         }
     };
 
-    std::string string_transform(const std::string_view& input, int (*functor)(int));
-    std::string to_upper(const std::string_view& input);
-    std::string to_lower(const std::string_view& input);
-    bool contains(const std::string_view& str, const std::string_view& sub_str);
+    POWERLOADER_API std::string string_transform(const std::string_view& input,
+                                                 int (*functor)(int));
+    POWERLOADER_API std::string to_upper(const std::string_view& input);
+    POWERLOADER_API std::string to_lower(const std::string_view& input);
+    POWERLOADER_API bool contains(const std::string_view& str, const std::string_view& sub_str);
 
-    std::string sha256sum(const fs::path& path);
-    std::string md5sum(const fs::path& path);
+    POWERLOADER_API std::string sha256sum(const fs::path& path);
+    POWERLOADER_API std::string md5sum(const fs::path& path);
 
-    std::pair<std::string, std::string> parse_header(const std::string_view& header);
-    std::string get_env(const char* var);
-    std::string get_env(const char* var, const std::string& default_value);
+    POWERLOADER_API std::pair<std::string, std::string> parse_header(
+        const std::string_view& header);
+    POWERLOADER_API std::string get_env(const char* var);
+    POWERLOADER_API std::string get_env(const char* var, const std::string& default_value);
 
+    POWERLOADER_API
     std::vector<std::string> split(const std::string_view& input,
                                    const std::string_view& sep,
                                    std::size_t max_split = SIZE_MAX);
 
+    POWERLOADER_API
     std::vector<std::string> rsplit(const std::string_view& input,
                                     const std::string_view& sep,
                                     std::size_t max_split);
@@ -114,8 +120,10 @@ namespace powerloader
         }
     }
 
+    POWERLOADER_API
     void replace_all(std::string& data, const std::string& search, const std::string& replace);
 
+    POWERLOADER_API
     void replace_all(std::wstring& data, const std::wstring& search, const std::wstring& replace);
 }
 

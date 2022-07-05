@@ -2,10 +2,11 @@
 #define POWERLOADER_TARGET_HPP
 
 #include <filesystem>
-#include <spdlog/spdlog.h>
 #include <fstream>
 #include <set>
+#include <spdlog/spdlog.h>
 
+#include <powerloader/export.hpp>
 #include <powerloader/curl.hpp>
 #include <powerloader/download_target.hpp>
 #include <powerloader/enums.hpp>
@@ -16,7 +17,7 @@ namespace powerloader
 {
     namespace fs = std::filesystem;
 
-    class Target
+    class POWERLOADER_API Target
     {
     public:
         /** Header callback for CURL handles.

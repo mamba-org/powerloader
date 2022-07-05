@@ -5,6 +5,7 @@ find_package(OpenSSL REQUIRED)
 find_package(CLI11 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(tl-expected REQUIRED)
+find_package(spdlog REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -27,6 +28,7 @@ set(LIBPOWERLOADER_SRCS
 )
 
 set(LIBPOWERLOADER_HEADERS
+    include/powerloader/export.hpp
     include/powerloader/context.hpp
     include/powerloader/curl.hpp
     include/powerloader/download_target.hpp
@@ -39,19 +41,16 @@ set(LIBPOWERLOADER_HEADERS
     include/powerloader/url.hpp
     include/powerloader/target.hpp
     include/powerloader/utils.hpp
+    include/powerloader/mirrors/oci.hpp
+    include/powerloader/mirrors/s3.hpp
 )
-
-
-
-add_executable(powerloader src/cli/main.cpp)
-
-set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
 
 option(WITH_ZCHUNK "Enable zchunk" ON)
 option(DEV "Enable dev" OFF)
+option(BUILD_SHARED_LIBS "Build as shared libraries" ON)
 
 if (WITH_ZCHUNK)
-    list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp)
+    list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp src/zck.hpp)
     find_library(ZCK_LIBRARY zck REQUIRED)
     find_file(ZCK_H_FILE NAMES zck.h REQUIRED)
     message("Found file: ${ZCK_H_FILE}")
@@ -64,17 +63,62 @@ endif()
 
 add_library(libpowerloader
     ${LIBPOWERLOADER_SRCS}
+    ${LIBPOWERLOADER_HEADERS} # Makes headers visible in IDEs
 )
 set_target_properties(libpowerloader
     PROPERTIES PREFIX ""
 )
 
+if (MSVC)
+    set(SPDLOG_TARGET spdlog::spdlog_header_only)
+    set(WINSOCK_LIBS wsock32 ws2_32)
+else()
+    set(SPDLOG_TARGET spdlog::spdlog)
+endif()
+target_link_libraries(libpowerloader
+    PUBLIC
+        tl::expected
+        ${SPDLOG_TARGET}
+    PRIVATE
+        ${CURL_LIBRARIES}
+        ${ZCK_LIBRARY}
+        ${OPENSSL_LIBRARIES}
+        ${WINSOCK_LIBS}
+)
+
+get_target_property(library_type libpowerloader TYPE)
+if(library_type STREQUAL SHARED_LIBRARY)
+    # As a shared library: build exports symbols, usage will import.
+    target_compile_definitions(libpowerloader PRIVATE POWERLOADER_EXPORTS)
+elseif(library_type STREQUAL STATIC_LIBRARY)
+    # As a static library: no symbol import/export from any side.
+    target_compile_definitions(libpowerloader PUBLIC POWERLOADER_STATIC)
+else()
+    message(ERROR "libpowerloader used as neither shared or static library: not supported")
+endif()
+
+# Custom build flags
+if(MSVC)
+    target_compile_options(libpowerloader
+        PUBLIC
+            /wd4275 # Disable warning C4275: We know that we use templates instances in our symbol exports.
+            /wd4251 # Disable warning C4251: We know that we use templates instances in our symbol exports.
+#         PRIVATE
+#             /W4 # Recommended warning level 4
+    )
+else()
+    # TODO: enable tons of warnings to help with security and correctness
+endif()
+
+
+add_executable(powerloader src/cli/main.cpp)
+set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
 target_include_directories(powerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
     ${ZCK_INCLUDE_DIRS}
 )
-
+target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
 set_target_properties(powerloader PROPERTIES PUBLIC_HEADER "${LIBPOWERLOADER_HEADERS}")
 
 if (DEV)
@@ -92,24 +136,6 @@ if (WITH_ZCHUNK)
         target_compile_definitions(libpowerloader PUBLIC /wd4996)
     endif()
 endif()
-
-find_package(spdlog REQUIRED)
-if (MSVC)
-    set(SPDLOG_TARGET spdlog::spdlog_header_only)
-else()
-    set(SPDLOG_TARGET spdlog::spdlog)
-endif()
-target_link_libraries(libpowerloader
-                    INTERFACE
-                        tl::expected
-                    PRIVATE
-                        ${CURL_LIBRARIES}
-                        ${SPDLOG_TARGET}
-                        ${ZCK_LIBRARY}
-                        ${OPENSSL_LIBRARIES}
-                        yaml-cpp
-                    )
-target_link_libraries(powerloader libpowerloader CLI11::CLI11)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)

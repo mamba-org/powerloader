@@ -3,13 +3,14 @@
 
 #include <spdlog/fmt/fmt.h>
 
+#include <powerloader/export.hpp>
 #include <powerloader/mirror.hpp>
 #include <powerloader/target.hpp>
 
 namespace powerloader
 {
 
-    struct S3CanonicalRequest
+    struct POWERLOADER_API S3CanonicalRequest
     {
         std::string http_verb;
         std::string resource;
@@ -32,7 +33,7 @@ namespace powerloader
     };
 
     // https://gist.github.com/mmaday/c82743b1683ce4d27bfa6615b3ba2332
-    class S3Mirror : public Mirror
+    class POWERLOADER_API S3Mirror : public Mirror
     {
     public:
         S3Mirror(const Context& ctx,
@@ -64,6 +65,7 @@ namespace powerloader
         std::string region = "eu-central-1";
     };
 
+    POWERLOADER_API
     Response s3_upload(const Context& ctx,
                        S3Mirror& mirror,
                        const std::string& path,
