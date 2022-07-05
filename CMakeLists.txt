@@ -48,7 +48,6 @@ set(LIBPOWERLOADER_HEADERS
 option(WITH_ZCHUNK "Enable zchunk" ON)
 option(DEV "Enable dev" OFF)
 
-
 if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp src/zck.hpp)
     find_library(ZCK_LIBRARY zck REQUIRED)
@@ -85,6 +84,17 @@ target_link_libraries(libpowerloader
         ${OPENSSL_LIBRARIES}
         ${WINSOCK_LIBS}
 )
+
+get_target_property(library_type libpowerloader TYPE)
+if(library_type STREQUAL SHARED_LIBRARY)
+    # As a shared library: build exports symbols, usage will import.
+    target_compile_definitions(libpowerloader PRIVATE POWERLOADER_EXPORTS)
+elseif(library_type STREQUAL STATIC_LIBRARY)
+    # As a static library: no symbol import/export from any side.
+    target_compile_definitions(libpowerloader PUBLIC POWERLOADER_STATIC)
+else()
+    message(ERROR "libpowerloader used as neither shared or static library: not supported")
+endif()
 
 
 add_executable(powerloader src/cli/main.cpp)
