@@ -460,9 +460,6 @@ namespace powerloader
 
     bool Target::check_filesize()
     {
-        std::cout << "Checking filesize -- " << target->expected_size << std::endl;
-        std::cout << "Temp file = " << temp_file << std::endl;
-
         if (target->expected_size > 0)
         {
             if (!fs::exists(temp_file))
