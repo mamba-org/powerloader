@@ -2,12 +2,12 @@
 #ifndef POWERLOADER_API_HPP
 #define POWERLOADER_API_HPP
 
-
+// clang-format off
 #ifdef POWERLOADER_STATIC
 // As a static library: no symbol import/export.
 #  define POWERLOADER_API
 #else
- // As a shared library: export symbols on build, import symbols on use.
+// As a shared library: export symbols on build, import symbols on use.
 #  ifdef POWERLOADER_EXPORTS
      // We are building this library
 #    ifdef _MSC_VER
@@ -24,5 +24,6 @@
 #    endif
 #  endif
 #endif
+// clang-format on
 
 #endif
