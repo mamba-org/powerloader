@@ -337,8 +337,6 @@ namespace powerloader
                     "Empty mirrorlist and no basepath specified in DownloadTarget" });
             }
 
-            spdlog::debug("Selecting mirror for: {}", target->target->path);
-
             // Prepare full target URL
             if (complete_url_in_path)
             {
@@ -358,6 +356,7 @@ namespace powerloader
 
                 assert(mirror);
 
+                spdlog::info("Selected mirror: {}", mirror->format_url(target));
                 if (mirror && !mirror->need_preparation(target))
                 {
                     full_url = mirror->format_url(target);
@@ -366,7 +365,11 @@ namespace powerloader
                 else
                 {
                     // No free mirror
-                    spdlog::info("Currently there is no free mirror for {}", target->target->path);
+                    if (!mirror->need_preparation(target))
+                    {
+                        spdlog::info("Currently there is no free mirror for {}",
+                                     target->target->path);
+                    }
                 }
             }
 
