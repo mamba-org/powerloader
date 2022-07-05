@@ -1002,15 +1002,18 @@ namespace powerloader
                     // and the xattr is not needed (is is useful only for resuming)
                     // remove_librepo_xattr(target->target);
 
-                    // Call end callback
                     current_target->curl_handle->finalize_transfer();
-                    CbReturnCode rc
-                        = current_target->call_end_callback(TransferStatus::kSUCCESSFUL);
-                    if (rc == CbReturnCode::kERROR)
-                    {
-                        throw fatal_download_error("Interrupted by error from end callback");
-                    }
 
+                    // only call the end callback if actually finished the download target
+                    if (current_target->state == DownloadState::kFINISHED)
+                    {
+                        CbReturnCode rc
+                            = current_target->call_end_callback(TransferStatus::kSUCCESSFUL);
+                        if (rc == CbReturnCode::kERROR)
+                        {
+                            throw fatal_download_error("Interrupted by error from end callback");
+                        }
+                    }
 #ifdef WITH_ZCHUNK
                 }
 #endif /* WITH_ZCHUNK */
