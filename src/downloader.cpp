@@ -48,9 +48,10 @@ namespace powerloader
         if (!dl_target)
             return;
 
-        if (mirror_map.find(dl_target->base_url) != mirror_map.end())
+        if (ctx.mirror_map.find(dl_target->base_url) != ctx.mirror_map.end())
         {
-            m_targets.emplace_back(new Target(ctx, dl_target, mirror_map[dl_target->base_url]));
+            m_targets.emplace_back(
+                new Target(ctx, dl_target, ctx.mirror_map.at(dl_target->base_url)));
             dl_target->base_url.clear();
         }
         else
