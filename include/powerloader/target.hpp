@@ -86,9 +86,6 @@ namespace powerloader
 
         char errorbuffer[CURL_ERROR_SIZE] = {};
 
-        using end_callback_t = DownloadTarget::end_callback_t;
-        end_callback_t override_end_callback;
-
         CbReturnCode callback_return_code;
 
         std::unique_ptr<CURLHandle> curl_handle;
