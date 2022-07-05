@@ -4,11 +4,13 @@
 #include <string>
 #include <vector>
 
+#include <powerloader/export.hpp>
+
 namespace powerloader
 {
     class Context;
 
-    void fastest_mirror(const Context& ctx, const std::vector<std::string>& urls);
+    POWERLOADER_API void fastest_mirror(const Context& ctx, const std::vector<std::string>& urls);
 }
 
 #endif

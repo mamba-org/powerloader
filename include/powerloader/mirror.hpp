@@ -7,13 +7,14 @@
 #include <sstream>
 #include <string>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
+#include <powerloader/export.hpp>
 #include <powerloader/context.hpp>
 #include <powerloader/curl.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/utils.hpp>
 
-#include "nlohmann/json.hpp"
 
 namespace powerloader
 {
@@ -31,7 +32,7 @@ namespace powerloader
     };
 
     // mirrors should be dict -> urls mapping
-    struct Mirror
+    struct POWERLOADER_API Mirror
     {
         Mirror(const Context& ctx, const std::string& url);
         virtual ~Mirror() = default;

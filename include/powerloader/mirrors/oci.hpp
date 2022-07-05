@@ -2,13 +2,14 @@
 #define POWERLOADER_OCI_HPP
 
 #include <optional>
-
 #include <spdlog/fmt/fmt.h>
+
+#include <powerloader/export.hpp>
 #include <powerloader/mirror.hpp>
 
 namespace powerloader
 {
-    class OCIMirror : public Mirror
+    class POWERLOADER_API OCIMirror : public Mirror
     {
     public:
         struct AuthCallbackData
@@ -63,7 +64,7 @@ namespace powerloader
         split_function_type m_split_func;
     };
 
-    struct OCILayer
+    struct POWERLOADER_API OCILayer
     {
         std::string mime_type;
 
@@ -100,6 +101,7 @@ namespace powerloader
                  const std::optional<nlohmann::json>& annotations = std::nullopt);
     };
 
+    POWERLOADER_API
     Response oci_upload(const Context& ctx,
                         OCIMirror& mirror,
                         const std::string& reference,

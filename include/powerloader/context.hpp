@@ -8,13 +8,15 @@
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
+#include <powerloader/export.hpp>
+
 namespace powerloader
 {
     namespace fs = std::filesystem;
 
     struct Mirror;
 
-    class Context
+    class POWERLOADER_API Context
     {
     public:
         bool offline = false;

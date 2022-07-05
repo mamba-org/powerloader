@@ -17,6 +17,8 @@ extern "C"
 #include <string>
 #include <vector>
 
+#include <powerloader/export.hpp>
+
 // typedef enum {
 //   CURLUE_OK,
 //   CURLUE_BAD_HANDLE,          /* 1 */
@@ -40,23 +42,23 @@ extern "C"
 
 namespace powerloader
 {
-    bool has_scheme(const std::string& url);
+    POWERLOADER_API bool has_scheme(const std::string& url);
 
-    bool compare_cleaned_url(const std::string& url1, const std::string& url2);
+    POWERLOADER_API bool compare_cleaned_url(const std::string& url1, const std::string& url2);
 
-    bool is_path(const std::string& input);
-    std::string path_to_url(const std::string& path);
+    POWERLOADER_API bool is_path(const std::string& input);
+    POWERLOADER_API std::string path_to_url(const std::string& path);
 
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);
 
-    std::string unc_url(const std::string& url);
-    std::string encode_url(const std::string& url);
-    std::string decode_url(const std::string& url);
+    POWERLOADER_API std::string unc_url(const std::string& url);
+    POWERLOADER_API std::string encode_url(const std::string& url);
+    POWERLOADER_API std::string decode_url(const std::string& url);
     // Only returns a cache name without extension
-    std::string cache_name_from_url(const std::string& url);
+    POWERLOADER_API std::string cache_name_from_url(const std::string& url);
 
-    class URLHandler
+    class POWERLOADER_API URLHandler
     {
     public:
         URLHandler(const std::string& url = "");

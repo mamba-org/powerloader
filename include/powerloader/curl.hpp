@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 
+#include <powerloader/export.hpp>
 #include <powerloader/utils.hpp>
 #include <powerloader/enums.hpp>
 
@@ -24,7 +25,7 @@ namespace powerloader
 #include <curl/curl.h>
     }
 
-    class curl_error : public std::runtime_error
+    class POWERLOADER_API curl_error : public std::runtime_error
     {
     public:
         curl_error(const std::string& what = "download error", bool serious = false);
@@ -34,7 +35,7 @@ namespace powerloader
         bool m_serious;
     };
 
-    struct Response
+    struct POWERLOADER_API Response
     {
         std::map<std::string, std::string> header;
         mutable std::stringstream content;
@@ -49,9 +50,9 @@ namespace powerloader
     };
 
     // TODO: rename this, try to not expose it
-    CURL* get_handle(const Context& ctx);
+    POWERLOADER_API  CURL* get_handle(const Context& ctx);
 
-    class CURLHandle
+    class POWERLOADER_API  CURLHandle
     {
     public:
         using end_callback_type = std::function<CbReturnCode(const Response&)>;

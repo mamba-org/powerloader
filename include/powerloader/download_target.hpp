@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include <powerloader/export.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/url.hpp>
 #include <powerloader/mirror.hpp>
@@ -14,7 +15,7 @@ namespace powerloader
 
     class zck_target;
 
-    class DownloadTarget
+    class POWERLOADER_API DownloadTarget
     {
     public:
         /** Called when a transfer is done (use transfer status to check

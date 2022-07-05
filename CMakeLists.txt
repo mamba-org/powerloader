@@ -27,6 +27,7 @@ set(LIBPOWERLOADER_SRCS
 )
 
 set(LIBPOWERLOADER_HEADERS
+    include/powerloader/export.hpp
     include/powerloader/context.hpp
     include/powerloader/curl.hpp
     include/powerloader/download_target.hpp
@@ -39,6 +40,8 @@ set(LIBPOWERLOADER_HEADERS
     include/powerloader/url.hpp
     include/powerloader/target.hpp
     include/powerloader/utils.hpp
+    include/powerloader/mirrors/oci.hpp
+    include/powerloader/mirrors/s3.hpp
 )
 
 
