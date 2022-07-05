@@ -356,7 +356,8 @@ namespace powerloader
 
                 assert(mirror);
 
-                spdlog::info("Selected mirror: {}", mirror->format_url(target));
+                // TODO: create a `name()` or similar function
+                spdlog::info("Selected mirror: {}", mirror->url);
                 if (mirror && !mirror->need_preparation(target))
                 {
                     full_url = mirror->format_url(target);
