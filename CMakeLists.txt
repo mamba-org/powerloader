@@ -36,6 +36,8 @@ set(LIBPOWERLOADER_HEADERS
     include/powerloader/fastest_mirror.hpp
     include/powerloader/fileio.hpp
     include/powerloader/mirror.hpp
+    include/powerloader/mirrors/oci.hpp
+    include/powerloader/mirrors/s3.hpp
     include/powerloader/url.hpp
     include/powerloader/target.hpp
     include/powerloader/utils.hpp
@@ -62,7 +64,12 @@ if (MSVC)
     add_definitions(-DNOMINMAX)
 endif()
 
-add_library(libpowerloader
+option (BUILD_SHARED "Build shared libs" ON)
+if (BUILD_SHARED)
+    set (BUILD_SHARED_LIBS ON)
+endif()
+
+add_library(libpowerloader SHARED
     ${LIBPOWERLOADER_SRCS}
 )
 set_target_properties(libpowerloader
@@ -107,9 +114,8 @@ target_link_libraries(libpowerloader
                         ${SPDLOG_TARGET}
                         ${ZCK_LIBRARY}
                         ${OPENSSL_LIBRARIES}
-                        yaml-cpp
                     )
-target_link_libraries(powerloader libpowerloader CLI11::CLI11)
+target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)

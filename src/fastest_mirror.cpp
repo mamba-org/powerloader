@@ -61,7 +61,8 @@ namespace powerloader
         fastestmirror_perform(check_mirrors, 1000000);
     }
 
-    bool fastestmirror_perform(std::vector<detail::InternalMirror>& mirrors,
+    namespace detail {
+            bool fastestmirror_perform(std::vector<detail::InternalMirror>& mirrors,
                                std::size_t length_of_measurement)
     {
         if (mirrors.size() == 0)
@@ -249,4 +250,6 @@ namespace powerloader
                   { return m1.plain_connect_time < m2.plain_connect_time; });
         return true;
     }
+    }
+    
 }

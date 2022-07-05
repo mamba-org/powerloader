@@ -48,9 +48,14 @@ namespace powerloader
         if (!dl_target)
             return;
 
-        if (mirror_map.find(dl_target->base_url) != mirror_map.end())
+        // std::cout << "Mirror maps size: " << ctx.mirror_map.size() << std::endl;
+        // for (auto& k : ctx.mirror_map)
+        // {
+        //     std::cout << "K: " << k.first << std::endl;
+        // }
+        if (ctx.mirror_map.find(dl_target->base_url) != ctx.mirror_map.end())
         {
-            m_targets.emplace_back(new Target(ctx, dl_target, mirror_map[dl_target->base_url]));
+            m_targets.emplace_back(new Target(ctx, dl_target, ctx.mirror_map.at(dl_target->base_url)));
             dl_target->base_url.clear();
         }
         else
@@ -336,7 +341,6 @@ namespace powerloader
                     "Empty mirrorlist and no basepath specified in DownloadTarget" });
             }
 
-            spdlog::debug("Selecting mirror for: {}", target->target->path);
 
             // Prepare full target URL
             if (complete_url_in_path)
@@ -359,6 +363,7 @@ namespace powerloader
 
                 if (mirror && !mirror->need_preparation(target))
                 {
+                    spdlog::info("Selected mirror: {}", mirror->format_url(target));
                     full_url = mirror->format_url(target);
                     target->mirror = mirror;
                 }
@@ -457,7 +462,6 @@ namespace powerloader
         {
             target->mirror->prepare(target->target->path, h);
             target->state = DownloadState::kPREPARATION;
-
             CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
 
             // Add the transfer to the list of running transfers
@@ -465,6 +469,8 @@ namespace powerloader
 
             return true;
         }
+
+
 
         // Set URL
         h.url(full_url);
@@ -783,27 +789,30 @@ namespace powerloader
             {
 #endif
                 // New file was downloaded
-                if (!transfer_err && !current_target->check_filesize())
+                if (current_target->target->outfile)
                 {
-                    result = tl::unexpected(
-                        DownloaderError({ ErrorLevel::SERIOUS,
-                                          ErrorCode::PD_BADCHECKSUM,
-                                          "Result file does not have expected filesize" }));
-                    transfer_err = true;
-                    goto transfer_error;
-                }
-                if (!transfer_err && !current_target->check_checksums())
-                {
-                    result = tl::unexpected(
-                        DownloaderError({ ErrorLevel::SERIOUS,
-                                          ErrorCode::PD_BADCHECKSUM,
-                                          "Result file does not have expected checksum" }));
-                    transfer_err = true;
-                    goto transfer_error;
-                }
-                if (!result)
-                {
-                    current_target->reset_file(TransferStatus::kERROR);
+                    if (!transfer_err && !current_target->check_filesize())
+                    {
+                        result = tl::unexpected(
+                            DownloaderError({ ErrorLevel::SERIOUS,
+                                              ErrorCode::PD_BADCHECKSUM,
+                                              "Result file does not have expected filesize" }));
+                        transfer_err = true;
+                        goto transfer_error;
+                    }
+                    if (!transfer_err && !current_target->check_checksums())
+                    {
+                        result = tl::unexpected(
+                            DownloaderError({ ErrorLevel::SERIOUS,
+                                              ErrorCode::PD_BADCHECKSUM,
+                                              "Result file does not have expected checksum" }));
+                        transfer_err = true;
+                        goto transfer_error;
+                    }
+                    if (!result)
+                    {
+                        current_target->reset_file(TransferStatus::kERROR);
+                    }
                 }
 #ifdef WITH_ZCHUNK
             }
@@ -1004,13 +1013,17 @@ namespace powerloader
 
                     // Call end callback
                     current_target->curl_handle->finalize_transfer();
-                    CbReturnCode rc
-                        = current_target->call_end_callback(TransferStatus::kSUCCESSFUL);
-                    if (rc == CbReturnCode::kERROR)
-                    {
-                        throw fatal_download_error("Interrupted by error from end callback");
-                    }
 
+                    // make sure to not call finalize callback if we only finished preparation
+                    if (current_target->state == DownloadState::kFINISHED)
+                    {
+                        CbReturnCode rc
+                            = current_target->call_end_callback(TransferStatus::kSUCCESSFUL);
+                        if (rc == CbReturnCode::kERROR)
+                        {
+                            throw fatal_download_error("Interrupted by error from end callback");
+                        }
+                    }
 #ifdef WITH_ZCHUNK
                 }
 #endif /* WITH_ZCHUNK */

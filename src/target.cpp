@@ -82,14 +82,12 @@ namespace powerloader
     {
         reset_file(status);
 
-        end_callback_t& end_cb
-            = override_end_callback ? override_end_callback : target->end_callback;
         CbReturnCode rc = CbReturnCode::kOK;
-        if (end_cb)
+        if (target->end_callback)
         {
             // TODO fill in message?!
             std::string message = "";
-            rc = end_cb(status, message);
+            rc = target->end_callback(status, message);
 
             if (rc == CbReturnCode::kERROR)
             {
@@ -462,8 +460,16 @@ namespace powerloader
 
     bool Target::check_filesize()
     {
+        std::cout << "Checking filesize -- " << target->expected_size << std::endl;
+        std::cout << "Temp file = " << temp_file << std::endl;
+
         if (target->expected_size > 0)
         {
+            if (!fs::exists(temp_file))
+            {
+                spdlog::error("File does not exist!");
+
+            }
             if (fs::file_size(temp_file) != target->expected_size)
             {
                 spdlog::error("Filesize of {} ({}) does not match expected filesize ({}).",
