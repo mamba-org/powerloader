@@ -99,6 +99,7 @@ endif()
 find_package(spdlog REQUIRED)
 if (MSVC)
     set(SPDLOG_TARGET spdlog::spdlog_header_only)
+    set(WINSOCK_LIBS wsock32 ws2_32)
 else()
     set(SPDLOG_TARGET spdlog::spdlog)
 endif()
@@ -110,9 +111,9 @@ target_link_libraries(libpowerloader
                         ${SPDLOG_TARGET}
                         ${ZCK_LIBRARY}
                         ${OPENSSL_LIBRARIES}
-                        yaml-cpp
+                        ${WINSOCK_LIBS}
                     )
-target_link_libraries(powerloader libpowerloader CLI11::CLI11)
+target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
