@@ -96,6 +96,19 @@ else()
     message(ERROR "libpowerloader used as neither shared or static library: not supported")
 endif()
 
+# Custom build flags
+if(MSVC)
+    target_compile_options(libpowerloader
+        PUBLIC
+            /wd4275 # Disable warning C4275: We know that we use templates instances in our symbol exports.
+            /wd4251 # Disable warning C4251: We know that we use templates instances in our symbol exports.
+#         PRIVATE
+#             /W4 # Recommended warning level 4
+    )
+else()
+    # TODO: enable tons of warnings to help with security and correctness
+endif()
+
 
 add_executable(powerloader src/cli/main.cpp)
 set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
