@@ -54,7 +54,7 @@ option(WITH_ZCHUNK "Enable zchunk" ON)
 option(DEV "Enable dev" OFF)
 
 if (WITH_ZCHUNK)
-    list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp)
+    list(APPEND LIBPOWERLOADER_SRCS src/zck.cpp src/zck.hpp)
     find_library(ZCK_LIBRARY zck REQUIRED)
     find_file(ZCK_H_FILE NAMES zck.h REQUIRED)
     message("Found file: ${ZCK_H_FILE}")
@@ -67,6 +67,7 @@ endif()
 
 add_library(libpowerloader
     ${LIBPOWERLOADER_SRCS}
+    ${LIBPOWERLOADER_HEADERS} # Makes headers visible in IDEs
 )
 set_target_properties(libpowerloader
     PROPERTIES PREFIX ""
