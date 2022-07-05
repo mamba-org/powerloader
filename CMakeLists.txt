@@ -121,7 +121,12 @@ install(TARGETS powerloader libpowerloader
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        PUBLIC_HEADER DESTINATION  ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(DIRECTORY include/ # source directory
+        DESTINATION "include" # target directory
+        FILES_MATCHING # install only matched files
+        PATTERN "**.**" # select all files
 )
 
 option(ENABLE_TESTS "Enable tests" ON)
