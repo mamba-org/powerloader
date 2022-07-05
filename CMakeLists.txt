@@ -76,11 +76,11 @@ else()
     set(SPDLOG_TARGET spdlog::spdlog)
 endif()
 target_link_libraries(libpowerloader
-    INTERFACE
+    PUBLIC
         tl::expected
+        ${SPDLOG_TARGET}
     PRIVATE
         ${CURL_LIBRARIES}
-        ${SPDLOG_TARGET}
         ${ZCK_LIBRARY}
         ${OPENSSL_LIBRARIES}
         ${WINSOCK_LIBS}
