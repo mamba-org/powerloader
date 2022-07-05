@@ -50,9 +50,9 @@ namespace powerloader
     };
 
     // TODO: rename this, try to not expose it
-    POWERLOADER_API  CURL* get_handle(const Context& ctx);
+    POWERLOADER_API CURL* get_handle(const Context& ctx);
 
-    class POWERLOADER_API  CURLHandle
+    class POWERLOADER_API CURLHandle
     {
     public:
         using end_callback_type = std::function<CbReturnCode(const Response&)>;

@@ -51,17 +51,17 @@ namespace powerloader
     POWERLOADER_API zck_hash zck_hash_from_checksum(ChecksumType checksum_type);
     POWERLOADER_API ChecksumType checksum_type_from_zck_hash(zck_hash hash_type);
 
-    POWERLOADER_API 
+    POWERLOADER_API
     zckCtx* init_zck_read(const std::unique_ptr<Checksum>& chksum,
                           ptrdiff_t zck_header_size,
                           int fd);
 
-    POWERLOADER_API 
+    POWERLOADER_API
     zckCtx* zck_init_read_base(const std::unique_ptr<Checksum>& chksum,
                                std::ptrdiff_t zck_header_size,
                                int fd);
 
-    POWERLOADER_API 
+    POWERLOADER_API
     bool zck_valid_header_base(const std::unique_ptr<Checksum>& chksum,
                                std::ptrdiff_t zck_header_size,
                                int fd);

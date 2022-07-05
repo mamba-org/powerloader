@@ -24,4 +24,3 @@ add_custom_target(test
     DEPENDS test_powerloader
     WORKING_DIRECTORY $<TARGET_FILE_DIR:libpowerloader>
 )
-
