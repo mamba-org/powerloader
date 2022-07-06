@@ -187,7 +187,7 @@ namespace powerloader
 #endif /* WITH_ZCHUNK */
 
         std::string_view header(buffer, size * nitems);
-        spdlog::info("Header: {}", header);
+
         if (state == HeaderCbState::kDEFAULT)
         {
             if (target->protocol == Protocol::kHTTP && starts_with(header, "HTTP/"))
