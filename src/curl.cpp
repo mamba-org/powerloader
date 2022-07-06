@@ -121,7 +121,7 @@ namespace powerloader
 
     CURLHandle& CURLHandle::accept_encoding()
     {
-        setopt(CURLOPT_ACCEPT_ENCODING, nullptr);
+        setopt(CURLOPT_ACCEPT_ENCODING, "");
         return *this;
     }
 

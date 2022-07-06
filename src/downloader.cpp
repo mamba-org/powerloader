@@ -582,6 +582,8 @@ namespace powerloader
             h.add_headers(target->mirror->get_auth_headers(target->target->path));
         }
 
+        // accept default curl supported encodings
+        h.accept_encoding();
         h.add_headers(ctx.additional_httpheaders);
 
         if (target->target->no_cache)
