@@ -340,7 +340,7 @@ namespace powerloader
             // Prepare full target URL
             if (complete_url_in_path)
             {
-                return std::make_pair(target, target->target->complete_url);
+                full_url = target->target->complete_url;
             }
             else
             {
