@@ -52,7 +52,7 @@ namespace powerloader
         void fill_values(CURLHandle& handle);
     };
 
-    struct Response : public BaseResponse
+    struct POWERLOADER_API Response : public BaseResponse
     {
         mutable std::stringstream content;
         nlohmann::json json() const;

@@ -24,51 +24,6 @@ namespace powerloader
         return m_serious;
     }
 
-    /************
-     * Response *
-     ************/
-
-    bool BaseResponse::ok() const
-    {
-        return http_status / 100 == 2;
-    }
-
-    tl::expected<std::string, std::out_of_range> BaseResponse::get_header(
-        const std::string& header) const
-    {
-        if (headers.find(header) != headers.end())
-            return headers.at(header);
-        else
-            return tl::unexpected(
-                std::out_of_range(std::string("Could not find header ") + header));
-    }
-
-    void BaseResponse::fill_values(CURLHandle& handle)
-    {
-        average_speed
-            = handle.getinfo<decltype(average_speed)>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
-        http_status = handle.getinfo<decltype(http_status)>(CURLINFO_RESPONSE_CODE).value();
-        effective_url = handle.getinfo<decltype(effective_url)>(CURLINFO_EFFECTIVE_URL).value();
-        downloaded_size
-            = handle.getinfo<decltype(downloaded_size)>(CURLINFO_SIZE_DOWNLOAD_T).value();
-    }
-
-    nlohmann::json Response::json() const
-    {
-        try
-        {
-            nlohmann::json j;
-            content >> j;
-            return j;
-        }
-        catch (const nlohmann::detail::parse_error& e)
-        {
-            spdlog::error("Could not parse JSON\n{}", content.str());
-            spdlog::error("Error message: {}", e.what());
-            throw;
-        }
-    }
-
     /**************
      * CURLHandle*
      **************/
@@ -223,6 +178,17 @@ namespace powerloader
     template tl::expected<curl_slist*, CURLcode> CURLHandle::getinfo(CURLINFO option);
     template tl::expected<long long, CURLcode> CURLHandle::getinfo(CURLINFO option);
 
+    template <>
+    tl::expected<std::string, CURLcode> CURLHandle::getinfo(CURLINFO option)
+    {
+        std::cout << "Getting a string info value!" << std::endl;
+        auto res = getinfo<char*>(option);
+        if (res)
+            return std::string(res.value());
+        else
+            return tl::unexpected(res.error());
+    }
+
     CURL* CURLHandle::handle()
     {
         if (p_headers)
@@ -348,4 +314,48 @@ namespace powerloader
         return upload_impl(*this, stream);
     }
 
+    /************
+     * Response *
+     ************/
+
+    bool BaseResponse::ok() const
+    {
+        return http_status / 100 == 2;
+    }
+
+    tl::expected<std::string, std::out_of_range> BaseResponse::get_header(
+        const std::string& header) const
+    {
+        if (headers.find(header) != headers.end())
+            return headers.at(header);
+        else
+            return tl::unexpected(
+                std::out_of_range(std::string("Could not find header ") + header));
+    }
+
+    nlohmann::json Response::json() const
+    {
+        try
+        {
+            nlohmann::json j;
+            content >> j;
+            return j;
+        }
+        catch (const nlohmann::detail::parse_error& e)
+        {
+            spdlog::error("Could not parse JSON\n{}", content.str());
+            spdlog::error("Error message: {}", e.what());
+            throw;
+        }
+    }
+
+    void BaseResponse::fill_values(CURLHandle& handle)
+    {
+        average_speed
+            = handle.getinfo<decltype(average_speed)>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
+        http_status = handle.getinfo<decltype(http_status)>(CURLINFO_RESPONSE_CODE).value();
+        effective_url = handle.getinfo<decltype(effective_url)>(CURLINFO_EFFECTIVE_URL).value();
+        downloaded_size
+            = handle.getinfo<decltype(downloaded_size)>(CURLINFO_SIZE_DOWNLOAD_T).value();
+    }
 }
