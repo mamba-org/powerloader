@@ -36,13 +36,13 @@ namespace powerloader
         bool m_serious;
     };
 
-    struct POWERLOADER_API BaseResponse
+    struct POWERLOADER_API Response
     {
         std::map<std::string, std::string> headers;
 
-        curl_off_t average_speed;
-        curl_off_t downloaded_size;
-        long http_status;
+        curl_off_t average_speed = -1;
+        curl_off_t downloaded_size = -1;
+        long http_status = 0;
         std::string effective_url;
 
         bool ok() const;
@@ -50,11 +50,8 @@ namespace powerloader
         tl::expected<std::string, std::out_of_range> get_header(const std::string& header) const;
 
         void fill_values(CURLHandle& handle);
-    };
 
-    struct POWERLOADER_API Response : public BaseResponse
-    {
-        mutable std::stringstream content;
+        std::optional<std::string> content;
         nlohmann::json json() const;
     };
 

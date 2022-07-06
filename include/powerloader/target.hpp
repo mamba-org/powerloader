@@ -92,7 +92,7 @@ namespace powerloader
         std::unique_ptr<CURLHandle> curl_handle;
         Protocol protocol;
 
-        BaseResponse response;
+        Response response;
 
         bool range_fail = false;
         ZckState zck_state;

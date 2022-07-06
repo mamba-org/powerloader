@@ -154,7 +154,7 @@ namespace powerloader
         response.fill_values(*this);
         if (!response.ok())
         {
-            spdlog::error("Received {}: {}", response.http_status, response.content.str());
+            spdlog::error("Received {}: {}", response.http_status, response.content.value());
         }
         if (end_callback)
         {
@@ -242,6 +242,13 @@ namespace powerloader
         }
 
         template <class T>
+        std::size_t string_callback(char* buffer, std::size_t size, std::size_t nitems, T* string)
+        {
+            string->append(buffer, size * nitems);
+            return size * nitems;
+        }
+
+        template <class T>
         std::size_t header_map_callback(char* buffer,
                                         std::size_t size,
                                         std::size_t nitems,
@@ -263,8 +270,9 @@ namespace powerloader
         setopt(CURLOPT_HEADERFUNCTION, header_map_callback<std::map<std::string, std::string>>);
         setopt(CURLOPT_HEADERDATA, &response->headers);
 
-        setopt(CURLOPT_WRITEFUNCTION, ostream_callback<std::stringstream>);
-        setopt(CURLOPT_WRITEDATA, &response->content);
+        setopt(CURLOPT_WRITEFUNCTION, string_callback<std::string>);
+        response->content = std::string();
+        setopt(CURLOPT_WRITEDATA, &response->content.value());
     }
 
     CURLHandle& CURLHandle::set_end_callback(end_callback_type func)
@@ -318,12 +326,12 @@ namespace powerloader
      * Response *
      ************/
 
-    bool BaseResponse::ok() const
+    bool Response::ok() const
     {
         return http_status / 100 == 2;
     }
 
-    tl::expected<std::string, std::out_of_range> BaseResponse::get_header(
+    tl::expected<std::string, std::out_of_range> Response::get_header(
         const std::string& header) const
     {
         if (headers.find(header) != headers.end())
@@ -337,19 +345,17 @@ namespace powerloader
     {
         try
         {
-            nlohmann::json j;
-            content >> j;
-            return j;
+            return nlohmann::json::parse(content.value());
         }
         catch (const nlohmann::detail::parse_error& e)
         {
-            spdlog::error("Could not parse JSON\n{}", content.str());
+            spdlog::error("Could not parse JSON\n{}", content.value());
             spdlog::error("Error message: {}", e.what());
             throw;
         }
     }
 
-    void BaseResponse::fill_values(CURLHandle& handle)
+    void Response::fill_values(CURLHandle& handle)
     {
         average_speed
             = handle.getinfo<decltype(average_speed)>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
