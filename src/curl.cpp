@@ -181,7 +181,6 @@ namespace powerloader
     template <>
     tl::expected<std::string, CURLcode> CURLHandle::getinfo(CURLINFO option)
     {
-        std::cout << "Getting a string info value!" << std::endl;
         auto res = getinfo<char*>(option);
         if (res)
             return std::string(res.value());

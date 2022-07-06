@@ -42,7 +42,6 @@ namespace powerloader
                 spdlog::error("Could not close file: {}", target->outfile->path().string());
             }
         }
-        response.headers.clear();
     }
 
     void Target::reset_file(TransferStatus status)

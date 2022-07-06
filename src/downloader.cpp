@@ -404,6 +404,8 @@ namespace powerloader
             {
                 // Note: mirror is nullptr if base_url is used
                 target->mirror = mirror;
+                // reset response
+                target->response = Response();
                 return std::make_pair(target, full_url);
             }
         }
