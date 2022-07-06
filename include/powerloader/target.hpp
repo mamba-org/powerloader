@@ -92,6 +92,8 @@ namespace powerloader
         std::unique_ptr<CURLHandle> curl_handle;
         Protocol protocol;
 
+        Response response;
+
         bool range_fail = false;
         ZckState zck_state;
 

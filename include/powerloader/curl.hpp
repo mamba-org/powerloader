@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include <spdlog/fmt/fmt.h>
 #include <nlohmann/json.hpp>
@@ -19,6 +20,7 @@
 namespace powerloader
 {
     class Context;
+    class CURLHandle;
 
     extern "C"
     {
@@ -37,15 +39,22 @@ namespace powerloader
 
     struct POWERLOADER_API Response
     {
-        std::map<std::string, std::string> header;
-        mutable std::stringstream content;
+        std::map<std::string, std::string> headers;
 
-        curl_off_t avg_speed;
-        curl_off_t downloaded_size;
-        long http_status;
+        curl_off_t average_speed = -1;
+        curl_off_t downloaded_size = -1;
+        long http_status = 0;
         std::string effective_url;
 
         bool ok() const;
+
+        tl::expected<std::string, std::out_of_range> get_header(const std::string& header) const;
+
+        void fill_values(CURLHandle& handle);
+
+        // These are only working _if_ you are filling the content (e.g. by using the default
+        // `h.perform() method)
+        std::optional<std::string> content;
         nlohmann::json json() const;
     };
 

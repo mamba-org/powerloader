@@ -340,7 +340,7 @@ namespace powerloader
             // Prepare full target URL
             if (complete_url_in_path)
             {
-                return std::make_pair(target, target->target->complete_url);
+                full_url = target->target->complete_url;
             }
             else
             {
@@ -569,11 +569,8 @@ namespace powerloader
         }
 
         // Prepare header callback
-        if (target->target->expected_size > 0)
-        {
-            h.setopt(CURLOPT_HEADERFUNCTION, &Target::header_callback);
-            h.setopt(CURLOPT_HEADERDATA, target);
-        }
+        h.setopt(CURLOPT_HEADERFUNCTION, &Target::header_callback);
+        h.setopt(CURLOPT_HEADERDATA, target);
 
         // Prepare write callback
         h.setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
@@ -585,6 +582,8 @@ namespace powerloader
             h.add_headers(target->mirror->get_auth_headers(target->target->path));
         }
 
+        // accept default curl supported encodings
+        h.accept_encoding();
         h.add_headers(ctx.additional_httpheaders);
 
         if (target->target->no_cache)
@@ -1010,6 +1009,7 @@ namespace powerloader
                     // and the xattr is not needed (is is useful only for resuming)
                     // remove_librepo_xattr(target->target);
 
+                    // For "mirror preparation" we need to call finalize_transfer here!
                     current_target->curl_handle->finalize_transfer();
 
                     // only call the end callback if actually finished the download target
