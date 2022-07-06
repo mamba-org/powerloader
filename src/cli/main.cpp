@@ -305,7 +305,6 @@ handle_download(Context& ctx,
     }
 
     Downloader dl{ ctx };
-    dl.mirror_map = ctx.mirror_map;
 
     for (auto& t : targets)
     {

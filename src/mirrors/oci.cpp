@@ -220,7 +220,7 @@ namespace powerloader
     bool OCIMirror::need_preparation(Target* target)
     {
         auto* data = get_data(target);
-        if (data && data->token.empty() && need_auth())
+        if ((!data || data && data->token.empty()) && need_auth())
             return true;
 
         if (data && !data->sha256sum.empty())

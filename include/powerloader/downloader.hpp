@@ -93,8 +93,6 @@ namespace powerloader
         int allowed_mirror_failures = 3;
         int max_mirrors_to_try = -1;
         std::size_t max_parallel_connections = 5;
-
-        std::map<std::string, std::vector<std::shared_ptr<Mirror>>> mirror_map;
     };
 
 }

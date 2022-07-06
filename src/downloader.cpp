@@ -48,9 +48,10 @@ namespace powerloader
         if (!dl_target)
             return;
 
-        if (mirror_map.find(dl_target->base_url) != mirror_map.end())
+        if (ctx.mirror_map.find(dl_target->base_url) != ctx.mirror_map.end())
         {
-            m_targets.emplace_back(new Target(ctx, dl_target, mirror_map[dl_target->base_url]));
+            m_targets.emplace_back(
+                new Target(ctx, dl_target, ctx.mirror_map.at(dl_target->base_url)));
             dl_target->base_url.clear();
         }
         else
@@ -336,8 +337,6 @@ namespace powerloader
                     "Empty mirrorlist and no basepath specified in DownloadTarget" });
             }
 
-            spdlog::debug("Selecting mirror for: {}", target->target->path);
-
             // Prepare full target URL
             if (complete_url_in_path)
             {
@@ -357,6 +356,8 @@ namespace powerloader
 
                 assert(mirror);
 
+                // TODO: create a `name()` or similar function
+                spdlog::info("Selected mirror: {}", mirror->url);
                 if (mirror && !mirror->need_preparation(target))
                 {
                     full_url = mirror->format_url(target);
@@ -365,7 +366,11 @@ namespace powerloader
                 else
                 {
                     // No free mirror
-                    spdlog::info("Currently there is no free mirror for {}", target->target->path);
+                    if (!mirror->need_preparation(target))
+                    {
+                        spdlog::info("Currently there is no free mirror for {}",
+                                     target->target->path);
+                    }
                 }
             }
 
@@ -782,28 +787,31 @@ namespace powerloader
             else
             {
 #endif
-                // New file was downloaded
-                if (!transfer_err && !current_target->check_filesize())
+                if (current_target->target->outfile)
                 {
-                    result = tl::unexpected(
-                        DownloaderError({ ErrorLevel::SERIOUS,
-                                          ErrorCode::PD_BADCHECKSUM,
-                                          "Result file does not have expected filesize" }));
-                    transfer_err = true;
-                    goto transfer_error;
-                }
-                if (!transfer_err && !current_target->check_checksums())
-                {
-                    result = tl::unexpected(
-                        DownloaderError({ ErrorLevel::SERIOUS,
-                                          ErrorCode::PD_BADCHECKSUM,
-                                          "Result file does not have expected checksum" }));
-                    transfer_err = true;
-                    goto transfer_error;
-                }
-                if (!result)
-                {
-                    current_target->reset_file(TransferStatus::kERROR);
+                    // New file was downloaded
+                    if (!transfer_err && !current_target->check_filesize())
+                    {
+                        result = tl::unexpected(
+                            DownloaderError({ ErrorLevel::SERIOUS,
+                                              ErrorCode::PD_BADCHECKSUM,
+                                              "Result file does not have expected filesize" }));
+                        transfer_err = true;
+                        goto transfer_error;
+                    }
+                    if (!transfer_err && !current_target->check_checksums())
+                    {
+                        result = tl::unexpected(
+                            DownloaderError({ ErrorLevel::SERIOUS,
+                                              ErrorCode::PD_BADCHECKSUM,
+                                              "Result file does not have expected checksum" }));
+                        transfer_err = true;
+                        goto transfer_error;
+                    }
+                    if (!result)
+                    {
+                        current_target->reset_file(TransferStatus::kERROR);
+                    }
                 }
 #ifdef WITH_ZCHUNK
             }
