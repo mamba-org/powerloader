@@ -85,9 +85,11 @@ namespace powerloader
         CbReturnCode rc = CbReturnCode::kOK;
         if (target->end_callback)
         {
-            // TODO fill in message?!
-            std::string message = "";
-            rc = target->end_callback(status, message);
+            if (curl_handle)
+            {
+                response.fill_values(*curl_handle);
+            }
+            rc = target->end_callback(status, response);
 
             if (rc == CbReturnCode::kERROR)
             {
@@ -171,6 +173,7 @@ namespace powerloader
         Target* target = self;
         HeaderCbState state = self->headercb_state;
 
+        // TODO get rid of this?
         if (state == HeaderCbState::kDONE || state == HeaderCbState::kINTERRUPTED)
         {
             // Nothing to do
@@ -184,7 +187,7 @@ namespace powerloader
 #endif /* WITH_ZCHUNK */
 
         std::string_view header(buffer, size * nitems);
-
+        spdlog::info("Header: {}", header);
         if (state == HeaderCbState::kDEFAULT)
         {
             if (target->protocol == Protocol::kHTTP && starts_with(header, "HTTP/"))
@@ -257,33 +260,19 @@ namespace powerloader
                 value = header.substr(colon_idx, header.size() - colon_idx - 2);
                 // http headers are case insensitive!
                 std::string lkey = to_lower(key);
-                if (lkey == "etag")
+                target->response.headers[lkey] = value;
+
+                if (target->target->expected_size > 0 && lkey == "content-length")
                 {
-                    spdlog::info("Etag: {}", value);
-                    // s->etag = value;
-                }
-                else if (lkey == "cache-control")
-                {
-                    // s->cache_control = value;
-                    spdlog::info("cache_control: {}", value);
-                }
-                else if (lkey == "last-modified")
-                {
-                    // s->mod = value;
-                    spdlog::info("last-modified: {}", value);
-                }
-                else if (lkey == "content-length")
-                {
-                    ptrdiff_t expected = target->target->expected_size;
                     ptrdiff_t content_length = std::stoll(std::string(value));
                     spdlog::info("Server returned Content-Length: {}", content_length);
-                    if (content_length > 0 && content_length != expected)
+                    if (content_length > 0 && content_length != target->target->expected_size)
                     {
                         target->headercb_state = HeaderCbState::kINTERRUPTED;
                         target->headercb_interrupt_reason = fmt::format(
                             "Server reports Content-Length: {} but expected size is: {}",
                             content_length,
-                            expected);
+                            target->target->expected_size);
 
                         // Return error value
                         ret++;

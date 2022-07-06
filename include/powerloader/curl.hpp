@@ -19,6 +19,7 @@
 namespace powerloader
 {
     class Context;
+    class CURLHandle;
 
     extern "C"
     {
@@ -35,17 +36,25 @@ namespace powerloader
         bool m_serious;
     };
 
-    struct POWERLOADER_API Response
+    struct POWERLOADER_API BaseResponse
     {
-        std::map<std::string, std::string> header;
-        mutable std::stringstream content;
+        std::map<std::string, std::string> headers;
 
-        curl_off_t avg_speed;
+        curl_off_t average_speed;
         curl_off_t downloaded_size;
         long http_status;
         std::string effective_url;
 
         bool ok() const;
+
+        tl::expected<std::string, std::out_of_range> get_header(const std::string& header) const;
+
+        void fill_values(CURLHandle& handle);
+    };
+
+    struct Response : public BaseResponse
+    {
+        mutable std::stringstream content;
         nlohmann::json json() const;
     };
 

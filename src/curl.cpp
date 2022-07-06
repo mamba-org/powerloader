@@ -28,9 +28,29 @@ namespace powerloader
      * Response *
      ************/
 
-    bool Response::ok() const
+    bool BaseResponse::ok() const
     {
         return http_status / 100 == 2;
+    }
+
+    tl::expected<std::string, std::out_of_range> BaseResponse::get_header(
+        const std::string& header) const
+    {
+        if (headers.find(header) != headers.end())
+            return headers.at(header);
+        else
+            return tl::unexpected(
+                std::out_of_range(std::string("Could not find header ") + header));
+    }
+
+    void BaseResponse::fill_values(CURLHandle& handle)
+    {
+        average_speed
+            = handle.getinfo<decltype(average_speed)>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
+        http_status = handle.getinfo<decltype(http_status)>(CURLINFO_RESPONSE_CODE).value();
+        effective_url = handle.getinfo<decltype(effective_url)>(CURLINFO_EFFECTIVE_URL).value();
+        downloaded_size
+            = handle.getinfo<decltype(downloaded_size)>(CURLINFO_SIZE_DOWNLOAD_T).value();
     }
 
     nlohmann::json Response::json() const
@@ -176,20 +196,7 @@ namespace powerloader
 
     void CURLHandle::finalize_transfer(Response& response)
     {
-        auto cres = curl_easy_getinfo(m_handle, CURLINFO_SPEED_DOWNLOAD_T, &response.avg_speed);
-        if (cres != CURLE_OK)
-        {
-            response.avg_speed = 0;
-        }
-
-        char* tmp_effective_url;
-        // TODO error handling?!
-        curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &response.http_status);
-        curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &tmp_effective_url);
-        curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &response.downloaded_size);
-
-        response.effective_url = tmp_effective_url;
-
+        response.fill_values(*this);
         if (!response.ok())
         {
             spdlog::error("Received {}: {}", response.http_status, response.content.str());
@@ -288,7 +295,7 @@ namespace powerloader
         response.reset(new Response);
         // check if there is something set already for these values
         setopt(CURLOPT_HEADERFUNCTION, header_map_callback<std::map<std::string, std::string>>);
-        setopt(CURLOPT_HEADERDATA, &response->header);
+        setopt(CURLOPT_HEADERDATA, &response->headers);
 
         setopt(CURLOPT_WRITEFUNCTION, ostream_callback<std::stringstream>);
         setopt(CURLOPT_WRITEDATA, &response->content);

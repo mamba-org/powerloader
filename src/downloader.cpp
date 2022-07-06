@@ -569,11 +569,8 @@ namespace powerloader
         }
 
         // Prepare header callback
-        if (target->target->expected_size > 0)
-        {
-            h.setopt(CURLOPT_HEADERFUNCTION, &Target::header_callback);
-            h.setopt(CURLOPT_HEADERDATA, target);
-        }
+        h.setopt(CURLOPT_HEADERFUNCTION, &Target::header_callback);
+        h.setopt(CURLOPT_HEADERDATA, target);
 
         // Prepare write callback
         h.setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
@@ -1010,6 +1007,7 @@ namespace powerloader
                     // and the xattr is not needed (is is useful only for resuming)
                     // remove_librepo_xattr(target->target);
 
+                    // For "mirror preparation" we need to call finalize_transfer here!
                     current_target->curl_handle->finalize_transfer();
 
                     // only call the end callback if actually finished the download target

@@ -96,7 +96,7 @@ namespace powerloader
         if (!response.ok())
             return response;
 
-        std::string temp_upload_location = response.header["location"];
+        std::string temp_upload_location = response.headers.at("location");
 
         auto upload_url = format_upload_url(mirror.url, temp_upload_location, digest);
 
