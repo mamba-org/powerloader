@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include <spdlog/fmt/fmt.h>
 #include <nlohmann/json.hpp>
@@ -51,6 +52,8 @@ namespace powerloader
 
         void fill_values(CURLHandle& handle);
 
+        // These are only working _if_ you are filling the content (e.g. by using the default
+        // `h.perform() method)
         std::optional<std::string> content;
         nlohmann::json json() const;
     };
