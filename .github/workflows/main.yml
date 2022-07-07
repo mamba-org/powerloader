@@ -47,16 +47,11 @@ jobs:
         run: |
           cd build
           ninja test
-      - name: fixup micromamba
-        if: runner.os == 'Windows'
-        shell: cmd
-        run: |
-          micromamba shell init -p C:\Users\runneradmin\micromamba
       - name: build powerloader
         if: runner.os == 'Windows'
-        shell: cmd
+        shell: cmd /C CALL {0}
         run: |
-          call C:\Users\runneradmin\micromamba\condabin\micromamba.bat activate powerloader
+          call activate powerloader
           echo %CONDA_PREFIX%
           echo %PATH%
           mkdir build
