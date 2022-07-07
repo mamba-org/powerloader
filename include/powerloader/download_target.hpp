@@ -6,6 +6,7 @@
 #include <powerloader/export.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/url.hpp>
+#include <powerloader/curl.hpp>
 #include <powerloader/mirror.hpp>
 #include <powerloader/fileio.hpp>
 #include <powerloader/errors.hpp>
@@ -14,6 +15,13 @@ namespace powerloader
 {
 
     class zck_target;
+
+    struct POWERLOADER_API CacheControl
+    {
+        std::string etag;
+        std::string cache_control;
+        std::string last_modified;
+    };
 
     class POWERLOADER_API DownloadTarget
     {
@@ -30,6 +38,9 @@ namespace powerloader
 
         DownloadTarget(const std::string& path, const std::string& base_url, const fs::path& fn);
         ~DownloadTarget();
+
+        void set_cache_options(const CacheControl& cache_control);
+        void add_handle_options(CURLHandle& handle);
 
         DownloadTarget(const DownloadTarget&) = delete;
         DownloadTarget& operator=(const DownloadTarget&) = delete;
@@ -71,6 +82,9 @@ namespace powerloader
         // We cannot use a unique_ptr here because of the python bindings
         // which needs the sizeof zck_target
         zck_target* p_zck;
+
+    private:
+        CacheControl m_cache_control;
     };
 
 }

@@ -187,7 +187,7 @@ namespace powerloader
             curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIMARY_IP, &effective_ip);
 
             // Check HTTP(S) code / or FTP
-            if (code / 100 != 2)
+            if (code / 100 != 2 && code != 304)
             {
                 return tl::unexpected(DownloaderError{
                     ErrorLevel::INFO,
@@ -593,6 +593,10 @@ namespace powerloader
             // Add headers that tell proxy to serve us fresh data
             h.add_header("Cache-Control: no-cache");
             h.add_header("Pragma: no-cache");
+        }
+        else
+        {
+            target->target->add_handle_options(h);
         }
 
         // Add the new handle to the curl multi handle
