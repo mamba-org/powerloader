@@ -185,9 +185,6 @@ namespace powerloader
                     return CbReturnCode::kERROR;
                 auto j = response.json();
 
-                std::cout << "Got manifest callback!" << std::endl;
-                std::cout << j.dump(4) << std::endl;
-
                 if (j.contains("layers"))
                 {
                     std::string digest = j["layers"][0]["digest"];
