@@ -111,4 +111,24 @@ namespace powerloader
     {
         error = std::make_unique<DownloaderError>(err);
     }
+
+    void DownloadTarget::set_cache_options(const CacheControl& cache_control)
+    {
+        m_cache_control = cache_control;
+    }
+
+    void DownloadTarget::add_handle_options(CURLHandle& handle)
+    {
+        auto to_header = [](const std::string& key, const std::string& value)
+        { return std::string(key + ": " + value); };
+
+        if (m_cache_control.etag.size())
+        {
+            handle.add_header(to_header("If-None-Match", m_cache_control.etag));
+        }
+        if (m_cache_control.last_modified.size())
+        {
+            handle.add_header(to_header("If-Modified-Since", m_cache_control.last_modified));
+        }
+    }
 }
