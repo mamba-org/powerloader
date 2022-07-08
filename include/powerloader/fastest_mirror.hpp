@@ -10,7 +10,7 @@ namespace powerloader
 {
     class Context;
 
-    POWERLOADER_API void fastest_mirror(const Context& ctx, const std::vector<std::string>& urls);
+    POWERLOADER_API tl::expected<std::vector<std::string>, std::string> fastest_mirror(const Context& ctx, const std::vector<std::string>& urls);
 }
 
 #endif

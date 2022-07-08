@@ -99,7 +99,12 @@ namespace powerloader
         CURLHandle& upload(std::ifstream& stream);
         CURLHandle& upload(std::istringstream& stream);
 
+        CURLHandle(CURLHandle&& rhs);
+        CURLHandle& operator=(CURLHandle&& rhs);
+
     private:
+        void init_handle(const Context& ctx);
+
         CURL* m_handle;
         curl_slist* p_headers = nullptr;
         char errorbuffer[CURL_ERROR_SIZE];

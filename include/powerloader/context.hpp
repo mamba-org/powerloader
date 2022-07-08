@@ -10,6 +10,7 @@
 
 #include <powerloader/export.hpp>
 
+
 namespace powerloader
 {
     namespace fs = std::filesystem;
@@ -23,7 +24,12 @@ namespace powerloader
         int verbosity = 0;
         bool adaptive_mirror_sorting = true;
 
+        // ssl options
         bool disable_ssl = false;
+        bool ssl_no_revoke = false;
+        fs::path ssl_ca_info;
+        int ssl_backend = -1;
+
         bool validate_checksum = true;
 
         long connect_timeout = 30L;

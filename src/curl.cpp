@@ -28,71 +28,60 @@ namespace powerloader
      * CURLHandle*
      **************/
 
-    CURL* get_handle(const Context& ctx)
-    {
-        // TODO: get rid of goto
-        CURL* h = curl_easy_init();
-        if (!h)
-            return nullptr;
-
-        if (curl_easy_setopt(h, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK)
-            goto err;
-        if (curl_easy_setopt(h, CURLOPT_MAXREDIRS, 6) != CURLE_OK)
-            goto err;
-        if (curl_easy_setopt(h, CURLOPT_CONNECTTIMEOUT, ctx.connect_timeout) != CURLE_OK)
-            goto err;
-        if (curl_easy_setopt(h, CURLOPT_LOW_SPEED_TIME, ctx.low_speed_time) != CURLE_OK)
-            goto err;
-        if (curl_easy_setopt(h, CURLOPT_LOW_SPEED_LIMIT, ctx.low_speed_limit) != CURLE_OK)
-            goto err;
-
-        if (ctx.disable_ssl)
-        {
-            if (curl_easy_setopt(h, CURLOPT_SSL_VERIFYHOST, 0) != CURLE_OK)
-                goto err;
-            if (curl_easy_setopt(h, CURLOPT_SSL_VERIFYPEER, 0) != CURLE_OK)
-                goto err;
-        }
-        else
-        {
-            if (curl_easy_setopt(h, CURLOPT_SSL_VERIFYHOST, 2) != CURLE_OK)
-                goto err;
-            if (curl_easy_setopt(h, CURLOPT_SSL_VERIFYPEER, 1) != CURLE_OK)
-                goto err;
-
-            // Windows SSL backend doesn't support this
-            CURLcode verifystatus = curl_easy_setopt(h, CURLOPT_SSL_VERIFYSTATUS, 0);
-            if (verifystatus != CURLE_OK && verifystatus != CURLE_NOT_BUILT_IN)
-                goto err;
-        }
-
-        if (curl_easy_setopt(h, CURLOPT_FTP_USE_EPSV, (long) ctx.ftp_use_seepsv) != CURLE_OK)
-            goto err;
-
-        if (curl_easy_setopt(h, CURLOPT_FILETIME, (long) ctx.preserve_filetime) != CURLE_OK)
-            goto err;
-
-        if (ctx.verbosity > 0)
-            if (curl_easy_setopt(h, CURLOPT_VERBOSE, 1) != CURLE_OK)
-                goto err;
-
-        return h;
-
-    err:
-        curl_easy_cleanup(h);
-        return nullptr;
-    }
-
     CURLHandle::CURLHandle(const Context& ctx)
-        : m_handle(get_handle(ctx))
+        : m_handle(curl_easy_init())
     {
         if (m_handle == nullptr)
         {
-            throw curl_error("Could not initialize handle");
+            throw curl_error("Could not initialize CURL handle");
         }
+
+        init_handle(ctx);
         // Set error buffer
         errorbuffer[0] = '\0';
         setopt(CURLOPT_ERRORBUFFER, errorbuffer);
+    }
+
+    void CURLHandle::init_handle(const Context& ctx)
+    {
+        setopt(CURLOPT_FOLLOWLOCATION, 1);
+        setopt(CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
+        setopt(CURLOPT_MAXREDIRS, 6);
+        setopt(CURLOPT_CONNECTTIMEOUT, ctx.connect_timeout);
+        setopt(CURLOPT_LOW_SPEED_TIME, ctx.low_speed_time);
+        setopt(CURLOPT_LOW_SPEED_LIMIT, ctx.low_speed_limit);
+
+        if (ctx.disable_ssl)
+        {
+            setopt(CURLOPT_SSL_VERIFYHOST, 0);
+            setopt(CURLOPT_SSL_VERIFYPEER, 0);
+        }
+        else
+        {
+            setopt(CURLOPT_SSL_VERIFYHOST, 2);
+            setopt(CURLOPT_SSL_VERIFYPEER, 1);
+
+            // Windows SSL backend doesn't support this
+            CURLcode verifystatus = curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYSTATUS, 0);
+            if (verifystatus != CURLE_OK && verifystatus != CURLE_NOT_BUILT_IN)
+                throw curl_error("Could not initialize CURL handle");
+        }
+
+        if (!ctx.ssl_ca_info.empty())
+        {
+            setopt(CURLOPT_CAINFO, ctx.ssl_ca_info.c_str());
+        }
+
+        if (ctx.ssl_no_revoke)
+        {
+            setopt(CURLOPT_SSL_OPTIONS, ctx.ssl_no_revoke);
+        }
+
+        setopt(CURLOPT_FTP_USE_EPSV, (long) ctx.ftp_use_seepsv);
+        setopt(CURLOPT_FILETIME, (long) ctx.preserve_filetime);
+
+        if (ctx.verbosity > 0)
+            setopt(CURLOPT_VERBOSE, (long) 1L);
     }
 
     CURLHandle::CURLHandle(const Context& ctx, const std::string& url)
@@ -111,6 +100,26 @@ namespace powerloader
         {
             curl_slist_free_all(p_headers);
         }
+    }
+
+    CURLHandle::CURLHandle(CURLHandle&& rhs)
+        : m_handle(std::move(rhs.m_handle))
+        , p_headers(std::move(rhs.p_headers))
+        , response(std::move(rhs.response))
+        , end_callback(std::move(rhs.end_callback))
+    {
+        std::copy(&rhs.errorbuffer[0], &rhs.errorbuffer[CURL_ERROR_SIZE], &errorbuffer[0]);
+    }
+
+    CURLHandle& CURLHandle::operator=(CURLHandle&& rhs)
+    {
+        using std::swap;
+        swap(m_handle, rhs.m_handle);
+        swap(p_headers, rhs.p_headers);
+        swap(errorbuffer, rhs.errorbuffer);
+        swap(response, rhs.response);
+        swap(end_callback, rhs.end_callback);
+        return *this;
     }
 
     CURLHandle& CURLHandle::url(const std::string& url)
