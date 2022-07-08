@@ -22,6 +22,7 @@ namespace powerloader
                   const std::string& scope,
                   const std::string& username,
                   const std::string& password);
+        ~OCIMirror();
 
         void set_fn_tag_split_function(const split_function_type& func);
 

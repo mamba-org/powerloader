@@ -127,6 +127,8 @@ namespace powerloader
     {
     }
 
+    S3Mirror::~S3Mirror() = default;
+
     bool S3Mirror::authenticate(CURLHandle& handle, const std::string& path)
     {
         return true;

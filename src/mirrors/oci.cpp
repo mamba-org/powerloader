@@ -60,6 +60,8 @@ namespace powerloader
     {
     }
 
+    OCIMirror::~OCIMirror() = default;
+
     void OCIMirror::set_fn_tag_split_function(const split_function_type& func)
     {
         m_split_func = func;

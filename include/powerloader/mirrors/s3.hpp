@@ -44,6 +44,7 @@ namespace powerloader
 
         S3Mirror(const Context& ctx, const std::string& url);
 
+        ~S3Mirror();
 
         std::string calculate_signature(const std::chrono::system_clock::time_point& request_date,
                                         const std::string& secret,
