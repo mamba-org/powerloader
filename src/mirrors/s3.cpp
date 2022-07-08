@@ -149,20 +149,19 @@ namespace powerloader
         return true;
     }
 
-    std::string S3Mirror::calculate_signature(
+    std::string s3_calculate_signature(
         const std::chrono::system_clock::time_point& request_date,
         const std::string& secret,
         const std::string& region,
         const std::string& service,
-        const std::string& string_to_sign) const
+        const std::string& string_to_sign)
     {
         std::string yyyymmdd = get_yyyymmdd(request_date);
 
         const std::string key1{ "AWS4" + secret };
 
-        unsigned char* DateKey;
-        unsigned int DateKeyLen;
-        DateKey = HMAC(EVP_sha256(),
+        unsigned int DateKeyLen = 0;
+        unsigned char* DateKey = HMAC(EVP_sha256(),
                        key1.c_str(),
                        static_cast<int>(key1.size()),
                        reinterpret_cast<const unsigned char*>(yyyymmdd.c_str()),
@@ -170,9 +169,8 @@ namespace powerloader
                        NULL,
                        &DateKeyLen);
 
-        unsigned char* DateRegionKey;
-        unsigned int DateRegionKeyLen;
-        DateRegionKey = HMAC(EVP_sha256(),
+        unsigned int DateRegionKeyLen = 0;
+        unsigned char* DateRegionKey = HMAC(EVP_sha256(),
                              DateKey,
                              DateKeyLen,
                              reinterpret_cast<const unsigned char*>(region.c_str()),
@@ -180,9 +178,9 @@ namespace powerloader
                              NULL,
                              &DateRegionKeyLen);
 
-        unsigned char* DateRegionServiceKey;
-        unsigned int DateRegionServiceKeyLen;
-        DateRegionServiceKey = HMAC(EVP_sha256(),
+        ;
+        unsigned int DateRegionServiceKeyLen = 0;
+        unsigned char* DateRegionServiceKey = HMAC(EVP_sha256(),
                                     DateRegionKey,
                                     DateRegionKeyLen,
                                     reinterpret_cast<const unsigned char*>(service.c_str()),
@@ -191,9 +189,8 @@ namespace powerloader
                                     &DateRegionServiceKeyLen);
 
         const std::string AWS4_REQUEST{ "aws4_request" };
-        unsigned char* SigningKey;
-        unsigned int SigningKeyLen;
-        SigningKey = HMAC(EVP_sha256(),
+        unsigned int SigningKeyLen = 0;
+        unsigned char* SigningKey = HMAC(EVP_sha256(),
                           DateRegionServiceKey,
                           DateRegionServiceKeyLen,
                           reinterpret_cast<const unsigned char*>(AWS4_REQUEST.c_str()),
@@ -201,9 +198,8 @@ namespace powerloader
                           NULL,
                           &SigningKeyLen);
 
-        unsigned char* Signature;
-        unsigned int SignatureLen;
-        Signature = HMAC(EVP_sha256(),
+        unsigned int SignatureLen = 0;
+        unsigned char* Signature = HMAC(EVP_sha256(),
                          SigningKey,
                          SigningKeyLen,
                          reinterpret_cast<const unsigned char*>(string_to_sign.c_str()),
@@ -218,7 +214,7 @@ namespace powerloader
     {
         std::vector<std::string> headers;
 
-        std::string signature = calculate_signature(request.date,
+        const std::string signature = s3_calculate_signature(request.date,
                                                     aws_secret_access_key,
                                                     region,
                                                     "s3",

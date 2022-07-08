@@ -43,14 +43,10 @@ namespace powerloader
                  const std::string& aws_secret_key);
 
         S3Mirror(const Context& ctx, const std::string& url);
-
+        
         ~S3Mirror();
-
-        std::string calculate_signature(const std::chrono::system_clock::time_point& request_date,
-                                        const std::string& secret,
-                                        const std::string& region,
-                                        const std::string& service,
-                                        const std::string& string_to_sign) const;
+        
+        
 
         std::vector<std::string> get_auth_headers(const std::string& path) const override;
         std::vector<std::string> get_auth_headers(S3CanonicalRequest& request) const;
@@ -67,6 +63,14 @@ namespace powerloader
         bool prepare(Target* target) override;
 
     };
+
+
+    POWERLOADER_API
+    std::string s3_calculate_signature(const std::chrono::system_clock::time_point& request_date,
+                                       const std::string& secret,
+                                       const std::string& region,
+                                       const std::string& service,
+                                       const std::string& string_to_sign);
 
     POWERLOADER_API
     Response s3_upload(const Context& ctx,
