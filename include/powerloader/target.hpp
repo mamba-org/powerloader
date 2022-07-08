@@ -41,26 +41,6 @@ namespace powerloader
 
         ~Target();
 
-        bool zck_running() const;
-
-        CbReturnCode call_end_callback(TransferStatus status);
-        void reset_file(TransferStatus status);
-
-        static int progress_callback(Target* ptr,
-                                     curl_off_t total_to_download,
-                                     curl_off_t now_downloaded,
-                                     curl_off_t total_to_upload,
-                                     curl_off_t now_uploaded);
-
-        bool truncate_transfer_file();
-
-        void open_target_file();
-
-        void reset();
-
-        bool check_filesize();
-        bool check_checksums();
-
         std::shared_ptr<DownloadTarget> target;
         fs::path temp_file;
         std::string url_stub;
@@ -98,6 +78,26 @@ namespace powerloader
         ZckState zck_state;
 
         const Context& ctx;
+
+        bool zck_running() const;
+
+        CbReturnCode call_end_callback(TransferStatus status);
+        void reset_file(TransferStatus status);
+
+        static int progress_callback(Target* ptr,
+                                     curl_off_t total_to_download,
+                                     curl_off_t now_downloaded,
+                                     curl_off_t total_to_upload,
+                                     curl_off_t now_uploaded);
+
+        bool truncate_transfer_file();
+
+        void open_target_file();
+
+        void reset();
+
+        bool check_filesize();
+        bool check_checksums();
     };
 }
 

@@ -7,64 +7,70 @@
 namespace powerloader
 {
     Mirror::Mirror(const Context& ctx, const std::string& url)
-        : url(url)
-        , preference(0)
-        , protocol(Protocol::kHTTP)
+        : m_url(url)
     {
         if (url.back() == '/')
-            this->url = this->url.substr(0, this->url.size() - 1);
+            m_url = m_url.substr(0, m_url.size() - 1);
 
         if (ctx.max_downloads_per_mirror > 0)
         {
-            allowed_parallel_connections = ctx.max_downloads_per_mirror;
+            m_stats.allowed_parallel_connections = ctx.max_downloads_per_mirror;
         }
+    }
+
+    Mirror::~Mirror() = default;
+
+    void Mirror::change_max_ranges(int new_value)
+    {
+        // TODO: add some checks here.
+        m_stats.max_ranges = new_value;
     }
 
     bool Mirror::need_wait_for_retry() const
     {
-        return retry_counter != 0 && next_retry > std::chrono::system_clock::now();
+        return m_retry_counter != 0 && m_next_retry > std::chrono::system_clock::now();
     }
 
     bool Mirror::has_running_transfers() const
     {
-        return running_transfers > 0;
+        return m_stats.running_transfers > 0;
     }
 
     void Mirror::set_allowed_parallel_connections(int max_allowed_parallel_connections)
     {
-        allowed_parallel_connections = max_allowed_parallel_connections;
+        m_stats.allowed_parallel_connections = max_allowed_parallel_connections;
     }
 
     void Mirror::increase_running_transfers()
     {
-        running_transfers++;
-        if (max_tried_parallel_connections < running_transfers)
+        m_stats.running_transfers++;
+        if (m_stats.max_tried_parallel_connections < m_stats.running_transfers)
         {
-            max_tried_parallel_connections = running_transfers;
+            m_stats.max_tried_parallel_connections = m_stats.running_transfers;
         }
     }
 
     bool Mirror::is_parallel_connections_limited_and_reached() const
     {
-        return allowed_parallel_connections != -1
-               && running_transfers >= allowed_parallel_connections;
+        return m_stats.allowed_parallel_connections != -1
+               && m_stats.running_transfers >= m_stats.allowed_parallel_connections;
     }
 
     void Mirror::update_statistics(bool transfer_success)
     {
-        running_transfers--;
+        m_stats.running_transfers--;
         if (transfer_success)
         {
-            successful_transfers++;
+            m_stats.successful_transfers++;
         }
         else
         {
-            failed_transfers++;
-            if (failed_transfers == 1 || next_retry < std::chrono::system_clock::now())
+            m_stats.failed_transfers++;
+            if (m_stats.failed_transfers == 1 || m_next_retry < std::chrono::system_clock::now())
             {
-                retry_counter++;
-                retry_wait_seconds = retry_wait_seconds * retry_backoff_factor;
-                next_retry = std::chrono::system_clock::now() + retry_wait_seconds;
+                m_retry_counter++;
+                m_retry_wait_seconds = m_retry_wait_seconds * m_retry_backoff_factor;
+                m_next_retry = std::chrono::system_clock::now() + m_retry_wait_seconds;
             }
         }
     }
@@ -73,31 +79,29 @@ namespace powerloader
     {
         double rank = -1.0;
 
-        int successful = successful_transfers;
-        int failed = failed_transfers;
-        int finished_transfers = successful + failed;
+        const int finished_transfers = m_stats.count_finished_transfers();
 
         if (finished_transfers < 3)
             return rank;  // Do not judge too early
 
-        rank = successful / (double) finished_transfers;
+        rank = m_stats.successful_transfers / static_cast<double>(finished_transfers);
 
         return rank;
     }
 
     bool Mirror::prepare(Target* target)
     {
-        state = MirrorState::READY;
+        m_state = MirrorState::READY;
         return true;
     }
 
     bool Mirror::prepare(const std::string& path, CURLHandle& handle)
     {
-        state = MirrorState::READY;
+        m_state = MirrorState::READY;
         return true;
     }
 
-    bool Mirror::need_preparation(Target* target)
+    bool Mirror::needs_preparation(Target* target) const
     {
         return false;
     }
@@ -112,9 +116,9 @@ namespace powerloader
         return {};
     }
 
-    std::string Mirror::format_url(Target* target)
+    std::string Mirror::format_url(Target* target) const
     {
-        return fmt::format("{}/{}", url, target->target->path);
+        return fmt::format("{}/{}", m_url, target->target->path);
     }
 
     /** Sort mirrors. Penalize the error ones.
@@ -149,7 +153,7 @@ namespace powerloader
             return true;
 
         // Serious errors
-        if (serious && mirror->successful_transfers == 0)
+        if (serious && mirror->stats().successful_transfers == 0)
         {
             // Mirror that encounter a serious error and has no successful
             // transfers should be moved at the end of the list
@@ -158,7 +162,7 @@ namespace powerloader
             // TODO should we really _swap_ here or rather move that one mirror down and shuffle all
             // others?!
             std::iter_swap(it, mirrors.end() - 1);
-            spdlog::info("Mirror {} was moved to the end", mirror->url);
+            spdlog::info("Mirror {} was moved to the end", mirror->url());
             return true;
         }
 
@@ -175,7 +179,7 @@ namespace powerloader
             if (rank_next < 0.0 || rank_next > rank_cur)
             {
                 std::iter_swap(it, it + 1);
-                spdlog::info("Mirror {} was penalized", mirror->url);
+                spdlog::info("Mirror {} was penalized", mirror->url());
             }
         }
         else
@@ -185,7 +189,7 @@ namespace powerloader
             if (rank_prev < rank_cur)
             {
                 std::iter_swap(it, it - 1);
-                spdlog::info("Mirror {} was awarded", mirror->url);
+                spdlog::info("Mirror {} was awarded", mirror->url());
             }
         }
 

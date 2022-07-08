@@ -60,6 +60,8 @@ namespace powerloader
     {
     }
 
+    OCIMirror::~OCIMirror() = default;
+
     void OCIMirror::set_fn_tag_split_function(const split_function_type& func)
     {
         m_split_func = func;
@@ -87,23 +89,24 @@ namespace powerloader
         else
             return repo;
     }
+
     std::string OCIMirror::get_auth_url(const std::string& repo, const std::string& scope) const
     {
-        return fmt::format("{}/token?scope=repository:{}:{}", url, get_repo(repo), scope);
+        return fmt::format("{}/token?scope=repository:{}:{}", this->url(), get_repo(repo), scope);
     }
 
     std::string OCIMirror::get_manifest_url(const std::string& repo,
                                             const std::string& reference) const
     {
-        return fmt::format("{}/v2/{}/manifests/{}", url, get_repo(repo), reference);
+        return fmt::format("{}/v2/{}/manifests/{}", this->url(), get_repo(repo), reference);
     }
 
     std::string OCIMirror::get_preupload_url(const std::string& repo) const
     {
-        return fmt::format("{}/v2/{}/blobs/uploads/", url, get_repo(repo));
+        return fmt::format("{}/v2/{}/blobs/uploads/", this->url(), get_repo(repo));
     }
 
-    OCIMirror::AuthCallbackData* OCIMirror::get_data(Target* target)
+    OCIMirror::AuthCallbackData* OCIMirror::get_data(Target* target) const
     {
         auto [split_path, _] = split_path_tag(target->target->path);
         auto it = m_path_cb_map.find(split_path);
@@ -214,7 +217,7 @@ namespace powerloader
         return m_username.size() && m_password.size();
     }
 
-    bool OCIMirror::need_preparation(Target* target)
+    bool OCIMirror::needs_preparation(Target* target) const
     {
         auto* data = get_data(target);
         if ((!data || data && data->token.empty()) && need_auth())
@@ -231,7 +234,7 @@ namespace powerloader
         return false;
     }
 
-    std::string OCIMirror::format_url(Target* target)
+    std::string OCIMirror::format_url(Target* target) const
     {
         std::string* checksum = nullptr;
 
@@ -248,7 +251,8 @@ namespace powerloader
         }
         auto [split_path, split_tag] = split_path_tag(target->target->path);
         // https://ghcr.io/v2/wolfv/artifact/blobs/sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4
-        return fmt::format("{}/v2/{}/blobs/sha256:{}", url, get_repo(split_path), *checksum);
+        return fmt::format(
+            "{}/v2/{}/blobs/sha256:{}", this->url(), get_repo(split_path), *checksum);
     }
 
     std::string OCIMirror::get_digest(const fs::path& p) const
