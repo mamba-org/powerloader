@@ -104,7 +104,7 @@ namespace powerloader
         return fmt::format("{}/v2/{}/blobs/uploads/", this->url(), get_repo(repo));
     }
 
-    OCIMirror::AuthCallbackData* OCIMirror::get_data(Target* target)
+    OCIMirror::AuthCallbackData* OCIMirror::get_data(Target* target) const
     {
         auto [split_path, _] = split_path_tag(target->target->path);
         auto it = m_path_cb_map.find(split_path);
@@ -215,7 +215,7 @@ namespace powerloader
         return m_username.size() && m_password.size();
     }
 
-    bool OCIMirror::need_preparation(Target* target)
+    bool OCIMirror::needs_preparation(Target* target) const
     {
         auto* data = get_data(target);
         if ((!data || data && data->token.empty()) && need_auth())
@@ -232,7 +232,7 @@ namespace powerloader
         return false;
     }
 
-    std::string OCIMirror::format_url(Target* target)
+    std::string OCIMirror::format_url(Target* target) const
     {
         std::string* checksum = nullptr;
 

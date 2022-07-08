@@ -101,7 +101,7 @@ namespace powerloader
         return true;
     }
 
-    bool Mirror::need_preparation(Target* target)
+    bool Mirror::needs_preparation(Target* target) const
     {
         return false;
     }
@@ -116,7 +116,7 @@ namespace powerloader
         return {};
     }
 
-    std::string Mirror::format_url(Target* target)
+    std::string Mirror::format_url(Target* target) const
     {
         return fmt::format("{}/{}", m_url, target->target->path);
     }

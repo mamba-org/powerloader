@@ -37,10 +37,10 @@ namespace powerloader
         // is also dependent on each target unfortunately?!
         bool prepare(const std::string& path, CURLHandle& handle) override;
         bool need_auth() const;
-        bool need_preparation(Target* target) override;
+        bool needs_preparation(Target* target) const override;
 
         // void add_extra_headers(Target* target);
-        std::string format_url(Target* target) override;
+        std::string format_url(Target* target) const override;
 
         // upload specific functions
         std::string get_digest(const fs::path& p) const;

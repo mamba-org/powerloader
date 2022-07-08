@@ -132,12 +132,12 @@ namespace powerloader
         return true;
     };
 
-    std::string S3Mirror::format_url(Target* target)
+    std::string S3Mirror::format_url(Target* target) const
     {
         return fmt::format("{}/{}", bucket_url, target->target->path);
     }
 
-    bool S3Mirror::need_preparation(Target* target)
+    bool S3Mirror::needs_preparation(Target* target) const
     {
         return false;
     }

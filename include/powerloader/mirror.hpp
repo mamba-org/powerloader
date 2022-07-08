@@ -112,13 +112,13 @@ namespace powerloader
         virtual bool prepare(Target* target);
         virtual bool prepare(const std::string& path, CURLHandle& handle);
 
-        virtual bool need_preparation(Target* target);
+        virtual bool needs_preparation(Target* target) const;
         virtual bool authenticate(CURLHandle& handle, const std::string& path);
 
         virtual std::vector<std::string> get_auth_headers(const std::string& path) const;
 
         // virtual void add_extra_headers(Target* target) { return; };
-        virtual std::string format_url(Target* target);
+        virtual std::string format_url(Target* target) const;
 
     private:
 

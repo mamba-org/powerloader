@@ -362,7 +362,7 @@ namespace powerloader
 
                 // TODO: create a `name()` or similar function
                 spdlog::info("Selected mirror: {}", mirror->url());
-                if (mirror && !mirror->need_preparation(target))
+                if (mirror && !mirror->needs_preparation(target))
                 {
                     full_url = mirror->format_url(target);
                     target->mirror = mirror;
@@ -370,7 +370,7 @@ namespace powerloader
                 else
                 {
                     // No free mirror
-                    if (!mirror->need_preparation(target))
+                    if (!mirror->needs_preparation(target))
                     {
                         spdlog::info("Currently there is no free mirror for {}",
                                      target->target->path);
@@ -464,7 +464,7 @@ namespace powerloader
         target->curl_handle.reset(new CURLHandle(ctx));
         CURLHandle& h = *(target->curl_handle);
 
-        if (target->mirror && target->mirror->need_preparation(target))
+        if (target->mirror && target->mirror->needs_preparation(target))
         {
             target->mirror->prepare(target->target->path, h);
             target->state = DownloadState::kPREPARATION;
