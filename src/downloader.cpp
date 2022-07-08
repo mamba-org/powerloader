@@ -289,7 +289,8 @@ namespace powerloader
                 // of connection to a single host.
                 if (mirror_stats.allowed_parallel_connections > 0)
                 {
-                    // FIXME: either make this a proper error (exception or log) or remove this code? OR move the if condition in the assert?
+                    // FIXME: either make this a proper error (exception or log) or remove this
+                    // code? OR move the if condition in the assert?
                     assert(mirror_stats.running_transfers
                            <= mirror_stats.allowed_parallel_connections);
                 }

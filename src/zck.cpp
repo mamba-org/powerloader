@@ -448,7 +448,8 @@ namespace powerloader
         assert(target->target->outfile->open());
 
         if (target->mirror
-            && (target->mirror->stats().max_ranges == 0 || target->mirror->protocol() != Protocol::kHTTP))
+            && (target->mirror->stats().max_ranges == 0
+                || target->mirror->protocol() != Protocol::kHTTP))
         {
             spdlog::info("zck: mirror does not support ranges");
             target->zck_state = ZckState::kBODY;

@@ -43,10 +43,9 @@ namespace powerloader
                  const std::string& aws_secret_key);
 
         S3Mirror(const Context& ctx, const std::string& url);
-        
+
         ~S3Mirror();
-        
-        
+
 
         std::vector<std::string> get_auth_headers(const std::string& path) const override;
         std::vector<std::string> get_auth_headers(S3CanonicalRequest& request) const;
@@ -61,7 +60,6 @@ namespace powerloader
         std::string format_url(Target* target) const override;
         bool needs_preparation(Target* target) const override;
         bool prepare(Target* target) override;
-
     };
 
 

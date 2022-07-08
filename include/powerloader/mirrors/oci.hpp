@@ -25,7 +25,6 @@ namespace powerloader
         ~OCIMirror();
 
 
-
         std::string get_repo(const std::string& repo) const;
         std::string get_auth_url(const std::string& repo, const std::string& scope) const;
         std::string get_manifest_url(const std::string& repo, const std::string& reference) const;
@@ -43,7 +42,8 @@ namespace powerloader
         std::string format_url(Target* target) const override;
 
 
-        void set_fn_tag_split_function(const split_function_type& func); // TODO: review, looks like a hack
+        void set_fn_tag_split_function(
+            const split_function_type& func);  // TODO: review, looks like a hack
 
     private:
         struct AuthCallbackData
@@ -61,7 +61,6 @@ namespace powerloader
         std::string m_username;
         std::string m_password;
         split_function_type m_split_func;
-
 
 
         std::pair<std::string, std::string> split_path_tag(const std::string& path) const;

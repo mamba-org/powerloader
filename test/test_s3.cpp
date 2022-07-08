@@ -21,4 +21,3 @@ TEST(s3, signdata)
 }
 
 // TODO: add tests actually usuing S3Mirror
-

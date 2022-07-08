@@ -433,7 +433,9 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
                         new OCIMirror{ ctx, creds.url.url_without_path(), creds.url.path() });
                 }
                 std::dynamic_pointer_cast<OCIMirror>(res[mirror_name].back())
-                    ->set_fn_tag_split_function(oci_fn_split_tag); // TODO: this is weird, maybe move that code/function in oci so that this is not necessary?
+                    ->set_fn_tag_split_function(
+                        oci_fn_split_tag);  // TODO: this is weird, maybe move that code/function in
+                                            // oci so that this is not necessary?
             }
             else if (kof == KindOf::kHTTP)
             {

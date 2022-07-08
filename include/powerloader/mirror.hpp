@@ -74,18 +74,31 @@ namespace powerloader
         Mirror& operator=(Mirror&&) = delete;
 
         // URL of the mirror
-        const std::string& url() const { return m_url; }
+        const std::string& url() const
+        {
+            return m_url;
+        }
 
         // Protocol of mirror (can be detected from URL)
-        Protocol protocol() const { return m_protocol; }
+        Protocol protocol() const
+        {
+            return m_protocol;
+        }
 
         // Statistics about this mirror.
-        // TODO: consider returning by copy for concurrent safety... (like "capturing" the stats at a given moment - but they might change while observing)
-        const MirrorStats& stats() const { return m_stats; }
+        // TODO: consider returning by copy for concurrent safety... (like "capturing" the stats at
+        // a given moment - but they might change while observing)
+        const MirrorStats& stats() const
+        {
+            return m_stats;
+        }
 
         void change_max_ranges(int new_value);
 
-        std::chrono::system_clock::time_point next_retry() const { return m_next_retry; }
+        std::chrono::system_clock::time_point next_retry() const
+        {
+            return m_next_retry;
+        }
 
         // Return mirror rank or -1.0 if the rank cannot be determined
         // (e.g. when is too early)
@@ -107,7 +120,7 @@ namespace powerloader
         void update_statistics(bool transfer_success);
 
 
-    // TODO: protected: then  make this apply protection-against-change to these
+        // TODO: protected: then  make this apply protection-against-change to these
 
         virtual bool prepare(Target* target);
         virtual bool prepare(const std::string& path, CURLHandle& handle);
@@ -121,7 +134,6 @@ namespace powerloader
         virtual std::string format_url(Target* target) const;
 
     private:
-
         std::string m_url;
 
         Protocol m_protocol = Protocol::kHTTP;
@@ -145,7 +157,6 @@ namespace powerloader
         // count number of retries (this is not the same as failed transfers, as mutiple
         // transfers can be started at the same time, but should all be retried only once)
         std::size_t m_retry_counter = 0;
-
     };
 
     bool sort_mirrors(std::vector<std::shared_ptr<Mirror>>& mirrors,

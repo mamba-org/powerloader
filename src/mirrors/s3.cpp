@@ -149,12 +149,11 @@ namespace powerloader
         return true;
     }
 
-    std::string s3_calculate_signature(
-        const std::chrono::system_clock::time_point& request_date,
-        const std::string& secret,
-        const std::string& region,
-        const std::string& service,
-        const std::string& string_to_sign)
+    std::string s3_calculate_signature(const std::chrono::system_clock::time_point& request_date,
+                                       const std::string& secret,
+                                       const std::string& region,
+                                       const std::string& service,
+                                       const std::string& string_to_sign)
     {
         std::string yyyymmdd = get_yyyymmdd(request_date);
 
@@ -162,50 +161,53 @@ namespace powerloader
 
         unsigned int DateKeyLen = 0;
         unsigned char* DateKey = HMAC(EVP_sha256(),
-                       key1.c_str(),
-                       static_cast<int>(key1.size()),
-                       reinterpret_cast<const unsigned char*>(yyyymmdd.c_str()),
-                       yyyymmdd.size(),
-                       NULL,
-                       &DateKeyLen);
+                                      key1.c_str(),
+                                      static_cast<int>(key1.size()),
+                                      reinterpret_cast<const unsigned char*>(yyyymmdd.c_str()),
+                                      yyyymmdd.size(),
+                                      NULL,
+                                      &DateKeyLen);
 
         unsigned int DateRegionKeyLen = 0;
         unsigned char* DateRegionKey = HMAC(EVP_sha256(),
-                             DateKey,
-                             DateKeyLen,
-                             reinterpret_cast<const unsigned char*>(region.c_str()),
-                             region.size(),
-                             NULL,
-                             &DateRegionKeyLen);
+                                            DateKey,
+                                            DateKeyLen,
+                                            reinterpret_cast<const unsigned char*>(region.c_str()),
+                                            region.size(),
+                                            NULL,
+                                            &DateRegionKeyLen);
 
         ;
         unsigned int DateRegionServiceKeyLen = 0;
-        unsigned char* DateRegionServiceKey = HMAC(EVP_sha256(),
-                                    DateRegionKey,
-                                    DateRegionKeyLen,
-                                    reinterpret_cast<const unsigned char*>(service.c_str()),
-                                    service.size(),
-                                    NULL,
-                                    &DateRegionServiceKeyLen);
+        unsigned char* DateRegionServiceKey
+            = HMAC(EVP_sha256(),
+                   DateRegionKey,
+                   DateRegionKeyLen,
+                   reinterpret_cast<const unsigned char*>(service.c_str()),
+                   service.size(),
+                   NULL,
+                   &DateRegionServiceKeyLen);
 
         const std::string AWS4_REQUEST{ "aws4_request" };
         unsigned int SigningKeyLen = 0;
-        unsigned char* SigningKey = HMAC(EVP_sha256(),
-                          DateRegionServiceKey,
-                          DateRegionServiceKeyLen,
-                          reinterpret_cast<const unsigned char*>(AWS4_REQUEST.c_str()),
-                          AWS4_REQUEST.size(),
-                          NULL,
-                          &SigningKeyLen);
+        unsigned char* SigningKey
+            = HMAC(EVP_sha256(),
+                   DateRegionServiceKey,
+                   DateRegionServiceKeyLen,
+                   reinterpret_cast<const unsigned char*>(AWS4_REQUEST.c_str()),
+                   AWS4_REQUEST.size(),
+                   NULL,
+                   &SigningKeyLen);
 
         unsigned int SignatureLen = 0;
-        unsigned char* Signature = HMAC(EVP_sha256(),
-                         SigningKey,
-                         SigningKeyLen,
-                         reinterpret_cast<const unsigned char*>(string_to_sign.c_str()),
-                         string_to_sign.size(),
-                         NULL,
-                         &SignatureLen);
+        unsigned char* Signature
+            = HMAC(EVP_sha256(),
+                   SigningKey,
+                   SigningKeyLen,
+                   reinterpret_cast<const unsigned char*>(string_to_sign.c_str()),
+                   string_to_sign.size(),
+                   NULL,
+                   &SignatureLen);
 
         return hex_string(Signature, SHA256_DIGEST_LENGTH);
     }
@@ -215,10 +217,10 @@ namespace powerloader
         std::vector<std::string> headers;
 
         const std::string signature = s3_calculate_signature(request.date,
-                                                    aws_secret_access_key,
-                                                    region,
-                                                    "s3",
-                                                    request.string_to_sign(region, "s3"));
+                                                             aws_secret_access_key,
+                                                             region,
+                                                             "s3",
+                                                             request.string_to_sign(region, "s3"));
 
         std::stringstream authorization_header;
         authorization_header << "AWS4-HMAC-SHA256 Credential=" << aws_access_key_id << "/"
