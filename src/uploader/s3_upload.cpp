@@ -13,7 +13,7 @@ namespace powerloader
         std::string digest = sha256sum(file);
         std::size_t fsize = fs::file_size(file);
 
-        URLHandler uh(fmt::format("{}/{}", mirror.url, path));
+        URLHandler uh(fmt::format("{}/{}", mirror.url(), path));
 
         S3CanonicalRequest request("PUT", uh, digest);
         request.hashed_payload = digest;

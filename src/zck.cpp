@@ -383,7 +383,7 @@ namespace powerloader
 
         zck_dl_reset(target->target->p_zck->zck_dl);
         zckRange* range
-            = zck_get_missing_range(zck, target->mirror ? target->mirror->max_ranges : -1);
+            = zck_get_missing_range(zck, target->mirror ? target->mirror->stats().max_ranges : -1);
         zckRange* old_range = zck_dl_get_range(target->target->p_zck->zck_dl);
         if (old_range)
         {
@@ -448,7 +448,7 @@ namespace powerloader
         assert(target->target->outfile->open());
 
         if (target->mirror
-            && (target->mirror->max_ranges == 0 || target->mirror->protocol != Protocol::kHTTP))
+            && (target->mirror->stats().max_ranges == 0 || target->mirror->protocol() != Protocol::kHTTP))
         {
             spdlog::info("zck: mirror does not support ranges");
             target->zck_state = ZckState::kBODY;

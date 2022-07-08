@@ -110,10 +110,11 @@ namespace powerloader
             {
                 zckRange* range = zck_dl_get_range(target->target->p_zck->zck_dl);
                 int range_count = zck_get_range_count(range);
-                if (target->mirror->max_ranges >= range_count)
+                if (target->mirror->stats().max_ranges >= range_count)
                 {
-                    target->mirror->max_ranges = range_count / 2;
-                    spdlog::debug("Setting mirror max_ranges to {}", target->mirror->max_ranges);
+                    target->mirror->change_max_ranges(range_count / 2);
+                    spdlog::debug("Setting mirror max_ranges to {}",
+                                  target->mirror->stats().max_ranges);
                 }
             }
             else if (target->target->p_zck->zck_dl != nullptr
@@ -233,9 +234,10 @@ namespace powerloader
         {
             for (const auto& mirror : target->mirrors)
             {
+                const auto mirror_stats = mirror->stats();
                 if (mirrors_iterated == 0)
                 {
-                    if (mirror->protocol != Protocol::kFILE)
+                    if (mirror->protocol() != Protocol::kFILE)
                     {
                         reiterate = true;
                     }
@@ -244,21 +246,21 @@ namespace powerloader
                         // This mirror was already tried for this target
                         continue;
                     }
-                    if (mirror->successful_transfers == 0 && allowed_mirror_failures > 0
-                        && mirror->failed_transfers >= allowed_mirror_failures)
+                    if (mirror_stats.successful_transfers == 0 && allowed_mirror_failures > 0
+                        && mirror_stats.failed_transfers >= allowed_mirror_failures)
                     {
                         // Skip bad mirrors
                         spdlog::info("Skipping bad mirror ({} failures and no success): {}",
-                                     mirror->failed_transfers,
-                                     mirror->url);
+                                     mirror_stats.failed_transfers,
+                                     mirror->url());
                     }
                 }
-                else if (mirror->protocol == Protocol::kFILE)
+                else if (mirror->protocol() == Protocol::kFILE)
                 {
                     // retry of local paths have no reason
                     continue;
                 }
-                else if (mirrors_iterated < mirror->failed_transfers)
+                else if (mirrors_iterated < mirror_stats.failed_transfers)
                 {
                     // On subsequent iterations, only skip mirrors that failed
                     // proportionally to the number of iterations. It allows to reuse
@@ -266,17 +268,17 @@ namespace powerloader
                     continue;
                 }
 
-                if (mirrors_iterated == 0 && mirror->protocol == Protocol::kFTP
+                if (mirrors_iterated == 0 && mirror->protocol() == Protocol::kFTP
                     && target->target->is_zchunk)
                 {
                     continue;
                 }
 
                 // Skip each url that doesn't have "file://" or "file:" prefix
-                if (ctx.offline && mirror->protocol != Protocol::kFILE)
+                if (ctx.offline && mirror->protocol() != Protocol::kFILE)
                 {
                     if (mirrors_iterated == 0)
-                        spdlog::info("Skipping mirror {} - Offline mode enabled", mirror->url);
+                        spdlog::info("Skipping mirror {} - Offline mode enabled", mirror->url());
                     continue;
                 }
 
@@ -285,9 +287,11 @@ namespace powerloader
                 // Number of transfers which are downloading from the mirror
                 // should always be lower or equal than maximum allowed number
                 // of connection to a single host.
-                if (mirror->allowed_parallel_connections > 0)
+                if (mirror_stats.allowed_parallel_connections > 0)
                 {
-                    assert(mirror->running_transfers <= mirror->allowed_parallel_connections);
+                    // FIXME: either make this a proper error (exception or log) or remove this code? OR move the if condition in the assert?
+                    assert(mirror_stats.running_transfers
+                           <= mirror_stats.allowed_parallel_connections);
                 }
 
                 // Check number of connections to the mirror
@@ -357,7 +361,7 @@ namespace powerloader
                 assert(mirror);
 
                 // TODO: create a `name()` or similar function
-                spdlog::info("Selected mirror: {}", mirror->url);
+                spdlog::info("Selected mirror: {}", mirror->url());
                 if (mirror && !mirror->need_preparation(target))
                 {
                     full_url = mirror->format_url(target);
@@ -432,7 +436,7 @@ namespace powerloader
 
         if (target->mirror && target->mirror->need_wait_for_retry())
         {
-            std::this_thread::sleep_until(target->mirror->next_retry);
+            std::this_thread::sleep_until(target->mirror->next_retry());
         }
 
         *candidate_found = true;
@@ -735,8 +739,8 @@ namespace powerloader
                 }
                 else if (current_target->zck_state == ZckState::kHEADER)
                 {
-                    if (current_target->mirror->max_ranges > 0
-                        && current_target->mirror->protocol == Protocol::kHTTP
+                    if (current_target->mirror->stats().max_ranges > 0
+                        && current_target->mirror->protocol() == Protocol::kHTTP
                         && !zck_valid_header(current_target))
                     {
                         goto transfer_error;
@@ -744,8 +748,8 @@ namespace powerloader
                 }
                 else if (current_target->zck_state == ZckState::kBODY)
                 {
-                    if (current_target->mirror->max_ranges > 0
-                        && current_target->mirror->protocol == Protocol::kHTTP)
+                    if (current_target->mirror->stats().max_ranges > 0
+                        && current_target->mirror->protocol() == Protocol::kHTTP)
                     {
                         zckCtx* zck = zck_dl_get_zck(current_target->target->p_zck->zck_dl);
                         if (zck == nullptr)
@@ -895,29 +899,31 @@ namespace powerloader
 
                 if (!result.error().is_fatal())
                 {
+                    const auto& current_mirror = current_target->mirror;
+                    const auto mirror_stats = current_mirror->stats();
                     // Temporary error (serious_error) during download occurred and
                     // another transfers are running or there are successful transfers
                     // and fewer failed transfers than tried parallel connections. It may be
                     // mirror is OK but accepts fewer parallel connections.
-                    if (result.error().is_serious() && current_target->mirror
-                        && (current_target->mirror->has_running_transfers()
-                            || (current_target->mirror->successful_transfers > 0
-                                && current_target->mirror->failed_transfers
-                                       < current_target->mirror->max_tried_parallel_connections)))
+                    if (result.error().is_serious() && current_mirror
+                        && (current_mirror->has_running_transfers()
+                            || (mirror_stats.successful_transfers > 0
+                                && mirror_stats.failed_transfers
+                                       < mirror_stats.max_tried_parallel_connections)))
                     {
                         spdlog::info("Lower maximum of parallel connections for mirror");
-                        if (current_target->mirror->has_running_transfers())
+                        if (current_mirror->has_running_transfers())
                         {
-                            current_target->mirror->set_allowed_parallel_connections(
-                                current_target->mirror->running_transfers);
+                            current_mirror->set_allowed_parallel_connections(
+                                mirror_stats.running_transfers);
                         }
                         else
                         {
-                            current_target->mirror->set_allowed_parallel_connections(1);
+                            current_mirror->set_allowed_parallel_connections(1);
                         }
 
                         // Give used mirror another chance
-                        current_target->tried_mirrors.erase(current_target->mirror);
+                        current_target->tried_mirrors.erase(current_mirror);
                     }
 
                     // complete_url_in_path and target->base_url doesn't have an

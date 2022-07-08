@@ -98,7 +98,7 @@ namespace powerloader
 
         std::string temp_upload_location = response.headers.at("location");
 
-        auto upload_url = format_upload_url(mirror.url, temp_upload_location, digest);
+        auto upload_url = format_upload_url(mirror.url(), temp_upload_location, digest);
 
         spdlog::info("Uploading digest {}", digest);
         spdlog::info("Upload url: {}", upload_url);

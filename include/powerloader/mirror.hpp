@@ -31,31 +31,83 @@ namespace powerloader
         FAILED
     };
 
+    struct MirrorStats
+    {
+        // Maximum number of allowed parallel connections to this mirror. -1 means no
+        // limit. Dynamically adjusted(decreased) if no fatal(temporary) error will
+        // occur.
+        long allowed_parallel_connections = -1;
+
+        // The maximum number of tried parallel connections to this mirror
+        // (including unsuccessful).
+        int max_tried_parallel_connections = 0;
+
+        // How many transfers from this mirror are currently in progress.
+        int running_transfers = 0;
+
+        // How many transfers was finished successfully from the mirror.
+        int successful_transfers = 0;
+
+        // How many transfers failed.
+        int failed_transfers = 0;
+
+        // Maximum ranges supported in a single request.  This will be automatically
+        // adjusted when mirrors respond with 200 to a range request
+        int max_ranges = 256;
+
+        // Returns the total count of finished transfered.
+        int count_finished_transfers() const
+        {
+            return successful_transfers + failed_transfers;
+        }
+    };
+
     // mirrors should be dict -> urls mapping
     struct POWERLOADER_API Mirror
     {
         Mirror(const Context& ctx, const std::string& url);
-        virtual ~Mirror() = default;
+        virtual ~Mirror();
 
         Mirror(const Mirror&) = delete;
         Mirror& operator=(const Mirror&) = delete;
         Mirror(Mirror&&) = delete;
         Mirror& operator=(Mirror&&) = delete;
 
+        // URL of the mirror
+        const std::string& url() const { return m_url; }
+
+        // Protocol of mirror (can be detected from URL)
+        Protocol protocol() const { return m_protocol; }
+
+        // Statistics about this mirror.
+        // TODO: consider returning by copy for concurrent safety... (like "capturing" the stats at a given moment - but they might change while observing)
+        const MirrorStats& stats() const { return m_stats; }
+
+        void change_max_ranges(int new_value);
+
+        std::chrono::system_clock::time_point next_retry() const { return m_next_retry; }
+
+        // Return mirror rank or -1.0 if the rank cannot be determined
+        // (e.g. when is too early)
+        // Rank is currently just success rate for the mirror
+        double rank() const;
+
         bool need_wait_for_retry() const;
         bool has_running_transfers() const;
 
+        // Maximum number of allowed parallel connections to this mirror. -1 means no
+        // limit. Dynamically adjusted(decreased) if no fatal(temporary) error will
+        // occur.
         void set_allowed_parallel_connections(int max_allowed_parallel_connections);
+
         void increase_running_transfers();
 
         bool is_parallel_connections_limited_and_reached() const;
 
         void update_statistics(bool transfer_success);
 
-        // Return mirror rank or -1.0 if the rank cannot be determined
-        // (e.g. when is too early)
-        // Rank is currently just success rate for the mirror
-        double rank() const;
+
+    // TODO: protected: then  make this apply protection-against-change to these
 
         virtual bool prepare(Target* target);
         virtual bool prepare(const std::string& path, CURLHandle& handle);
@@ -68,46 +120,32 @@ namespace powerloader
         // virtual void add_extra_headers(Target* target) { return; };
         virtual std::string format_url(Target* target);
 
-        // URL of the mirror
-        std::string url;
-        // Integer number 1-100 - higher is better
-        int preference;
-        // Protocol of mirror (can be detected from URL)
-        Protocol protocol;
+    private:
 
-        MirrorState state = MirrorState::READY;
+        std::string m_url;
 
-        bool authenticated = false;
+        Protocol m_protocol = Protocol::kHTTP;
+        MirrorState m_state = MirrorState::READY;
+        bool m_authenticated = false;
 
-        std::chrono::steady_clock::time_point next_allowed_retry;
-        std::chrono::steady_clock::duration next_wait_duration;
+        std::chrono::steady_clock::time_point m_next_allowed_retry;
+        std::chrono::steady_clock::duration m_next_wait_duration;
 
-        // Maximum number of allowed parallel connections to this mirror. -1 means no
-        // limit. Dynamically adjusted(decreased) if no fatal(temporary) error will
-        // occur.
-        long allowed_parallel_connections = -1;
-        // The maximum number of tried parallel connections to this mirror
-        // (including unsuccessful).
-        int max_tried_parallel_connections = 0;
-        // How many transfers from this mirror are currently in progress.
-        int running_transfers = 0;
-        // How many transfers was finished successfully from the mirror.
-        int successful_transfers = 0;
-        // How many transfers failed.
-        int failed_transfers = 0;
-        // Maximum ranges supported in a single request.  This will be automatically
-        // adjusted when mirrors respond with 200 to a range request
-        int max_ranges = 256;
+        MirrorStats m_stats;
 
         // retry & backoff values
-        std::chrono::system_clock::time_point next_retry;
+        std::chrono::system_clock::time_point m_next_retry;
+
         // first retry should wait for how many seconds?
-        std::chrono::system_clock::duration retry_wait_seconds = std::chrono::milliseconds(200);
+        std::chrono::system_clock::duration m_retry_wait_seconds = std::chrono::milliseconds(200);
+
         // backoff factor for retry
-        std::size_t retry_backoff_factor = 2;
+        std::size_t m_retry_backoff_factor = 2;
+
         // count number of retries (this is not the same as failed transfers, as mutiple
         // transfers can be started at the same time, but should all be retried only once)
-        std::size_t retry_counter = 0;
+        std::size_t m_retry_counter = 0;
+
     };
 
     bool sort_mirrors(std::vector<std::shared_ptr<Mirror>>& mirrors,
