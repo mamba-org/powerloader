@@ -24,7 +24,6 @@ namespace powerloader
                   const std::string& password);
         ~OCIMirror();
 
-        void set_fn_tag_split_function(const split_function_type& func);
 
 
         std::string get_repo(const std::string& repo) const;
@@ -43,8 +42,8 @@ namespace powerloader
         // void add_extra_headers(Target* target);
         std::string format_url(Target* target) const override;
 
-        // upload specific functions
-        std::string get_digest(const fs::path& p) const;
+
+        void set_fn_tag_split_function(const split_function_type& func); // TODO: review, looks like a hack
 
     private:
         struct AuthCallbackData
