@@ -13,68 +13,42 @@ namespace powerloader
         struct InternalMirror
         {
             std::string url;
-            CURL* handle;
+            CURLHandle handle;
             curl_off_t plain_connect_time;
         };
 
-        bool fastestmirror_perform(std::vector<InternalMirror>& mirrors,
-                                   std::size_t length_of_measurement);
-    }
-
-    namespace
-    {
         long HALF_OF_SECOND_IN_MICROS = 500000;
+
+        tl::expected<std::vector<std::string>, std::string> fastestmirror_perform(
+            std::vector<InternalMirror>& mirrors, std::size_t length_of_measurement);
     }
 
-    void fastest_mirror(const Context& ctx, const std::vector<std::string>& urls)
+    tl::expected<std::vector<std::string>, std::string> fastest_mirror(
+        const Context& ctx, const std::vector<std::string>& urls)
     {
         std::vector<detail::InternalMirror> check_mirrors;
         for (const std::string& u : urls)
         {
-            CURL* handle = get_handle(ctx);
-
-            int curlcode = curl_easy_setopt(handle, CURLOPT_URL, u.c_str());
-            if (curlcode != CURLE_OK)
-            {
-                // g_set_error(err, LR_FASTESTMIRROR_ERROR, LRE_CURL,
-                //             "curl_easy_setopt(_, CURLOPT_URL, %s) failed: %s",
-                //             url, curl_easy_strerror(curlcode));
-                // curl_easy_cleanup(curlh);
-                // ret = FALSE;
-                // break;
-            }
-
-            curlcode = curl_easy_setopt(handle, CURLOPT_CONNECT_ONLY, 1);
-            if (curlcode != CURLE_OK)
-            {
-                // g_set_error(err, LR_FASTESTMIRROR_ERROR, LRE_CURL,
-                //         "curl_easy_setopt(_, CURLOPT_CONNECT_ONLY, 1) failed: %s",
-                //         curl_easy_strerror(curlcode));
-                // curl_easy_cleanup(curlh);
-                // ret = FALSE;
-                // break;
-            }
-
-            detail::InternalMirror im{ u, handle, -1 };
-            check_mirrors.push_back(im);
+            CURLHandle handle(ctx);
+            handle.url(u);
+            handle.setopt(CURLOPT_CONNECT_ONLY, 1L);
+            check_mirrors.push_back(detail::InternalMirror{ u, std::move(handle), -1 });
         }
-        fastestmirror_perform(check_mirrors, 1000000);
+        return fastestmirror_perform(check_mirrors, 1000000);
     }
 
     namespace detail
     {
-        bool fastestmirror_perform(std::vector<detail::InternalMirror>& mirrors,
-                                   std::size_t length_of_measurement)
+        tl::expected<std::vector<std::string>, std::string> fastestmirror_perform(
+            std::vector<detail::InternalMirror>& mirrors, std::size_t length_of_measurement)
         {
             if (mirrors.size() == 0)
-                return false;
+                return {};
 
             CURLM* multihandle = curl_multi_init();
             if (!multihandle)
             {
-                // g_set_error(err, LR_FASTESTMIRROR_ERROR, LRE_CURL,
-                //             "curl_multi_init() error");
-                return false;
+                return tl::unexpected(std::string("curl_multi_init() error"));
             }
 
             // Add curl easy handles to multi handle
@@ -85,14 +59,14 @@ namespace powerloader
                 {
                     curl_multi_add_handle(multihandle, el.handle);
                     handles_added++;
-                    std::cout << "Checking el.url " << el.url << std::endl;
+                    spdlog::info("Checking URL: {}", el.url);
                 }
             }
 
             if (handles_added == 0)
             {
                 curl_multi_cleanup(multihandle);
-                return true;
+                return {};
             }
 
             // cb(cbdata, LR_FMSTAGE_DETECTION, (void *) &handles_added);
@@ -101,14 +75,14 @@ namespace powerloader
             double elapsed_time = 0.0;
             // _cleanup_timer_destroy_ GTimer *timer = g_timer_new();
             // g_timer_start(timer);
-
-            std::chrono::steady_clock::time_point tbegin = std::chrono::steady_clock::now();
-            std::chrono::steady_clock::time_point tend = std::chrono::steady_clock::now();
+            using time_point_t = std::chrono::steady_clock::time_point;
+            time_point_t tend, tbegin = std::chrono::steady_clock::now();
             std::size_t elapsed_micros = 0;
             do
             {
                 timeval timeout;
-                int rc, cm_rc;
+                int rc;
+                CURLMcode cm_rc;
                 int maxfd = -1;
                 long curl_timeout = -1;
                 fd_set fdread, fdwrite, fdexcep;
@@ -119,17 +93,15 @@ namespace powerloader
 
                 // Set suitable timeout to play around with
                 timeout.tv_sec = 0;
-                timeout.tv_usec = HALF_OF_SECOND_IN_MICROS;
+                timeout.tv_usec = detail::HALF_OF_SECOND_IN_MICROS;
 
                 cm_rc = curl_multi_timeout(multihandle, &curl_timeout);
                 if (cm_rc != CURLM_OK)
                 {
-                    spdlog::error("curl multi failed");
-                    // g_set_error(err, LR_FASTESTMIRROR_ERROR, LRE_CURLM,
-                    //             "curl_multi_timeout() error: %s",
-                    //             curl_multi_strerror(cm_rc));
+                    spdlog::error("fastestmirror: CURL multi failed");
                     curl_multi_cleanup(multihandle);
-                    return false;
+                    return tl::unexpected(
+                        fmt::format("curl_multi_timeout() error: {}", curl_multi_strerror(cm_rc)));
                 }
 
                 // Set timeout to a reasonable value
@@ -139,13 +111,13 @@ namespace powerloader
                     if (timeout.tv_sec >= 1)
                     {
                         timeout.tv_sec = 0;
-                        timeout.tv_usec = HALF_OF_SECOND_IN_MICROS;
+                        timeout.tv_usec = detail::HALF_OF_SECOND_IN_MICROS;
                     }
                     else
                     {
                         timeout.tv_usec = (curl_timeout % 1000) * 1000;
-                        if (timeout.tv_usec > HALF_OF_SECOND_IN_MICROS)
-                            timeout.tv_usec = HALF_OF_SECOND_IN_MICROS;
+                        if (timeout.tv_usec > detail::HALF_OF_SECOND_IN_MICROS)
+                            timeout.tv_usec = detail::HALF_OF_SECOND_IN_MICROS;
                     }
                 }
 
@@ -153,12 +125,10 @@ namespace powerloader
                 cm_rc = curl_multi_fdset(multihandle, &fdread, &fdwrite, &fdexcep, &maxfd);
                 if (cm_rc != CURLM_OK)
                 {
-                    std::cout << "curl FD SET error" << std::endl;
-                    // g_set_error(err, LR_FASTESTMIRROR_ERROR, LRE_CURLM,
-                    //             "curl_multi_fdset() error: %s",
-                    //             curl_multi_strerror(cm_rc));
+                    spdlog::error("fastestmirror: CURL fd set error.");
                     curl_multi_cleanup(multihandle);
-                    return false;
+                    return tl::unexpected(
+                        fmt::format("curl_multi_fdset() error: {}", curl_multi_strerror(cm_rc)));
                 }
 
                 rc = select(maxfd + 1, &fdread, &fdwrite, &fdexcep, &timeout);
@@ -166,49 +136,39 @@ namespace powerloader
                 {
                     if (errno == EINTR)
                     {
-                        // std::cout << ("%s: select() interrupted by signal", __func__);
+                        spdlog::debug("fastestmirror: select() interrupted by signal");
                     }
                     else
                     {
-                        // g_set_error(err, LR_FASTESTMIRROR_ERROR, LRE_SELECT,
-                        //             "select() error: %s", g_strerror(errno));
-                        // std::cout << "EROOR" << std::endl;
                         curl_multi_cleanup(multihandle);
-                        return false;
+                        return tl::unexpected(
+                            fmt::format("select() error: %s", std::strerror(errno)));
                     }
                 }
 
                 curl_multi_perform(multihandle, &still_running);
 
                 // Break loop after some reasonable amount of time
-
                 tend = std::chrono::steady_clock::now();
                 elapsed_micros
                     = std::chrono::duration_cast<std::chrono::microseconds>(tend - tbegin).count();
-                // elapsed_time = g_timer_elapsed(timer, NULL);
             } while (still_running && elapsed_micros < length_of_measurement);
 
-            // Remove curl easy handles from multi handle
-            // and calculate plain_connect_time
+            // Remove curl easy handles from multi handle and calculate plain_connect_time
             for (auto& el : mirrors)
             {
-                CURL* handle = el.handle;
-                if (!handle)
-                    continue;
-
                 // Remove handle
-                curl_multi_remove_handle(multihandle, handle);
+                curl_multi_remove_handle(multihandle, el.handle);
 
                 // Calculate plain_connect_time
-                char* effective_url;
-                curl_easy_getinfo(handle, CURLINFO_EFFECTIVE_URL, &effective_url);
+                auto effective_url = el.handle.getinfo<std::string>(CURLINFO_EFFECTIVE_URL);
 
                 if (!effective_url)
                 {
                     // No effective url is most likely an error
                     el.plain_connect_time = std::numeric_limits<curl_off_t>::max();
                 }
-                else if (starts_with(effective_url, "file:"))
+                else if (starts_with(effective_url.value(), "file:"))
                 {
                     // Local directories are considered to be the best mirrors
                     el.plain_connect_time = 0;
@@ -216,24 +176,20 @@ namespace powerloader
                 else
                 {
                     // Get connect time
-                    curl_off_t namelookup_time;
-                    curl_off_t connect_time;
-                    curl_easy_getinfo(handle, CURLINFO_NAMELOOKUP_TIME_T, &namelookup_time);
-                    curl_easy_getinfo(handle, CURLINFO_CONNECT_TIME_T, &connect_time);
+                    curl_off_t namelookup_time
+                        = el.handle.getinfo<curl_off_t>(CURLINFO_NAMELOOKUP_TIME_T).value_or(0);
+                    curl_off_t connect_time
+                        = el.handle.getinfo<curl_off_t>(CURLINFO_CONNECT_TIME_T).value_or(0);
 
                     if (connect_time == 0)
                     {
                         // Zero connect time is most likely an error
-                        el.plain_connect_time = std::numeric_limits<std::size_t>::max();
+                        el.plain_connect_time = std::numeric_limits<curl_off_t>::max();
                     }
                     else
                     {
                         el.plain_connect_time = connect_time - namelookup_time;
                     }
-
-                    // g_debug("%s: name_lookup: %3.6f connect_time:  %3.6f (%3.6f) | %s",
-                    //        __func__, namelookup_time, connect_time,
-                    //        mirror->plain_connect_time, mirror->url);
                 }
             }
 
@@ -249,7 +205,14 @@ namespace powerloader
                       mirrors.end(),
                       [](detail::InternalMirror& m1, detail::InternalMirror& m2)
                       { return m1.plain_connect_time < m2.plain_connect_time; });
-            return true;
+
+            std::vector<std::string> sorted_urls(mirrors.size());
+            for (auto& m : mirrors)
+            {
+                sorted_urls.push_back(m.url);
+            }
+
+            return sorted_urls;
         }
     }
 }
