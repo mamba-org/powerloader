@@ -23,7 +23,8 @@ namespace powerloader
             std::vector<InternalMirror>& mirrors, std::size_t length_of_measurement);
     }
 
-    tl::expected<std::vector<std::string>, std::string> fastest_mirror(const Context& ctx, const std::vector<std::string>& urls)
+    tl::expected<std::vector<std::string>, std::string> fastest_mirror(
+        const Context& ctx, const std::vector<std::string>& urls)
     {
         std::vector<detail::InternalMirror> check_mirrors;
         for (const std::string& u : urls)
