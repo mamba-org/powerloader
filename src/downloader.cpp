@@ -48,11 +48,11 @@ namespace powerloader
         if (!dl_target)
             return;
 
-        if (ctx.mirror_map.find(dl_target->base_url) != ctx.mirror_map.end())
+        if (ctx.mirror_map.find(dl_target->base_url()) != ctx.mirror_map.end())
         {
             m_targets.emplace_back(
-                new Target(ctx, dl_target, ctx.mirror_map.at(dl_target->base_url)));
-            dl_target->base_url.clear();
+                new Target(ctx, dl_target, ctx.mirror_map.at(dl_target->base_url())));
+            dl_target->clear_base_url();
         }
         else
         {
@@ -93,8 +93,8 @@ namespace powerloader
                 // target and the range was already downloaded
                 spdlog::info("Transfer was interrupted by writecb() because the required "
                              "range ({} - {}) was downloaded.",
-                             target->target->byterange_start,
-                             target->target->byterange_end);
+                             target->target->byterange_start(),
+                             target->target->byterange_end());
             }
             else if (target->headercb_state == HeaderCbState::kINTERRUPTED)
             {
@@ -108,7 +108,7 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
             else if (target->range_fail)
             {
-                zckRange* range = zck_dl_get_range(target->target->p_zck->zck_dl);
+                zckRange* range = zck_dl_get_range(target->target->zck().zck_dl);
                 int range_count = zck_get_range_count(range);
                 if (target->mirror->stats().max_ranges >= range_count)
                 {
@@ -117,10 +117,10 @@ namespace powerloader
                                   target->mirror->stats().max_ranges);
                 }
             }
-            else if (target->target->p_zck->zck_dl != nullptr
-                     && zck_is_error(zck_dl_get_zck(target->target->p_zck->zck_dl)) > 0)
+            else if (target->target->zck().zck_dl != nullptr
+                     && zck_is_error(zck_dl_get_zck(target->target->zck().zck_dl)) > 0)
             {
-                zckCtx* zck = zck_dl_get_zck(target->target->p_zck->zck_dl);
+                zckCtx* zck = zck_dl_get_zck(target->target->zck().zck_dl);
 
                 // Something went wrong while writing the zchunk file
                 if (zck_is_error(zck) == 1)
@@ -269,7 +269,7 @@ namespace powerloader
                 }
 
                 if (mirrors_iterated == 0 && mirror->protocol() == Protocol::kFTP
-                    && target->target->is_zchunk)
+                    && target->target->is_zchunck())
                 {
                     continue;
                 }
@@ -310,7 +310,7 @@ namespace powerloader
         return tl::unexpected(DownloaderError(
             { ErrorLevel::FATAL,
               ErrorCode::PD_NOURL,
-              fmt::format("No suitable mirror found for {}", target->target->complete_url) }));
+              fmt::format("No suitable mirror found for {}", target->target->complete_url()) }));
     }
 
     // Select next target
@@ -333,7 +333,7 @@ namespace powerloader
 
             bool have_mirrors = !target->mirrors.empty();
             // Sanity check
-            if (target->target->base_url.empty() && !have_mirrors && !complete_url_in_path)
+            if (target->target->base_url().empty() && !have_mirrors && !complete_url_in_path)
             {
                 // Used relative path with empty internal mirrorlist and no basepath specified!
                 return tl::unexpected(DownloaderError{
@@ -345,7 +345,7 @@ namespace powerloader
             // Prepare full target URL
             if (complete_url_in_path)
             {
-                full_url = target->target->complete_url;
+                full_url = target->target->complete_url();
             }
             else
             {
@@ -374,7 +374,7 @@ namespace powerloader
                     if (!mirror->needs_preparation(target))
                     {
                         spdlog::info("Currently there is no free mirror for {}",
-                                     target->target->path);
+                                     target->target->path());
                     }
                 }
             }
@@ -400,7 +400,7 @@ namespace powerloader
                 // {
                 //     throw fatal_download_error(fmt::format(
                 //         "Cannot download {}: Offline mode is specified and no local URL is
-                //         available", target->target->path));
+                //         available", target->target->path()));
                 // }
             }
 
@@ -467,7 +467,7 @@ namespace powerloader
 
         if (target->mirror && target->mirror->needs_preparation(target))
         {
-            target->mirror->prepare(target->target->path, h);
+            target->mirror->prepare(target->target->path(), h);
             target->state = DownloadState::kPREPARATION;
 
             CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
@@ -483,7 +483,7 @@ namespace powerloader
 
         // Prepare FILE
 #ifdef WITH_ZCHUNK
-        if (!target->target->is_zchunk)
+        if (!target->target->is_zchunck())
         {
 #endif
             target->open_target_file();
@@ -492,9 +492,9 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
         }
         // If file is zchunk, prep it
-        if (target->target->is_zchunk)
+        if (target->target->is_zchunck())
         {
-            if (!target->target->outfile)
+            if (!target->target->outfile())
             {
                 spdlog::info("zck: opening file {}", target->temp_file.string());
                 target->open_target_file();
@@ -513,7 +513,7 @@ namespace powerloader
             // If zchunk is finished, we're done, so move to next target
             if (target->zck_state == ZckState::kFINISHED)
             {
-                spdlog::info("Target fully downloaded: {}", target->target->path);
+                spdlog::info("Target fully downloaded: {}", target->target->path());
                 target->state = DownloadState::kFINISHED;
                 target->reset();
                 target->headercb_interrupt_reason.clear();
@@ -536,8 +536,8 @@ namespace powerloader
             if (target->original_offset == -1)
             {
                 // Determine offset
-                target->target->outfile->seek(0L, SEEK_END);
-                std::ptrdiff_t determined_offset = target->target->outfile->tell();
+                target->target->outfile()->seek(0L, SEEK_END);
+                std::ptrdiff_t determined_offset = target->target->outfile()->tell();
 
                 if (determined_offset == -1)
                 {
@@ -553,22 +553,22 @@ namespace powerloader
             h.setopt(CURLOPT_RESUME_FROM_LARGE, used_offset);
         }
 
-        if (target->target->byterange_start > 0)
+        if (target->target->byterange_start() > 0)
         {
-            assert(!target->target->resume && target->target->range.empty());
-            h.setopt(CURLOPT_RESUME_FROM_LARGE, (curl_off_t) target->target->byterange_start);
+            assert(!target->target->resume() && target->target->range().empty());
+            h.setopt(CURLOPT_RESUME_FROM_LARGE, (curl_off_t) target->target->byterange_start());
         }
 
         // Set range if user specified one
-        if (!target->target->range.empty())
+        if (!target->target->range().empty())
         {
-            assert(!target->target->resume && !target->target->byterange_start);
-            h.setopt(CURLOPT_RANGE, target->target->range);
+            assert(!target->target->resume() && !target->target->byterange_start());
+            h.setopt(CURLOPT_RANGE, target->target->range());
         }
 
         // Prepare progress callback
         target->callback_return_code = CbReturnCode::kOK;
-        if (target->target->progress_callback)
+        if (target->target->progress_callback())
         {
             h.setopt(CURLOPT_XFERINFOFUNCTION, &Target::progress_callback);
             h.setopt(CURLOPT_NOPROGRESS, 0);
@@ -586,14 +586,14 @@ namespace powerloader
         // Set extra HTTP headers
         if (target->mirror)
         {
-            h.add_headers(target->mirror->get_auth_headers(target->target->path));
+            h.add_headers(target->mirror->get_auth_headers(target->target->path()));
         }
 
         // accept default curl supported encodings
         h.accept_encoding();
         h.add_headers(ctx.additional_httpheaders);
 
-        if (target->target->no_cache)
+        if (target->target->no_cache())
         {
             // Add headers that tell proxy to serve us fresh data
             h.add_header("Cache-Control: no-cache");
@@ -707,7 +707,7 @@ namespace powerloader
             // Make the effective url persistent to survive the curl_easy_cleanup()
             std::string effective_url(tmp_effective_url);
 
-            spdlog::info("Download finished {}", current_target->target->path);
+            spdlog::info("Download finished {}", current_target->target->path());
 
             // Check status of finished transfer
             bool transfer_err = false, serious_err = false, fatal_err = false;
@@ -721,16 +721,16 @@ namespace powerloader
                 fatal_err = result.error().is_fatal();
             }
 
-            if (current_target->target->outfile && current_target->target->outfile->open())
+            if (current_target->target->outfile() && current_target->target->outfile()->open())
             {
-                current_target->target->outfile->flush();
+                current_target->target->outfile()->flush();
             }
 
             if (transfer_err)
                 goto transfer_error;
 
 #ifdef WITH_ZCHUNK
-            if (current_target->target->is_zchunk)
+            if (current_target->target->is_zchunck())
             {
                 zckCtx* zck = nullptr;
                 if (current_target->zck_state == ZckState::kHEADER_LEAD)
@@ -752,7 +752,7 @@ namespace powerloader
                     if (current_target->mirror->stats().max_ranges > 0
                         && current_target->mirror->protocol() == Protocol::kHTTP)
                     {
-                        zckCtx* zck = zck_dl_get_zck(current_target->target->p_zck->zck_dl);
+                        zckCtx* zck = zck_dl_get_zck(current_target->target->zck().zck_dl);
                         if (zck == nullptr)
                         {
                             spdlog::error("Unable to get zchunk file from download context");
@@ -797,7 +797,7 @@ namespace powerloader
             else
             {
 #endif
-                if (current_target->target->outfile)
+                if (current_target->target->outfile())
                 {
                     // New file was downloaded
                     if (!transfer_err && !current_target->check_filesize())
@@ -860,7 +860,7 @@ namespace powerloader
             // There was an error during transfer
             if (!result)
             {
-                // int complete_url_in_path = strstr(target->target->path, "://") ? 1 : 0;
+                // int complete_url_in_path = strstr(target->target->path(), "://") ? 1 : 0;
                 int complete_url_in_path = false;
 
                 bool retry = false;
@@ -927,12 +927,12 @@ namespace powerloader
                         current_target->tried_mirrors.erase(current_mirror);
                     }
 
-                    // complete_url_in_path and target->base_url doesn't have an
+                    // complete_url_in_path and target->base_url() doesn't have an
                     // alternatives like using mirrors, therefore they are handled
                     // differently
                     std::string complete_url_or_base_url = complete_url_in_path
-                                                               ? current_target->target->path
-                                                               : current_target->target->base_url;
+                                                               ? current_target->target->path()
+                                                               : current_target->target->base_url();
                     if (can_retry_download(static_cast<int>(current_target->retries),
                                            complete_url_or_base_url))
                     {
@@ -956,7 +956,7 @@ namespace powerloader
                         //     current_target->original_offset = 0;
                         // }
 #ifdef WITH_ZCHUNK
-                        if (!current_target->target->is_zchunk
+                        if (!current_target->target->is_zchunck()
                             || current_target->zck_state == ZckState::kHEADER)
                         {
 #endif
@@ -976,7 +976,8 @@ namespace powerloader
 
                     // Call end callback
                     CbReturnCode rc = current_target->call_end_callback(TransferStatus::kERROR);
-                    spdlog::error("Retries exceeded for {}", current_target->target->complete_url);
+                    spdlog::error("Retries exceeded for {}",
+                                  current_target->target->complete_url());
 
                     assert(!result);
                     current_target->target->set_error(result.error());
@@ -999,7 +1000,7 @@ namespace powerloader
             {
 #ifdef WITH_ZCHUNK
                 // No error encountered, transfer finished successfully
-                if (current_target->target->is_zchunk
+                if (current_target->target->is_zchunck()
                     && current_target->zck_state != ZckState::kFINISHED)
                 {
                     current_target->state = DownloadState::kWAITING;
@@ -1040,10 +1041,10 @@ namespace powerloader
 #endif /* WITH_ZCHUNK */
                 if (current_target->mirror)
                 {
-                    current_target->target->used_mirror = current_target->mirror;
+                    current_target->target->set_mirror_to_use(current_target->mirror);
                 }
 
-                current_target->target->effective_url = effective_url;
+                current_target->target->set_effective_url(effective_url);
             }
 
             if (fail_fast_err)

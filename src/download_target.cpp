@@ -8,57 +8,52 @@ namespace powerloader
 {
 
 #ifndef WITH_ZCHUNK
-    class zck_target
+    struct zck_target
     {
-    public:
     };
 #endif
 
     DownloadTarget::DownloadTarget(const std::string& path,
                                    const std::string& base_url,
-                                   const fs::path& fn)
-        : path(path)
-        , fn(fn)
-        , base_url(base_url)
-        , is_zchunk(ends_with(path, ".zck"))
-        , p_zck(nullptr)
+                                   const fs::path& filename)
+        : m_path(path)
+        , m_filename(filename)
+        , m_base_url(base_url)
+        , m_is_zchunk(ends_with(path, ".zck"))
     {
         if (path.find("://") != std::string::npos)
         {
-            complete_url = path;
+            m_complete_url = path;
         }
         else if (base_url.find("://") != std::string::npos)
         {
-            complete_url = join_url(base_url, path);
+            m_complete_url = join_url(base_url, path);
         }
 
 #if WITH_ZCHUNK
-        if (is_zchunk)
+        if (m_is_zchunk)
         {
-            p_zck = new zck_target;
-            p_zck->zck_cache_file = fn;
+            m_p_zck = std::make_unique<zck_target>();
+            m_p_zck->zck_cache_file = filename;
         }
 #endif
     }
 
-    DownloadTarget::~DownloadTarget()
-    {
-        delete p_zck;
-    }
+    DownloadTarget::~DownloadTarget() = default;
 
     bool DownloadTarget::has_complete_url() const
     {
-        return !complete_url.empty();
+        return !m_complete_url.empty();
     }
 
     bool DownloadTarget::validate_checksum(const fs::path& path)
     {
-        if (checksums.empty())
+        if (m_checksums.empty())
             return false;
 
         auto findchecksum = [&](const ChecksumType& t) -> Checksum*
         {
-            for (auto& cs : checksums)
+            for (auto& cs : m_checksums)
             {
                 if (cs.type == t)
                     return &cs;
@@ -102,14 +97,14 @@ namespace powerloader
 
     bool DownloadTarget::already_downloaded()
     {
-        if (checksums.empty())
+        if (m_checksums.empty())
             return false;
-        return fs::exists(fn) && validate_checksum(fn);
+        return fs::exists(m_filename) && validate_checksum(m_filename);
     }
 
     void DownloadTarget::set_error(const DownloaderError& err)
     {
-        error = std::make_unique<DownloaderError>(err);
+        m_error = std::make_unique<DownloaderError>(err);
     }
 
     void DownloadTarget::set_cache_options(const CacheControl& cache_control)

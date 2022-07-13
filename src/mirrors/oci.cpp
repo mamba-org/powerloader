@@ -108,7 +108,7 @@ namespace powerloader
 
     OCIMirror::AuthCallbackData* OCIMirror::get_data(Target* target) const
     {
-        auto [split_path, _] = split_path_tag(target->target->path);
+        auto [split_path, _] = split_path_tag(target->target->path());
         auto it = m_path_cb_map.find(split_path);
         if (it != m_path_cb_map.end())
         {
@@ -226,8 +226,9 @@ namespace powerloader
         if (data && !data->sha256sum.empty())
             return false;
 
-        if (std::none_of(target->target->checksums.begin(),
-                         target->target->checksums.end(),
+        const auto& checksums = target->target->checksums();
+        if (std::none_of(checksums.begin(),
+                         checksums.end(),
                          [](auto& ck) { return ck.type == ChecksumType::kSHA256; }))
             return true;
 
@@ -236,9 +237,9 @@ namespace powerloader
 
     std::string OCIMirror::format_url(Target* target) const
     {
-        std::string* checksum = nullptr;
+        const std::string* checksum = nullptr;
 
-        for (auto& ck : target->target->checksums)
+        for (const auto& ck : target->target->checksums())  // TODO: replace by std::find?
         {
             if (ck.type == ChecksumType::kSHA256)
                 checksum = &ck.checksum;
@@ -249,7 +250,7 @@ namespace powerloader
             auto* data = get_data(target);
             checksum = &data->sha256sum;
         }
-        auto [split_path, split_tag] = split_path_tag(target->target->path);
+        auto [split_path, split_tag] = split_path_tag(target->target->path());
         // https://ghcr.io/v2/wolfv/artifact/blobs/sha256:c5be3ea75353851e1fcf3a298af3b6cfd2af3d7ff018ce52657b6dbd8f986aa4
         return fmt::format(
             "{}/v2/{}/blobs/sha256:{}", this->url(), get_repo(split_path), *checksum);

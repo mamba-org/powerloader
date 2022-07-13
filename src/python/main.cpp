@@ -23,8 +23,10 @@ PYBIND11_MODULE(pypowerloader, m)
 
     py::class_<DownloadTarget, std::shared_ptr<DownloadTarget>>(m, "DownloadTarget")
         .def(py::init<const std::string&, const std::string&, const fs::path&>())
-        .def_readonly("complete_url", &DownloadTarget::complete_url)
-        .def_readwrite("progress_callback", &DownloadTarget::progress_callback);
+        .def_property_readonly("complete_url", &DownloadTarget::complete_url)
+        .def_property("progress_callback",
+                      &DownloadTarget::progress_callback,
+                      &DownloadTarget::set_progress_callback);
 
     py::class_<Mirror, std::shared_ptr<Mirror>>(m, "Mirror")
         .def(py::init<const Context&, const std::string&>());
