@@ -29,9 +29,8 @@ namespace powerloader
         }
     };
 
-    class zck_target
+    struct zck_target
     {
-    public:
         // Zchunk download context
         zckDL* zck_dl = nullptr;
 
@@ -42,10 +41,10 @@ namespace powerloader
         fs::path zck_cache_file;
 
         // Total to download in zchunk file
-        std::uint64_t total_to_download;
+        std::uint64_t total_to_download = 0;
 
         // Amount already downloaded in zchunk file
-        std::uint64_t downloaded;
+        std::uint64_t downloaded = 0;
     };
 
     POWERLOADER_API zck_hash zck_hash_from_checksum(ChecksumType checksum_type);

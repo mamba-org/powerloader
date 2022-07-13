@@ -11,7 +11,7 @@ namespace powerloader
         : state(DownloadState::kWAITING)
         , target(dl_target)
         , original_offset(-1)
-        , resume(dl_target->resume)
+        , resume(dl_target->resume())
         , mirrors(mirrors)
         , ctx(ctx)
     {
@@ -25,7 +25,7 @@ namespace powerloader
     bool Target::zck_running() const
     {
 #ifdef WITH_ZCHUNK
-        return target->is_zchunk && zck_state != ZckState::kFINISHED;
+        return target->is_zchunck() && zck_state != ZckState::kFINISHED;
 #else
         return false;
 #endif
@@ -33,25 +33,25 @@ namespace powerloader
 
     void Target::reset()
     {
-        if (target->outfile && !zck_running())
+        if (target->outfile() && !zck_running())
         {
             std::error_code ec;
-            target->outfile->close(ec);
+            target->outfile()->close(ec);
             if (ec)
             {
-                spdlog::error("Could not close file: {}", target->outfile->path().string());
+                spdlog::error("Could not close file: {}", target->outfile()->path().string());
             }
         }
     }
 
     void Target::reset_file(TransferStatus status)
     {
-        if (target->outfile && status == TransferStatus::kSUCCESSFUL)
+        if (target->outfile() && status == TransferStatus::kSUCCESSFUL)
         {
             reset();
 
             std::error_code ec;
-            fs::rename(temp_file, target->fn, ec);
+            fs::rename(temp_file, target->filename(), ec);
 
             if (!ec && ctx.preserve_filetime)
             {
@@ -62,7 +62,7 @@ namespace powerloader
                 if (remote_filetime.value() >= 0)
                 {
                     fs::file_time_type tp(std::chrono::seconds(remote_filetime.value()));
-                    fs::last_write_time(target->fn, tp, ec);
+                    fs::last_write_time(target->filename(), tp, ec);
                 }
             }
         }
@@ -83,13 +83,13 @@ namespace powerloader
         reset_file(status);
 
         CbReturnCode rc = CbReturnCode::kOK;
-        if (target->end_callback)
+        if (target->end_callback())
         {
             if (curl_handle)
             {
                 response.fill_values(*curl_handle);
             }
-            rc = target->end_callback(status, response);
+            rc = target->end_callback()(status, response);
 
             if (rc == CbReturnCode::kERROR)
             {
@@ -105,38 +105,34 @@ namespace powerloader
         std::ptrdiff_t offset = 0;
         std::error_code ec;
 
-        if (!target->outfile || !target->outfile->open())
+        if (!target->outfile() || !target->outfile()->open())
             return true;
 
         if (original_offset >= 0)
             offset = original_offset;
 
-        target->outfile->truncate(offset, ec);
+        target->outfile()->truncate(offset, ec);
         if (ec)
         {
             throw std::runtime_error("Could not truncate file");
         }
 
-        target->outfile->seek(offset, SEEK_SET);
+        target->outfile()->seek(offset, SEEK_SET);
         return true;
     }
 
     void Target::open_target_file()
     {
         // Use supplied filename
-        fs::path fn = target->fn;
+        fs::path fn = target->filename();
         temp_file = fn.replace_extension(fn.extension().string() + PARTEXT);
         spdlog::info("Opening file {}", temp_file.string());
 
+        const auto open_mode = fs::exists(temp_file) && this->resume ? FileIO::append_update_binary
+                                                                     : FileIO::write_update_binary;
+
         std::error_code ec;
-        if (fs::exists(temp_file) && this->resume)
-        {
-            target->outfile = std::make_unique<FileIO>(temp_file, FileIO::append_update_binary, ec);
-        }
-        else
-        {
-            target->outfile = std::make_unique<FileIO>(temp_file, FileIO::write_update_binary, ec);
-        }
+        target->set_outfile(std::make_unique<FileIO>(temp_file, open_mode, ec));
 
         if (ec)
         {
@@ -158,7 +154,7 @@ namespace powerloader
             return 0;
         }
 
-        return zck_header_cb(buffer, size, nitems, self->target->p_zck->zck_dl);
+        return zck_header_cb(buffer, size, nitems, self->target->zck().zck_dl);
     }
 #endif  // WITH_ZCHUNK
 
@@ -181,7 +177,7 @@ namespace powerloader
         }
 
 #ifdef WITH_ZCHUNK
-        if (target->target->is_zchunk && !target->range_fail && target->mirror
+        if (target->target->is_zchunck() && !target->range_fail && target->mirror
             && target->mirror->protocol() == Protocol::kHTTP)
             return zckheadercb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
@@ -262,17 +258,17 @@ namespace powerloader
                 std::string lkey = to_lower(key);
                 target->response.headers[lkey] = value;
 
-                if (target->target->expected_size > 0 && lkey == "content-length")
+                if (target->target->expected_size() > 0 && lkey == "content-length")
                 {
                     ptrdiff_t content_length = std::stoll(std::string(value));
                     spdlog::info("Server returned Content-Length: {}", content_length);
-                    if (content_length > 0 && content_length != target->target->expected_size)
+                    if (content_length > 0 && content_length != target->target->expected_size())
                     {
                         target->headercb_state = HeaderCbState::kINTERRUPTED;
                         target->headercb_interrupt_reason = fmt::format(
                             "Server reports Content-Length: {} but expected size is: {}",
                             content_length,
-                            target->target->expected_size);
+                            target->target->expected_size());
 
                         // Return error value
                         ret++;
@@ -295,17 +291,17 @@ namespace powerloader
         if (self->zck_state == ZckState::kHEADER)
         {
             spdlog::info("zck: Writing header");
-            return zck_write_zck_header_cb(buffer, size, nitems, self->target->p_zck->zck_dl);
+            return zck_write_zck_header_cb(buffer, size, nitems, self->target->zck().zck_dl);
         }
         else if (self->zck_state == ZckState::kHEADER_LEAD)
         {
             spdlog::info("zck: Writing lead");
-            return self->target->outfile->write(buffer, size, nitems);
+            return self->target->outfile()->write(buffer, size, nitems);
         }
         else
         {
             spdlog::info("zck: Writing body");
-            return zck_write_chunk_cb(buffer, size, nitems, self->target->p_zck->zck_dl);
+            return zck_write_chunk_cb(buffer, size, nitems, self->target->zck().zck_dl);
         }
     }
 #endif
@@ -320,7 +316,7 @@ namespace powerloader
         std::size_t cur_written_expected = nitems, cur_written;
 
 #ifdef WITH_ZCHUNK
-        if (self->target->is_zchunk && !self->range_fail && self->mirror
+        if (self->target->is_zchunck() && !self->range_fail && self->mirror
             && self->mirror->protocol() == Protocol::kHTTP)
         {
             return zckwritecb(buffer, size, nitems, self);
@@ -328,15 +324,15 @@ namespace powerloader
 #endif /* WITH_ZCHUNK */
 
         // Total number of bytes from curl
-        std::size_t all = size * nitems;
-        std::size_t range_start = self->target->byterange_start;
-        std::size_t range_end = self->target->byterange_end;
+        const std::size_t all = size * nitems;
+        const std::size_t range_start = self->target->byterange_start();
+        const std::size_t range_end = self->target->byterange_end();
 
         if (range_start <= 0 && range_end <= 0)
         {
             // Write everything curl gives us
             self->writecb_received += all;
-            return self->target->outfile->write(buffer, size, nitems);
+            return self->target->outfile()->write(buffer, size, nitems);
         }
 
         // Deal with situation when user wants only specific byte range of the
@@ -346,12 +342,12 @@ namespace powerloader
 
         self->writecb_received += all;
 
-        if (self->target->byterange_start > 0)
+        if (self->target->byterange_start() > 0)
         {
             // If byterangestart is specified, then CURLOPT_RESUME_FROM_LARGE
             // is used by default
-            cur_range_start += self->target->byterange_start;
-            cur_range_end += self->target->byterange_start;
+            cur_range_start += self->target->byterange_start();
+            cur_range_end += self->target->byterange_start();
         }
         else if (self->original_offset > 0)
         {
@@ -398,7 +394,7 @@ namespace powerloader
         }
 
         assert(nitems > 0);
-        cur_written = self->target->outfile->write(buffer, size, nitems);
+        cur_written = self->target->outfile()->write(buffer, size, nitems);
 
         if (cur_written != nitems)
         {
@@ -427,20 +423,20 @@ namespace powerloader
             return ret;
         }
 
-        if (!target->target->progress_callback)
+        if (!target->target->progress_callback())
         {
             return ret;
         }
 
 #ifdef WITH_ZCHUNK
-        if (target->target->is_zchunk)
+        if (target->target->is_zchunck())
         {
-            total_to_download = target->target->p_zck->total_to_download;
-            now_downloaded = now_downloaded + target->target->p_zck->downloaded;
+            total_to_download = target->target->zck().total_to_download;
+            now_downloaded = now_downloaded + target->target->zck().downloaded;
         }
 #endif /* WITH_ZCHUNK */
 
-        ret = target->target->progress_callback(total_to_download, now_downloaded);
+        ret = target->target->progress_callback()(total_to_download, now_downloaded);
 
         // target->cb_return_code = ret;
 
@@ -449,14 +445,14 @@ namespace powerloader
 
     bool Target::check_filesize()
     {
-        if (target->expected_size > 0)
+        if (target->expected_size() > 0)
         {
-            if (fs::file_size(temp_file) != target->expected_size)
+            if (fs::file_size(temp_file) != target->expected_size())
             {
                 spdlog::error("Filesize of {} ({}) does not match expected filesize ({}).",
                               temp_file.string(),
                               fs::file_size(temp_file),
-                              target->expected_size);
+                              target->expected_size());
                 return false;
             }
         }
@@ -470,7 +466,7 @@ namespace powerloader
             return true;
         }
 
-        if (target->checksums.empty())
+        if (target->checksums().empty())
         {
             return true;
         }

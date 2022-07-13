@@ -287,24 +287,24 @@ handle_download(Context& ctx,
             spdlog::info("Downloading {} from {} to {}", path, mirror, dst);
             targets.emplace_back(new DownloadTarget(path, mirror, dst));
         }
-        targets.back()->resume = resume;
+        targets.back()->set_resume(resume);
 
         if (!metadata.sha256.empty())
-            targets.back()->checksums.push_back(Checksum{ ChecksumType::kSHA256, metadata.sha256 });
+            targets.back()->add_checksum(Checksum{ ChecksumType::kSHA256, metadata.sha256 });
         if (metadata.filesize > 0)
-            targets.back()->expected_size = metadata.filesize;
+            targets.back()->set_expected_size(metadata.filesize);
             // TODO we should have two different fields for those two
 #ifdef WITH_ZCHUNK
         if (!metadata.zck_header_sha256.empty())
-            targets.back()->p_zck->zck_header_checksum = std::make_unique<Checksum>(
+            targets.back()->zck().zck_header_checksum = std::make_unique<Checksum>(
                 Checksum{ ChecksumType::kSHA256, metadata.zck_header_sha256 });
         if (metadata.zck_header_size > 0)
-            targets.back()->p_zck->zck_header_size = metadata.zck_header_size;
+            targets.back()->zck().zck_header_size = metadata.zck_header_size;
 #endif
 
         using namespace std::placeholders;
-        targets.back()->progress_callback
-            = std::bind(&progress_callback, targets.back().get(), _1, _2);
+        targets.back()->set_progress_callback(
+            std::bind(&progress_callback, targets.back().get(), _1, _2));
     }
 
     Downloader dl{ ctx };
@@ -326,9 +326,9 @@ handle_download(Context& ctx,
     {
         for (auto& t : targets)
         {
-            if (t->is_zchunk)
+            if (t->is_zchunck())
             {
-                fs::path p = t->fn;
+                fs::path p = t->filename();
                 fs::path p_ext = p;
                 p_ext.replace_extension("");
                 zck_extract(p, p_ext, false);

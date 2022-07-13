@@ -118,7 +118,7 @@ namespace powerloader
 
     std::string Mirror::format_url(Target* target) const
     {
-        return fmt::format("{}/{}", m_url, target->target->path);
+        return fmt::format("{}/{}", m_url, target->target->path());
     }
 
     /** Sort mirrors. Penalize the error ones.
