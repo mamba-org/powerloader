@@ -163,6 +163,12 @@ namespace powerloader
             return ::fwrite(buffer, element_size, element_count, m_fs);
         }
 
+        template<class C>
+        std::size_t write(const std::basic_string<C>& str) const noexcept
+        {
+            return ::fwrite(str.c_str(), sizeof(C), str.size(), m_fs);
+        }
+
         std::streamoff put(int c) const noexcept
         {
             return ::fputc(c, m_fs);

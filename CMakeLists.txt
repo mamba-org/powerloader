@@ -345,7 +345,13 @@ if (BUILD_EXE)
         target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
     endif()
 
-    list(APPEND libpowerloader_targets powerloader)
+
+    add_executable(jlap src/cli/jlap.cpp)
+    set_property(TARGET jlap PROPERTY CXX_STANDARD 17)
+    target_link_libraries(jlap libpowerloader CLI11::CLI11 yaml-cpp curl)
+
+    list(APPEND libpowerloader_targets powerloader jlap)
+
 endif()
 
 # Tests
