@@ -112,13 +112,16 @@ endif()
 
 
 add_executable(powerloader src/cli/main.cpp)
+add_executable(jlap src/cli/jlap.cpp)
 set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
+set_property(TARGET jlap PROPERTY CXX_STANDARD 17)
 target_include_directories(powerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
     ${ZCK_INCLUDE_DIRS}
 )
 target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
+target_link_libraries(jlap libpowerloader CLI11::CLI11 yaml-cpp curl)
 set_target_properties(powerloader PROPERTIES PUBLIC_HEADER "${LIBPOWERLOADER_HEADERS}")
 
 if (DEV)
