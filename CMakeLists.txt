@@ -346,6 +346,7 @@ if (BUILD_EXE)
     endif()
 
 
+    include_directories(BLAKE2/ref)
     add_executable(jlap src/cli/jlap.cpp)
     set_property(TARGET jlap PROPERTY CXX_STANDARD 17)
     target_link_libraries(jlap libpowerloader CLI11::CLI11 yaml-cpp curl)
