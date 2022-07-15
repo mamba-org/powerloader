@@ -82,6 +82,32 @@ namespace powerloader
         return hex_string(hash, 32);
     }
 
+    // std::string blake2sum(const fs::path& path)
+    // {
+    //     unsigned char hash[32];
+    //     EVP_MD_CTX* mdctx;
+    //     mdctx = EVP_MD_CTX_create();
+    //     EVP_DigestInit_ex(mdctx, EVP_blake2b512(), NULL);
+
+    //     std::ifstream infile(path, std::ios::binary);
+    //     constexpr std::size_t BUFSIZE = 32768;
+    //     std::vector<char> buffer(BUFSIZE);
+
+    //     while (infile)
+    //     {
+    //         infile.read(buffer.data(), BUFSIZE);
+    //         size_t count = infile.gcount();
+    //         if (!count)
+    //             break;
+    //         EVP_DigestUpdate(mdctx, buffer.data(), count);
+    //     }
+
+    //     EVP_DigestFinal_ex(mdctx, hash, nullptr);
+    //     EVP_MD_CTX_destroy(mdctx);
+
+    //     return hex_string(hash, 32);
+    // }
+
     std::string md5sum(const fs::path& path)
     {
         unsigned char hash[16];

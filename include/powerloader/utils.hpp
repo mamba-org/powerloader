@@ -91,6 +91,7 @@ namespace powerloader
     POWERLOADER_API bool contains(const std::string_view& str, const std::string_view& sub_str);
 
     POWERLOADER_API std::string sha256sum(const fs::path& path);
+    // POWERLOADER_API std::string blake2sum(const fs::path& path);
     POWERLOADER_API std::string md5sum(const fs::path& path);
 
     POWERLOADER_API std::pair<std::string, std::string> parse_header(
