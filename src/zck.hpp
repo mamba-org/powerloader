@@ -20,10 +20,9 @@ extern "C"
 
 namespace powerloader
 {
-    class zchunk_error : public std::runtime_error
+    struct zchunk_error : public std::runtime_error
     {
-    public:
-        inline zchunk_error(const std::string& what = "zchunk error")
+        zchunk_error(const std::string& what = "zchunk error")
             : std::runtime_error(what)
         {
         }
@@ -51,42 +50,42 @@ namespace powerloader
     POWERLOADER_API ChecksumType checksum_type_from_zck_hash(zck_hash hash_type);
 
     POWERLOADER_API
-    zckCtx* init_zck_read(const std::unique_ptr<Checksum>& chksum,
+    zckCtx* init_zck_read(const Checksum& chksum,
                           ptrdiff_t zck_header_size,
                           int fd);
 
     POWERLOADER_API
-    zckCtx* zck_init_read_base(const std::unique_ptr<Checksum>& chksum,
+    zckCtx* zck_init_read_base(const Checksum& chksum,
                                std::ptrdiff_t zck_header_size,
                                int fd);
 
     POWERLOADER_API
-    bool zck_valid_header_base(const std::unique_ptr<Checksum>& chksum,
+    bool zck_valid_header_base(const Checksum& chksum,
                                std::ptrdiff_t zck_header_size,
                                int fd);
 
-    POWERLOADER_API zckCtx* zck_init_read(const std::shared_ptr<DownloadTarget>& target, int fd);
-    POWERLOADER_API zckCtx* zck_init_read(Target* target);
+    POWERLOADER_API zckCtx* zck_init_read(const DownloadTarget& target, int fd);
+    POWERLOADER_API zckCtx* zck_init_read(const Target& target);
 
-    POWERLOADER_API bool zck_valid_header(const std::shared_ptr<DownloadTarget>& target, int fd);
-    POWERLOADER_API bool zck_valid_header(Target* target);
+    POWERLOADER_API bool zck_valid_header(const DownloadTarget& target, int fd);
+    POWERLOADER_API bool zck_valid_header(const Target& target);
 
-    POWERLOADER_API bool zck_clear_header(Target* target);
-    POWERLOADER_API bool zck_read_lead(Target* target);
-    POWERLOADER_API std::vector<fs::path> get_recursive_files(fs::path dir,
+    POWERLOADER_API bool zck_clear_header(Target& target);
+    POWERLOADER_API bool zck_read_lead(Target& target);
+    POWERLOADER_API std::vector<fs::path> get_recursive_files(const fs::path& dir,
                                                               const std::string& suffix);
 
     // TODO replace...
     POWERLOADER_API int lr_copy_content(int source, int dest);
 
-    POWERLOADER_API bool find_local_zck_header(Target* target);
+    POWERLOADER_API bool find_local_zck_header(Target& target);
 
-    POWERLOADER_API bool prep_zck_header(Target* target);
+    POWERLOADER_API bool prep_zck_header(Target& target);
 
-    POWERLOADER_API bool find_local_zck_chunks(Target* target);
+    POWERLOADER_API bool find_local_zck_chunks(Target& target);
 
-    POWERLOADER_API bool prepare_zck_body(Target* target);
-    POWERLOADER_API bool check_zck(Target* target);
+    POWERLOADER_API bool prepare_zck_body(Target& target);
+    POWERLOADER_API bool check_zck(Target& target);
 
     POWERLOADER_API bool zck_extract(const fs::path& source, const fs::path& dst, bool validate);
 }
