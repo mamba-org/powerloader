@@ -51,7 +51,7 @@ namespace powerloader
             if (!m_fs)
             {
                 ec.assign(GetLastError(), std::generic_category());
-                spdlog::error("Could not open file: {}", ec.message());
+                spdlog::error("Could not open file {}: {}", file_path.string(), ec.message());
             }
         }
 #else
@@ -68,7 +68,7 @@ namespace powerloader
             else
             {
                 ec.assign(errno, std::generic_category());
-                spdlog::error("Could not open file: {}", ec.message());
+                spdlog::error("Could not open file {}: {}", file_path.string(), ec.message());
             }
         }
 #endif
@@ -163,6 +163,12 @@ namespace powerloader
                                  std::size_t element_count) const noexcept
         {
             return ::fwrite(buffer, element_size, element_count, m_fs);
+        }
+
+        template <class C>
+        inline std::size_t write(const std::basic_string<C>& str) const noexcept
+        {
+            return ::fwrite(str.c_str(), sizeof(C), str.size(), m_fs);
         }
 
         inline std::streamoff put(int c) const noexcept

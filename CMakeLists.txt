@@ -9,9 +9,10 @@ find_package(spdlog REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(include)
+include_directories(include BLAKE2/ref)
 
 set(LIBPOWERLOADER_SRCS
+    BLAKE2/ref/blake2b-ref.c
     src/context.cpp
     src/download_target.cpp
     src/downloader.cpp
@@ -112,13 +113,16 @@ endif()
 
 
 add_executable(powerloader src/cli/main.cpp)
+add_executable(jlap src/cli/jlap.cpp)
 set_property(TARGET powerloader PROPERTY CXX_STANDARD 17)
+set_property(TARGET jlap PROPERTY CXX_STANDARD 17)
 target_include_directories(powerloader PUBLIC
     include
     ${CURL_INCLUDE_DIRS}
     ${ZCK_INCLUDE_DIRS}
 )
 target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
+target_link_libraries(jlap libpowerloader CLI11::CLI11 yaml-cpp curl ${OPENSSL_LIBRARIES})
 set_target_properties(powerloader PROPERTIES PUBLIC_HEADER "${LIBPOWERLOADER_HEADERS}")
 
 if (DEV)
