@@ -51,7 +51,7 @@ namespace powerloader
             if (!m_fs)
             {
                 ec.assign(GetLastError(), std::generic_category());
-                spdlog::error("Could not open file: {}", ec.message());
+                spdlog::error("Could not open file {}: {}", file_path.string(), ec.message());
             }
         }
 #else
@@ -66,7 +66,7 @@ namespace powerloader
             else
             {
                 ec.assign(errno, std::generic_category());
-                spdlog::error("Could not open file: {}", ec.message());
+                spdlog::error("Could not open file {}: {}", file_path.string(), ec.message());
             }
         }
 #endif
