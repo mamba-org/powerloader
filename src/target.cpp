@@ -5,15 +5,15 @@
 
 namespace powerloader
 {
-    Target::Target(const Context& ctx,
+    Target::Target(const Context& lctx,
                    std::shared_ptr<DownloadTarget> dl_target,
-                   std::vector<std::shared_ptr<Mirror>> mirrors)
-        : state(DownloadState::kWAITING)
-        , target(dl_target)
-        , original_offset(-1)
+                   std::vector<std::shared_ptr<Mirror>> lmirrors)
+        : target(dl_target)
         , resume(dl_target->resume())
-        , mirrors(mirrors)
-        , ctx(ctx)
+        , original_offset(-1)
+        , state(DownloadState::kWAITING)
+        , mirrors(lmirrors)
+        , ctx(lctx)
     {
     }
 
@@ -189,7 +189,7 @@ namespace powerloader
             if (target->protocol == Protocol::kHTTP && starts_with(header, "HTTP/"))
             {
                 if (contains(header, "200")
-                    || contains(header, "206") && !contains(header, "connection established"))
+                    || (contains(header, "206") && !contains(header, "connection established")))
                 {
                     spdlog::info("Header state OK! {}", header);
                     target->headercb_state = HeaderCbState::kHTTP_STATE_OK;
@@ -410,8 +410,8 @@ namespace powerloader
     int Target::progress_callback(Target* target,
                                   curl_off_t total_to_download,
                                   curl_off_t now_downloaded,
-                                  curl_off_t total_to_upload,
-                                  curl_off_t now_uploaded)
+                                  curl_off_t /*total_to_upload*/,
+                                  curl_off_t /*now_uploaded*/)
     {
         int ret = 0;
 
@@ -447,7 +447,7 @@ namespace powerloader
     {
         if (target->expected_size() > 0)
         {
-            if (fs::file_size(temp_file) != target->expected_size())
+            if (fs::file_size(temp_file) != std::size_t(target->expected_size()))
             {
                 spdlog::error("Filesize of {} ({}) does not match expected filesize ({}).",
                               temp_file.string(),

@@ -29,8 +29,8 @@ namespace fs = std::filesystem;
 
 namespace powerloader
 {
-    Downloader::Downloader(const Context& ctx)
-        : ctx(ctx)
+    Downloader::Downloader(const Context& lctx)
+        : ctx(lctx)
     {
         max_parallel_connections = ctx.max_parallel_downloads;
         multi_handle = curl_multi_init();
@@ -208,10 +208,6 @@ namespace powerloader
     tl::expected<std::shared_ptr<Mirror>, DownloaderError> Downloader::select_suitable_mirror(
         Target* target)
     {
-        // This variable is used to indentify that all possible mirrors
-        // were already tried and the transfer should be marked as failed.
-        bool at_least_one_suitable_mirror_found = false;
-
         assert(target);
 
         if (target->mirrors.empty())
@@ -260,7 +256,7 @@ namespace powerloader
                     // retry of local paths have no reason
                     continue;
                 }
-                else if (mirrors_iterated < mirror_stats.failed_transfers)
+                else if (mirrors_iterated < size_t(mirror_stats.failed_transfers))
                 {
                     // On subsequent iterations, only skip mirrors that failed
                     // proportionally to the number of iterations. It allows to reuse
@@ -282,8 +278,6 @@ namespace powerloader
                     continue;
                 }
 
-                at_least_one_suitable_mirror_found = true;
-
                 // Number of transfers which are downloading from the mirror
                 // should always be lower or equal than maximum allowed number
                 // of connection to a single host.
@@ -304,8 +298,8 @@ namespace powerloader
                 // This mirror looks suitable - use it
                 return mirror;
             }
-        } while (reiterate && target->retries < allowed_mirror_failures
-                 && ++mirrors_iterated < allowed_mirror_failures);
+        } while (reiterate && target->retries < std::size_t(allowed_mirror_failures)
+                 && ++mirrors_iterated < std::size_t(allowed_mirror_failures));
 
         return tl::unexpected(DownloaderError(
             { ErrorLevel::FATAL,
@@ -316,9 +310,6 @@ namespace powerloader
     // Select next target
     tl::expected<std::pair<Target*, std::string>, DownloaderError> Downloader::select_next_target()
     {
-        Target* selected_target = nullptr;
-        Mirror* mirror = nullptr;
-
         for (auto* target : m_targets)
         {
             std::shared_ptr<Mirror> mirror;
@@ -394,7 +385,7 @@ namespace powerloader
                     ErrorCode::PD_NOURL,
                     "Cannot download: offline mode is specified and no local URL is available." });
 
-                auto cb_ret = target->call_end_callback(TransferStatus::kERROR);
+                /*auto cb_ret = */target->call_end_callback(TransferStatus::kERROR);
                 // TODO
                 // if (cb_ret == CbReturnCode::kERROR || failfast)
                 // {
@@ -470,7 +461,7 @@ namespace powerloader
             target->mirror->prepare(target->target->path(), h);
             target->state = DownloadState::kPREPARATION;
 
-            CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+            curl_multi_add_handle(multi_handle, h);
 
             // Add the transfer to the list of running transfers
             m_running_transfers.push_back(target);
@@ -675,7 +666,7 @@ namespace powerloader
         return is_max_mirrors_unlimited() || num_of_tried_mirrors < max_mirrors_to_try;
     }
 
-    bool Downloader::check_msgs(bool failfast)
+    bool Downloader::check_msgs(bool lfailfast)
     {
         int msgs_in_queue;
         CURLMsg* msg;
@@ -710,15 +701,13 @@ namespace powerloader
             spdlog::info("Download finished {}", current_target->target->path());
 
             // Check status of finished transfer
-            bool transfer_err = false, serious_err = false, fatal_err = false;
+            bool transfer_err = false;
             bool fail_fast_err = false;
 
             auto result = check_finished_transfer_status(msg, current_target);
             if (!result)
             {
                 transfer_err = true;
-                serious_err = result.error().is_serious();
-                fatal_err = result.error().is_fatal();
             }
 
             if (current_target->target->outfile() && current_target->target->outfile()->open())
@@ -732,7 +721,6 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
             if (current_target->target->is_zchunck())
             {
-                zckCtx* zck = nullptr;
                 if (current_target->zck_state == ZckState::kHEADER_LEAD)
                 {
                     if (!zck_read_lead(current_target))
@@ -774,7 +762,7 @@ namespace powerloader
                 }
                 if (current_target->zck_state == ZckState::kFINISHED)
                 {
-                    zck = zck_init_read(current_target);
+                    zckCtx* zck = zck_init_read(current_target);
                     if (!zck)
                         goto transfer_error;
                     if (zck_validate_checksums(zck) < 1)
@@ -982,7 +970,7 @@ namespace powerloader
                     assert(!result);
                     current_target->target->set_error(result.error());
 
-                    if (failfast || rc == CbReturnCode::kERROR)
+                    if (lfailfast || rc == CbReturnCode::kERROR)
                     {
                         // Fail fast is enabled, fail on any error
                         fail_fast_err = true;

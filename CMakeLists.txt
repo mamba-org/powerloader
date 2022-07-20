@@ -74,9 +74,11 @@ endif()
 # ============
 
 set(LIBPOWERLOADER_HEADERS
-    ${POWERLOADER_INCLUDE_DIR}/powerloader/export.hpp
+    ${POWERLOADER_INCLUDE_DIR}/powerloader/mirrors/oci.hpp
+    ${POWERLOADER_INCLUDE_DIR}/powerloader/mirrors/s3.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/context.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/curl.hpp
+    ${POWERLOADER_INCLUDE_DIR}/powerloader/export.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/download_target.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/downloader.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/enums.hpp
@@ -84,27 +86,26 @@ set(LIBPOWERLOADER_HEADERS
     ${POWERLOADER_INCLUDE_DIR}/powerloader/fastest_mirror.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/fileio.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/mirror.hpp
-    ${POWERLOADER_INCLUDE_DIR}/powerloader/url.hpp
+    ${POWERLOADER_INCLUDE_DIR}/powerloader/powerloader.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/target.hpp
+    ${POWERLOADER_INCLUDE_DIR}/powerloader/url.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/utils.hpp
-    ${POWERLOADER_INCLUDE_DIR}/powerloader/mirrors/oci.hpp
-    ${POWERLOADER_INCLUDE_DIR}/powerloader/mirrors/s3.hpp
 )
 
 set(LIBPOWERLOADER_SRCS
+    ${POWERLOADER_SOURCE_DIR}/mirrors/oci.cpp
+    ${POWERLOADER_SOURCE_DIR}/mirrors/s3.cpp
+    ${POWERLOADER_SOURCE_DIR}/uploader/oci_upload.cpp
+    ${POWERLOADER_SOURCE_DIR}/uploader/s3_upload.cpp
     ${POWERLOADER_SOURCE_DIR}/context.cpp
+    ${POWERLOADER_SOURCE_DIR}/curl.cpp
     ${POWERLOADER_SOURCE_DIR}/download_target.cpp
     ${POWERLOADER_SOURCE_DIR}/downloader.cpp
     ${POWERLOADER_SOURCE_DIR}/fastest_mirror.cpp
     ${POWERLOADER_SOURCE_DIR}/mirror.cpp
     ${POWERLOADER_SOURCE_DIR}/target.cpp
-    ${POWERLOADER_SOURCE_DIR}/curl.cpp
     ${POWERLOADER_SOURCE_DIR}/url.cpp
     ${POWERLOADER_SOURCE_DIR}/utils.cpp
-    ${POWERLOADER_SOURCE_DIR}/mirrors/oci.cpp
-    ${POWERLOADER_SOURCE_DIR}/mirrors/s3.cpp
-    ${POWERLOADER_SOURCE_DIR}/uploader/s3_upload.cpp
-    ${POWERLOADER_SOURCE_DIR}/uploader/oci_upload.cpp
 )
 if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS ${POWERLOADER_SOURCE_DIR}/zck.cpp
@@ -151,10 +152,10 @@ if (MSVC)
 #             /W4 # Recommended warning level 4
     )
 else()
-    #target_compile_options(libpowerloader
-    #    PUBLIC
-    #        -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic
-    #)
+    target_compile_options(libpowerloader
+        PUBLIC
+            -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic
+    )
 endif()
 
 

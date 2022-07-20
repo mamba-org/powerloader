@@ -233,7 +233,7 @@ struct DownloadMetadata
 int
 handle_download(Context& ctx,
                 const std::vector<std::string>& urls,
-                const std::vector<std::string>& mirrors,
+                const std::vector<std::string>& /*mirrors*/,
                 bool resume,
                 const std::string& dest_folder,
                 DownloadMetadata& metadata,
@@ -460,7 +460,6 @@ main(int argc, char** argv)
     bool verbose = false;
     bool disable_ssl = false;
     bool do_zck_extract = false;
-    long int filesize = -1;
 
     DownloadMetadata dl_meta;
 

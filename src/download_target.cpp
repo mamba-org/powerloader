@@ -16,10 +16,10 @@ namespace powerloader
     DownloadTarget::DownloadTarget(const std::string& path,
                                    const std::string& base_url,
                                    const fs::path& filename)
-        : m_path(path)
-        , m_filename(filename)
+        : m_is_zchunk(ends_with(path, ".zck"))
+        , m_path(path)
         , m_base_url(base_url)
-        , m_is_zchunk(ends_with(path, ".zck"))
+        , m_filename(filename)
     {
         if (path.find("://") != std::string::npos)
         {
