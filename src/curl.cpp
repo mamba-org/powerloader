@@ -158,16 +158,16 @@ namespace powerloader
             finalize_transfer(*response);
     }
 
-    void CURLHandle::finalize_transfer(Response& response)
+    void CURLHandle::finalize_transfer(Response& lresponse)
     {
-        response.fill_values(*this);
-        if (!response.ok())
+        lresponse.fill_values(*this);
+        if (!lresponse.ok())
         {
-            spdlog::error("Received {}: {}", response.http_status, response.content.value());
+            spdlog::error("Received {}: {}", lresponse.http_status, lresponse.content.value());
         }
         if (end_callback)
         {
-            end_callback(response);
+            end_callback(lresponse);
         }
     }
 

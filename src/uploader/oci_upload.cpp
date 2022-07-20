@@ -61,14 +61,14 @@ namespace powerloader
         return OCILayer(mime_type, std::nullopt, content, annotations);
     }
 
-    OCILayer::OCILayer(const std::string& mime_type,
+    OCILayer::OCILayer(const std::string& lmime_type,
                        const std::optional<fs::path>& path,
                        const std::optional<std::string>& content,
-                       const std::optional<nlohmann::json>& annotations)
-        : mime_type(mime_type)
+                       const std::optional<nlohmann::json>& lannotations)
+        : mime_type(lmime_type)
         , file(path)
         , contents(content)
-        , annotations(annotations)
+        , annotations(lannotations)
     {
         if (file)
         {

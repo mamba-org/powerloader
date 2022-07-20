@@ -204,13 +204,13 @@ namespace powerloader
 
             while ((size = other.read(buf, 1, bufsize)) > 0)
             {
-                if (this->write(buf, 1, size) == -1)
+                if (this->write(buf, 1, size) == SIZE_MAX)
                 {
                     return false;
                 }
             }
             this->flush();
-            return (size < 0) ? false : true;
+            return size != std::size_t(0);
         }
 
         inline bool replace_from(const FileIO& other)

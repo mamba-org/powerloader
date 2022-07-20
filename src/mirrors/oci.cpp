@@ -191,7 +191,6 @@ namespace powerloader
                 if (j.contains("layers"))
                 {
                     std::string digest = j["layers"][0]["digest"];
-                    std::size_t expected_size = j["layers"][0]["size"];
 
                     assert(starts_with(digest, "sha256:"));
 
@@ -220,7 +219,7 @@ namespace powerloader
     bool OCIMirror::needs_preparation(Target* target) const
     {
         auto* data = get_data(target);
-        if ((!data || data && data->token.empty()) && need_auth())
+        if ((!data || (data && data->token.empty())) && need_auth())
             return true;
 
         if (data && !data->sha256sum.empty())

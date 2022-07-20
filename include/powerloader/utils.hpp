@@ -69,10 +69,10 @@ namespace powerloader
     public:
         download_error(const std::string& what = "download error", bool serious = false)
             : std::runtime_error(what)
-            , serious(serious)
+            , m_serious(serious)
         {
         }
-        bool serious;
+        bool m_serious;
     };
 
     class fatal_download_error : public std::runtime_error

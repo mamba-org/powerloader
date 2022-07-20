@@ -52,9 +52,9 @@ namespace powerloader
 
     private:
         std::string bucket_url;
+        std::string region = "eu-central-1";
         std::string aws_access_key_id = "AKIAIOSFODNN7EXAMPLE";
         std::string aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
-        std::string region = "eu-central-1";
 
         bool authenticate(CURLHandle& handle, const std::string& path) override;
         std::string format_url(Target* target) const override;

@@ -36,10 +36,10 @@ namespace powerloader
      * S3CanonicalRequest *
      **********************/
 
-    S3CanonicalRequest::S3CanonicalRequest(const std::string& http_verb,
+    S3CanonicalRequest::S3CanonicalRequest(const std::string& lhttp_verb,
                                            const URLHandler& uh,
                                            const std::string& sha256sum)
-        : http_verb(http_verb)
+        : http_verb(lhttp_verb)
         , hashed_payload(sha256sum.empty() ? EMPTY_SHA : sha256sum)
         , date(std::chrono::system_clock::now())
     {
@@ -108,13 +108,13 @@ namespace powerloader
      ***************/
 
     S3Mirror::S3Mirror(const Context& ctx,
-                       const std::string& bucket_url,
-                       const std::string& region,
+                       const std::string& lbucket_url,
+                       const std::string& lregion,
                        const std::string& aws_access_key,
                        const std::string& aws_secret_key)
-        : Mirror(ctx, bucket_url)
-        , bucket_url(bucket_url)
-        , region(region)
+        : Mirror(ctx, lbucket_url)
+        , bucket_url(lbucket_url)
+        , region(lregion)
         , aws_access_key_id(aws_access_key)
         , aws_secret_access_key(aws_secret_key)
     {
@@ -129,22 +129,22 @@ namespace powerloader
 
     S3Mirror::~S3Mirror() = default;
 
-    bool S3Mirror::authenticate(CURLHandle& handle, const std::string& path)
+    bool S3Mirror::authenticate(CURLHandle&, const std::string&)
     {
         return true;
-    };
+    }
 
     std::string S3Mirror::format_url(Target* target) const
     {
         return fmt::format("{}/{}", bucket_url, target->target->path());
     }
 
-    bool S3Mirror::needs_preparation(Target* target) const
+    bool S3Mirror::needs_preparation(Target*) const
     {
         return false;
     }
 
-    bool S3Mirror::prepare(Target* target)
+    bool S3Mirror::prepare(Target*)
     {
         return true;
     }

@@ -89,29 +89,29 @@ namespace powerloader
         return rank;
     }
 
-    bool Mirror::prepare(Target* target)
+    bool Mirror::prepare(Target*)
     {
         m_state = MirrorState::READY;
         return true;
     }
 
-    bool Mirror::prepare(const std::string& path, CURLHandle& handle)
+    bool Mirror::prepare(const std::string&, CURLHandle&)
     {
         m_state = MirrorState::READY;
         return true;
     }
 
-    bool Mirror::needs_preparation(Target* target) const
+    bool Mirror::needs_preparation(Target*) const
     {
         return false;
     }
 
-    bool Mirror::authenticate(CURLHandle& handle, const std::string& path)
+    bool Mirror::authenticate(CURLHandle&, const std::string&)
     {
         return true;
     }
 
-    std::vector<std::string> Mirror::get_auth_headers(const std::string& path) const
+    std::vector<std::string> Mirror::get_auth_headers(const std::string&) const
     {
         return {};
     }

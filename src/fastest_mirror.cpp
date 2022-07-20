@@ -72,7 +72,6 @@ namespace powerloader
             // cb(cbdata, LR_FMSTAGE_DETECTION, (void *) &handles_added);
 
             int still_running;
-            double elapsed_time = 0.0;
             // _cleanup_timer_destroy_ GTimer *timer = g_timer_new();
             // g_timer_start(timer);
             using time_point_t = std::chrono::steady_clock::time_point;
