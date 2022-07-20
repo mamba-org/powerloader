@@ -593,12 +593,17 @@ namespace powerloader
         size_t total = 0;
         while (true)
         {
-            size_t read = zck_read(zck, buf.data(), BUF_SIZE);
+            ssize_t read = zck_read(zck, buf.data(), BUF_SIZE);
+            if (read < 0)
+            {
+                spdlog::error("Error reading file {}: {}", source.string(), zck_get_error(zck));
+                // goto error2;
+            }
             if (read == 0)
             {
                 break;
             }
-            if (of.write(buf.data(), 1, read) != read)
+            if (of.write(buf.data(), 1, read) != static_cast<size_t>(read))
             {
                 spdlog::error("Error writing to {}", dst.string());
                 // goto error2;

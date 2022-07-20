@@ -256,7 +256,7 @@ namespace powerloader
                     // retry of local paths have no reason
                     continue;
                 }
-                else if (mirrors_iterated < size_t(mirror_stats.failed_transfers))
+                else if (mirrors_iterated < static_cast<size_t>(mirror_stats.failed_transfers))
                 {
                     // On subsequent iterations, only skip mirrors that failed
                     // proportionally to the number of iterations. It allows to reuse
@@ -298,7 +298,7 @@ namespace powerloader
                 // This mirror looks suitable - use it
                 return mirror;
             }
-        } while (reiterate && target->retries < std::size_t(allowed_mirror_failures)
+        } while (reiterate && target->retries < static_cast<std::size_t>(allowed_mirror_failures)
                  && ++mirrors_iterated < std::size_t(allowed_mirror_failures));
 
         return tl::unexpected(DownloaderError(
@@ -385,7 +385,7 @@ namespace powerloader
                     ErrorCode::PD_NOURL,
                     "Cannot download: offline mode is specified and no local URL is available." });
 
-                /*auto cb_ret = */target->call_end_callback(TransferStatus::kERROR);
+                /*auto cb_ret = */ target->call_end_callback(TransferStatus::kERROR);
                 // TODO
                 // if (cb_ret == CbReturnCode::kERROR || failfast)
                 // {

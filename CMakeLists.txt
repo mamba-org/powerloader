@@ -144,16 +144,15 @@ target_include_directories(
 if (MSVC)
     target_compile_definitions(libpowerloader PUBLIC -DNOMINMAX)
     target_compile_options(libpowerloader
-        PUBLIC
+        PRIVATE
             /wd4275 # Disable warning C4275: We know that we use templates instances in our symbol exports.
             /wd4251 # Disable warning C4251: We know that we use templates instances in our symbol exports.
-            /permissive
-#         PRIVATE
+            /permissive-
 #             /W4 # Recommended warning level 4
     )
 else()
     target_compile_options(libpowerloader
-        PUBLIC
+        PRIVATE
             -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic
     )
 endif()
@@ -227,4 +226,3 @@ install(TARGETS powerloader libpowerloader
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDE_DIR}/powerloader
 )
-

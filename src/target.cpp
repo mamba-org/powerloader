@@ -447,7 +447,7 @@ namespace powerloader
     {
         if (target->expected_size() > 0)
         {
-            if (fs::file_size(temp_file) != std::size_t(target->expected_size()))
+            if (fs::file_size(temp_file) != static_cast<std::size_t>(target->expected_size()))
             {
                 spdlog::error("Filesize of {} ({}) does not match expected filesize ({}).",
                               temp_file.string(),
