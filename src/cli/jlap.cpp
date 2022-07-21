@@ -12,9 +12,11 @@ extern "C"
 using namespace powerloader;
 namespace fs = std::filesystem;
 
-struct Patch
+struct Jlap
 {
-    std::string hash;
+    std::string start_hash;
+    std::string end_hash;
+    nlohmann::json metadata;
     std::vector<nlohmann::json> patches;
 };
 
@@ -53,28 +55,43 @@ apply_jlap()
     std::ifstream json_file("repodata.json");
     std::string line;
 
-    std::cout << blake2sum("repodata.json") << std::endl;
-    std::cout << blake2sum("repodata.jlap") << std::endl;
-    std::vector<Patch> patches;
-    std::unique_ptr<Patch> cur_patch;
+    Jlap jlap_doc;
 
+    std::vector<std::string> lines;
     while (std::getline(jlap_file, line))
     {
-        if (line.size() && line[0] != '{')
-        {
-            if (cur_patch)
-                patches.push_back(*cur_patch);
+        lines.push_back(line);
+    }
 
-            cur_patch = std::make_unique<Patch>();
-            cur_patch->hash = line;
+    if (lines.size() >= 3)
+    {
+        jlap_doc.start_hash = lines[0];
+        jlap_doc.end_hash = lines[lines.size() - 1];
+
+        assert(jlap_doc.start_hash.size() == 64);
+        assert(jlap_doc.end_hash.size() == 64);
+
+        try
+        {
+            jlap_doc.metadata = nlohmann::json::parse(lines[lines.size() - 2]);
+            assert(jlap_doc.patches.back().contains("latest"));
+            assert(jlap_doc.patches.back().contains("url"));
         }
-        else
+        catch (...)
+        {
+            std::cout << "Could not parse metadata " << line << std::endl;
+        }
+
+        // parse patches in between
+        auto it = lines.begin() + 1;
+        for (; it != lines.end() - 2; ++it)
         {
             try
             {
-                auto j = nlohmann::json::parse(line);
-                // std::cout << j.dump(4) << std::endl;
-                cur_patch->patches.emplace_back(std::move(j));
+                jlap_doc.patches.push_back(nlohmann::json::parse(*it));
+                assert(jlap_doc.patches.back().contains("patch"));
+                assert(jlap_doc.patches.back().contains("from"));
+                assert(jlap_doc.patches.back().contains("to"));
             }
             catch (...)
             {
@@ -90,28 +107,21 @@ apply_jlap()
 
     std::size_t i = 0;
 
-    for (auto& p : patches)
+    std::cout << "Found patches # " << jlap_doc.patches.size() << std::endl;
+    for (auto& pf : jlap_doc.patches)
     {
-        std::cout << "Found patches # " << p.patches.size() << std::endl;
-        for (auto& pf : p.patches)
+        if (pf["from"] == repo_bsum)
         {
-            if (pf.contains("from"))
-            {
-                if (pf["from"] == repo_bsum)
-                {
-                    auto t0 = std::chrono::high_resolution_clock::now();
-                    std::cout << "Applying patch " << i++ << " from " << repo_bsum.substr(0, 8)
-                              << "… to " << pf["to"].get<std::string>().substr(0, 8) << "… ";
-                    repo_bsum = pf["to"];
-                    // nlohmann::inplace_patch(jrdata, pf["patch"]);
-                    jrdata.patch(pf["patch"]);
-                    auto t1 = std::chrono::high_resolution_clock::now();
-                    std::cout
-                        << "took "
-                        << std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count()
-                        << " ns." << std::endl;
-                }
-            }
+            auto t0 = std::chrono::high_resolution_clock::now();
+            std::cout << "Applying patch " << i++ << " from " << repo_bsum.substr(0, 8) << "… to "
+                      << pf["to"].get<std::string>().substr(0, 8) << "… ";
+            repo_bsum = pf["to"];
+            // nlohmann::inplace_patch(jrdata, pf["patch"]);
+            jrdata.patch(pf["patch"]);
+            auto t1 = std::chrono::high_resolution_clock::now();
+            std::cout << "took "
+                      << std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count()
+                      << " ns." << std::endl;
         }
     }
     {
@@ -119,14 +129,14 @@ apply_jlap()
         rpatched << jrdata.dump(2) << "\n";
     }
 
-    if (blake2sum("final_repodata.json") == patches.back().patches.back()["latest"])
+    if (blake2sum("final_repodata.json") == jlap_doc.metadata["latest"])
     {
         std::cout << "All successful." << std::endl;
     }
     else
     {
         std::cout << "Error: " << blake2sum("final_repodata.json") << " not matching "
-                  << patches.back().patches.back()["latest"] << std::endl;
+                  << jlap_doc.metadata["latest"] << std::endl;
     }
 }
 
@@ -134,27 +144,6 @@ apply_jlap()
 int
 main()
 {
-    // std::ifstream rdata("repodata.json");
-    // std::unique_ptr<nlohmann::json> j = std::make_unique<nlohmann::json>();
-
-    // {
-    //     auto t0 = std::chrono::high_resolution_clock::now();
-    //     rdata >> (*j);
-    //     auto t1 = std::chrono::high_resolution_clock::now();
-    //     std::cout << "took " <<
-    //     std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count() <<" ms." <<
-    //     std::endl;
-    // }
-
-    // {
-    //     auto t0 = std::chrono::high_resolution_clock::now();
-    //     j.reset();
-    //     auto t1 = std::chrono::high_resolution_clock::now();
-    //     std::cout << "took " <<
-    //     std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count() <<" ms." <<
-    //     std::endl;
-    // }
-
     powerloader::Context ctx;
     CURLHandle h(ctx);
     std::string filehash;
@@ -172,33 +161,37 @@ main()
         {
             infile.seek(-64, SEEK_END);
             infile.read(filehashtmp, sizeof(char), 64);
-            std::cout << infile.tell() << " ends with " << filehashtmp << std::endl;
-            infile.seek(-64, SEEK_END);
-            start_offset = infile.tell();
             filehash = std::string(&filehashtmp[0], 64);
+
+            // find line before latest (to cut metadata as well)
+            infile.seek(-64 - 2, SEEK_END);
+            while (infile.get() != '\n')
+            {
+                infile.seek(-2, SEEK_CUR);
+            }
+
+            start_offset = infile.tell();
         }
     }
 
     h.url("https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap");
     if (start_offset != 0)
     {
-        std::cout << "Resuming from offset: " << start_offset << std::endl;
+        std::cout << "Resuming from offset: " << start_offset << " (cutting "
+                  << total_size - start_offset << " bytes)" << std::endl;
         h.setopt(CURLOPT_RESUME_FROM_LARGE, static_cast<curl_off_t>(start_offset));
     }
     auto response = h.perform();
-
-    // for (auto& [k, v] : response.headers)
-    //     std::cout << k << " .. " << v << std::endl;
 
     if (response.ok())
     {
         auto open_mode = fs::exists("repodata.jlap") ? FileIO::read_update_binary
                                                      : FileIO::write_update_binary;
-        std::cout << "Open mode is creating file? " << (open_mode == FileIO::write_update_binary)
-                  << std::endl;
+
         FileIO outfile("repodata.jlap", open_mode, ec);
         if (open_mode == FileIO::read_update_binary)
             outfile.seek(start_offset, SEEK_SET);
+
         std::cout << "Response size: " << response.content.value().size() << std::endl;
         std::string new_filehash = response.content.value().substr(0, 64);
         if (response.content.value().size() == 64)
