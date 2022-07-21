@@ -630,9 +630,9 @@ namespace powerloader
                     // complete_url_in_path and target->base_url() doesn't have an
                     // alternatives like using mirrors, therefore they are handled
                     // differently
-                    std::string complete_url_or_base_url = complete_url_in_path
-                                                               ? current_target->target().path()
-                                                               : current_target->target().base_url();
+                    std::string complete_url_or_base_url
+                        = complete_url_in_path ? current_target->target().path()
+                                               : current_target->target().base_url();
                     if (can_retry_download(static_cast<int>(current_target->retries()),
                                            complete_url_or_base_url))
                     {
@@ -656,7 +656,6 @@ namespace powerloader
                         //     // if our resume file is too large we need to completely truncate it
                         //     current_target->original_offset = 0;
                         // }
-
                     }
                 }
 

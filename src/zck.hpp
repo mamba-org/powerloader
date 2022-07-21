@@ -50,19 +50,13 @@ namespace powerloader
     POWERLOADER_API ChecksumType checksum_type_from_zck_hash(zck_hash hash_type);
 
     POWERLOADER_API
-    zckCtx* init_zck_read(const Checksum& chksum,
-                          ptrdiff_t zck_header_size,
-                          int fd);
+    zckCtx* init_zck_read(const Checksum& chksum, ptrdiff_t zck_header_size, int fd);
 
     POWERLOADER_API
-    zckCtx* zck_init_read_base(const Checksum& chksum,
-                               std::ptrdiff_t zck_header_size,
-                               int fd);
+    zckCtx* zck_init_read_base(const Checksum& chksum, std::ptrdiff_t zck_header_size, int fd);
 
     POWERLOADER_API
-    bool zck_valid_header_base(const Checksum& chksum,
-                               std::ptrdiff_t zck_header_size,
-                               int fd);
+    bool zck_valid_header_base(const Checksum& chksum, std::ptrdiff_t zck_header_size, int fd);
 
     POWERLOADER_API zckCtx* zck_init_read(const DownloadTarget& target, int fd);
     POWERLOADER_API zckCtx* zck_init_read(const Target& target);

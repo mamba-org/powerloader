@@ -35,11 +35,9 @@ namespace powerloader
         }
     }
 
-    zckCtx* init_zck_read(const Checksum& checksum,
-                          ptrdiff_t zck_header_size,
-                          int fd)
+    zckCtx* init_zck_read(const Checksum& checksum, ptrdiff_t zck_header_size, int fd)
     {
-        zckCtx* zck = zck_create(); // TODO: RAII this
+        zckCtx* zck = zck_create();  // TODO: RAII this
         if (!zck_init_adv_read(zck, fd))
         {
             zck_free(&zck);
@@ -73,9 +71,7 @@ namespace powerloader
         return zck;
     }
 
-    zckCtx* zck_init_read_base(const Checksum& checksum,
-                               std::ptrdiff_t zck_header_size,
-                               int fd)
+    zckCtx* zck_init_read_base(const Checksum& checksum, std::ptrdiff_t zck_header_size, int fd)
     {
         lseek(fd, 0, SEEK_SET);
         zckCtx* zck = init_zck_read(checksum, zck_header_size, fd);
@@ -97,9 +93,7 @@ namespace powerloader
         return zck;
     }
 
-    bool zck_valid_header_base(const Checksum& checksum,
-                               std::ptrdiff_t zck_header_size,
-                               int fd)
+    bool zck_valid_header_base(const Checksum& checksum, std::ptrdiff_t zck_header_size, int fd)
     {
         lseek(fd, 0, SEEK_SET);
         zckCtx* zck = init_zck_read(checksum, zck_header_size, fd);
@@ -344,7 +338,8 @@ namespace powerloader
             if (zck_get_chunk_valid(idx) != 1)
             {
                 // Estimate of multipart overhead
-                target.target().zck().total_to_download += zck_get_chunk_comp_size(idx) + 92; // TODO: name magic constant
+                target.target().zck().total_to_download
+                    += zck_get_chunk_comp_size(idx) + 92;  // TODO: name magic constant
             }
         }
         target.set_zck_state(ZckState::kBODY);
@@ -375,8 +370,8 @@ namespace powerloader
         spdlog::info("Chunks that still need to be downloaded: {}", zck_missing_chunks(zck));
 
         zck_dl_reset(target.target().zck().zck_dl);
-        zckRange* range
-            = zck_get_missing_range(zck, target.mirror() ? target.mirror()->stats().max_ranges : -1);
+        zckRange* range = zck_get_missing_range(
+            zck, target.mirror() ? target.mirror()->stats().max_ranges : -1);
         zckRange* old_range = zck_dl_get_range(target.target().zck().zck_dl);
         if (old_range)
         {
@@ -458,8 +453,9 @@ namespace powerloader
             {
                 throw zchunk_error(zck_get_error(nullptr));
             }
-            target.set_zck_state(target.target().zck().zck_header_size == -1 ? ZckState::kHEADER_LEAD
-                                                                            : ZckState::kHEADER_CK);
+            target.set_zck_state(target.target().zck().zck_header_size == -1
+                                     ? ZckState::kHEADER_LEAD
+                                     : ZckState::kHEADER_CK);
         }
 
         /* Reset range fail flag */

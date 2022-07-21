@@ -129,9 +129,8 @@ namespace powerloader
         m_temp_file = fn.replace_extension(fn.extension().string() + PARTEXT);
         spdlog::info("Opening file {}", m_temp_file.string());
 
-        const auto open_mode = fs::exists(m_temp_file) && m_resume
-                                   ? FileIO::append_update_binary
-                                   : FileIO::write_update_binary;
+        const auto open_mode = fs::exists(m_temp_file) && m_resume ? FileIO::append_update_binary
+                                                                   : FileIO::write_update_binary;
 
         std::error_code ec;
         m_target->set_outfile(std::make_unique<FileIO>(m_temp_file, open_mode, ec));
@@ -507,7 +506,7 @@ namespace powerloader
         assert(m_curl_handle);
         assert(m_ctx.max_speed_limit > 0);
         m_curl_handle->setopt(CURLOPT_MAX_RECV_SPEED_LARGE,
-                                            static_cast<curl_off_t>(m_ctx.max_speed_limit));
+                              static_cast<curl_off_t>(m_ctx.max_speed_limit));
     }
 
     void Target::reset_response()
@@ -515,7 +514,9 @@ namespace powerloader
         m_response = {};
     }
 
-    void Target::prepare_for_transfer(CURLM* multi_handle, const std::string& full_url, Protocol protocol)
+    void Target::prepare_for_transfer(CURLM* multi_handle,
+                                      const std::string& full_url,
+                                      Protocol protocol)
     {
         // Prepare CURL easy handle
         m_curl_handle.reset(new CURLHandle(m_ctx));
@@ -563,7 +564,8 @@ namespace powerloader
                 spdlog::info("Target fully downloaded: {}", m_target->path());
                 m_state = DownloadState::kFINISHED;
                 reset();
-                call_end_callback(TransferStatus::kSUCCESSFUL); // TODO: do something with the result?
+                call_end_callback(
+                    TransferStatus::kSUCCESSFUL);  // TODO: do something with the result?
             }
         }
 #endif /* WITH_ZCHUNK */
@@ -672,7 +674,6 @@ namespace powerloader
 
     tl::expected<void, DownloaderError> Target::finish_transfer(const std::string& effective_url)
     {
-
 #ifdef WITH_ZCHUNK
         if (m_target->is_zchunck())
         {
@@ -683,8 +684,7 @@ namespace powerloader
             }
             else if (m_zck_state == ZckState::kHEADER)
             {
-                if (m_mirror->stats().max_ranges > 0
-                    && m_mirror->protocol() == Protocol::kHTTP
+                if (m_mirror->stats().max_ranges > 0 && m_mirror->protocol() == Protocol::kHTTP
                     && !zck_valid_header(*this))
                 {
                     return {};
@@ -692,8 +692,7 @@ namespace powerloader
             }
             else if (m_zck_state == ZckState::kBODY)
             {
-                if (m_mirror->stats().max_ranges > 0
-                    && m_mirror->protocol() == Protocol::kHTTP)
+                if (m_mirror->stats().max_ranges > 0 && m_mirror->protocol() == Protocol::kHTTP)
                 {
                     zckCtx* zck = zck_dl_get_zck(m_target->zck().zck_dl);
                     if (zck == nullptr)
@@ -722,7 +721,7 @@ namespace powerloader
                     return {};
                 if (zck_validate_checksums(zck) < 1)
                 {
-                    zck_free(&zck); // TODO: add RAII to handle that
+                    zck_free(&zck);  // TODO: add RAII to handle that
                     spdlog::error("At least one of the zchunk checksums doesn't match in {}",
                                   effective_url);
 
@@ -732,7 +731,7 @@ namespace powerloader
                         fmt::format("At least one of the zchunk checksums doesn't match in {}",
                                     effective_url) });
                 }
-                zck_free(&zck); // TODO: check if it's a leak when not reached
+                zck_free(&zck);  // TODO: check if it's a leak when not reached
             }
         }
         else
@@ -745,15 +744,17 @@ namespace powerloader
                 // New file was downloaded
                 if (!check_filesize())
                 {
-                    result = tl::unexpected(DownloaderError{ ErrorLevel::SERIOUS,
-                                          ErrorCode::PD_BADCHECKSUM,
-                                          "Result file does not have expected filesize" });
+                    result = tl::unexpected(
+                        DownloaderError{ ErrorLevel::SERIOUS,
+                                         ErrorCode::PD_BADCHECKSUM,
+                                         "Result file does not have expected filesize" });
                 }
                 if (!check_checksums())
                 {
-                    result = tl::unexpected(DownloaderError{ ErrorLevel::SERIOUS,
-                                          ErrorCode::PD_BADCHECKSUM,
-                                          "Result file does not have expected checksum" });
+                    result = tl::unexpected(
+                        DownloaderError{ ErrorLevel::SERIOUS,
+                                         ErrorCode::PD_BADCHECKSUM,
+                                         "Result file does not have expected checksum" });
                 }
             }
 
@@ -777,7 +778,8 @@ namespace powerloader
         }
     }
 
-    void Target::complete_mirror_usage(bool was_success, const tl::expected<void, DownloaderError>& result)
+    void Target::complete_mirror_usage(bool was_success,
+                                       const tl::expected<void, DownloaderError>& result)
     {
         // TODO check if we were preparing here?
         if (m_mirror)
@@ -785,10 +787,8 @@ namespace powerloader
             m_tried_mirrors.insert(m_mirror);
             m_mirror->update_statistics(was_success);
             if (m_ctx.adaptive_mirror_sorting)
-                sort_mirrors(m_mirrors,
-                             m_mirror,
-                             was_success,
-                             result ? false : result.error().is_serious());
+                sort_mirrors(
+                    m_mirrors, m_mirror, was_success, result ? false : result.error().is_serious());
         }
     }
 
@@ -828,8 +828,7 @@ namespace powerloader
         m_retries++;
 
 #ifdef WITH_ZCHUNK
-        if (!m_target->is_zchunck()
-            || m_zck_state == ZckState::kHEADER)
+        if (!m_target->is_zchunck() || m_zck_state == ZckState::kHEADER)
         {
 #endif
             // Truncate file - remove downloaded garbage (error html page etc.)
@@ -846,8 +845,7 @@ namespace powerloader
     void Target::finalize_transfer(const std::string& effective_url)
     {
 #ifdef WITH_ZCHUNK
-        if (m_target->is_zchunck()
-            && m_zck_state != ZckState::kFINISHED)
+        if (m_target->is_zchunck() && m_zck_state != ZckState::kFINISHED)
         {
             m_state = DownloadState::kWAITING;
             if (m_mirror)
@@ -877,8 +875,7 @@ namespace powerloader
             // only call the end callback if actually finished the download target
             if (m_state == DownloadState::kFINISHED)
             {
-                const CbReturnCode rc
-                    = call_end_callback(TransferStatus::kSUCCESSFUL);
+                const CbReturnCode rc = call_end_callback(TransferStatus::kSUCCESSFUL);
                 if (rc == CbReturnCode::kERROR)
                 {
                     throw fatal_download_error("Interrupted by error from end callback");

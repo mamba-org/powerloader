@@ -179,7 +179,6 @@ namespace powerloader
         }
 
     private:
-
         std::shared_ptr<DownloadTarget> m_target;
         fs::path m_temp_file;
         std::string m_url_stub;
