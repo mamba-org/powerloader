@@ -137,6 +137,18 @@ namespace powerloader
             return ::ftell(m_fs);
         }
 
+        char get() const
+        {
+            int res = ::fgetc(m_fs);
+            if (res == EOF && ferror(m_fs) != 0)
+            {
+                // TODO handle this
+                clearerr(m_fs);
+                throw std::runtime_error("Got error from get()");
+            }
+            return res;
+        }
+
         std::streamoff seek(unsigned long long offset, int origin) const noexcept
         {
             assert(offset < LLONG_MAX);
