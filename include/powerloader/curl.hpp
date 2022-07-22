@@ -83,7 +83,7 @@ namespace powerloader
 
         // TODO: why do we need to expose these three methods
         CURL* handle();
-        operator CURL*(); // TODO: consider making this `explicit` or remove it
+        operator CURL*();  // TODO: consider making this `explicit` or remove it
         CURL* ptr() const;
 
         CURLHandle& add_header(const std::string& header);
