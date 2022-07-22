@@ -173,7 +173,7 @@ namespace powerloader
             return m_tried_mirrors;
         }
 
-        CURL* curl() const noexcept
+        CURLHandle* curl_handle() const noexcept
         {
             return m_curl_handle.get();
         }

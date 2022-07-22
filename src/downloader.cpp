@@ -522,7 +522,7 @@ namespace powerloader
 
             for (auto* target : m_running_transfers)
             {
-                if (target->curl() == msg->easy_handle)
+                if (target->curl_handle() && target->curl_handle()->handle() == msg->easy_handle)
                 {
                     current_target = target;
                     break;
@@ -558,7 +558,7 @@ namespace powerloader
             }
 
             // Cleanup
-            curl_multi_remove_handle(multi_handle, current_target->curl());
+            curl_multi_remove_handle(multi_handle, current_target->curl_handle());
 
             // call_end_callback()
             if (!result)
