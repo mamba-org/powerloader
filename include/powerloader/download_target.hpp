@@ -168,6 +168,11 @@ namespace powerloader
             return m_outfile;
         }
 
+        const std::unique_ptr<FileIO>& outfile() const noexcept
+        {
+            return m_outfile;
+        }
+
         const progress_callback_t& progress_callback() const
         {
             return m_progress_callback;

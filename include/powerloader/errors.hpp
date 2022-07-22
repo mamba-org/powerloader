@@ -93,17 +93,17 @@ namespace powerloader
         ErrorCode code;
         std::string reason;
 
-        bool is_serious() noexcept
+        bool is_serious() const noexcept
         {
             return (level == ErrorLevel::SERIOUS || level == ErrorLevel::FATAL);
         }
 
-        bool is_fatal() noexcept
+        bool is_fatal() const noexcept
         {
             return level == ErrorLevel::FATAL;
         }
 
-        void log()
+        void log() const
         {
             switch (level)
             {
