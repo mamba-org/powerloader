@@ -555,6 +555,7 @@ namespace powerloader
             if (!transfer_err)
             {
                 result = current_target->finish_transfer(effective_url);
+                transfer_err = !result;
             }
 
             // Cleanup
