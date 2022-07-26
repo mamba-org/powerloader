@@ -517,6 +517,10 @@ namespace powerloader
                 continue;
             }
 
+            // At this point, we received a message that must match a running transfer, otherwise
+            // something is broken.
+            assert(!m_running_transfers.empty());
+
             // TODO maybe refactor so that `msg` is passed to current target?
             Target* current_target = nullptr;
 

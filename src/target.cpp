@@ -566,6 +566,7 @@ namespace powerloader
                 reset();
                 call_end_callback(
                     TransferStatus::kSUCCESSFUL);  // TODO: do something with the result?
+                return;
             }
         }
 #endif /* WITH_ZCHUNK */
