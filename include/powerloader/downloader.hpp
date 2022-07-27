@@ -43,6 +43,11 @@ namespace powerloader
 
         void add(const std::shared_ptr<DownloadTarget>& dl_target);
 
+        bool download();
+
+    private:
+
+
         /** Check the finished transfer
          * Evaluate CURL return code and status code of protocol if needed.
          * @param serious_error     Serious error is an error that isn't fatal,
@@ -81,7 +86,6 @@ namespace powerloader
         bool can_retry_download(int num_of_tried_mirrors, const std::string& url);
         bool check_msgs(bool failfast);
         bool set_max_speeds_to_transfers();
-        bool download();
 
         bool failfast = false;
         CURLM* multi_handle;
