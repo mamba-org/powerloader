@@ -41,13 +41,15 @@ namespace powerloader
         explicit Downloader(const Context& ctx);
         ~Downloader();
 
+        // Adds a target to be downloaded when calling `Downloader::download()`.
+        // Must not be called after `Downloader::download()` have been called.
         void add(const std::shared_ptr<DownloadTarget>& dl_target);
 
+        // Proceed to download the targets previously specified using `Downloader::add(target)`.
+        // After calling this fonction, no other operations are valid except destroying this object.
         bool download();
 
     private:
-
-
         /** Check the finished transfer
          * Evaluate CURL return code and status code of protocol if needed.
          * @param serious_error     Serious error is an error that isn't fatal,
