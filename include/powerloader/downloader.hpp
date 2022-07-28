@@ -25,7 +25,6 @@ extern "C"
 #include <powerloader/download_target.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/mirror.hpp>
-#include <powerloader/target.hpp>
 #include <powerloader/utils.hpp>
 #include <powerloader/errors.hpp>
 
@@ -34,6 +33,7 @@ namespace powerloader
     namespace fs = std::filesystem;
 
     class Context;
+    class Target;
 
     struct DownloadOptions
     {

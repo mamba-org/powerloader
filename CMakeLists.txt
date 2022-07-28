@@ -73,7 +73,7 @@ endif()
 # Source files
 # ============
 
-set(LIBPOWERLOADER_HEADERS
+set(LIBPOWERLOADER_PUBLIC_HEADERS
     ${POWERLOADER_INCLUDE_DIR}/powerloader/mirrors/oci.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/mirrors/s3.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/context.hpp
@@ -87,12 +87,12 @@ set(LIBPOWERLOADER_HEADERS
     ${POWERLOADER_INCLUDE_DIR}/powerloader/fileio.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/mirror.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/powerloader.hpp
-    ${POWERLOADER_INCLUDE_DIR}/powerloader/target.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/url.hpp
     ${POWERLOADER_INCLUDE_DIR}/powerloader/utils.hpp
 )
 
 set(LIBPOWERLOADER_SRCS
+    ${POWERLOADER_SOURCE_DIR}/target.hpp
     ${POWERLOADER_SOURCE_DIR}/mirrors/oci.cpp
     ${POWERLOADER_SOURCE_DIR}/mirrors/s3.cpp
     ${POWERLOADER_SOURCE_DIR}/uploader/oci_upload.cpp
@@ -117,7 +117,7 @@ endif()
 
 add_library(libpowerloader
     ${LIBPOWERLOADER_SRCS}
-    ${LIBPOWERLOADER_HEADERS} # Makes headers visible in IDEs
+    ${LIBPOWERLOADER_PUBLIC_HEADERS} # Makes headers visible in IDEs
 )
 
 set_target_properties(libpowerloader
@@ -137,8 +137,11 @@ endif()
 
 target_include_directories(
     libpowerloader
-    PUBLIC $<BUILD_INTERFACE:${POWERLOADER_INCLUDE_DIR}>
-    $<INSTALL_INTERFACE:include>
+    PUBLIC
+        $<BUILD_INTERFACE:${POWERLOADER_INCLUDE_DIR}>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${POWERLOADER_SOURCE_DIR}
 )
 
 if (MSVC)

@@ -21,11 +21,12 @@ namespace fs = std::filesystem;
 #include <powerloader/downloader.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/mirror.hpp>
-#include <powerloader/target.hpp>
 #include <powerloader/utils.hpp>
+#include "target.hpp"
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
 #endif
+
 
 namespace powerloader
 {
@@ -824,7 +825,7 @@ namespace powerloader
     void Downloader::extract_zchunk_files()
     {
 #ifdef WITH_ZCHUNK
-        std::set<DownloadTarget*> dl_targets; // TODO: replace by flat_set when available.
+        std::set<DownloadTarget*> dl_targets;  // TODO: replace by flat_set when available.
 
         for (auto* target : m_targets)
         {
@@ -842,16 +843,17 @@ namespace powerloader
                         continue;
                     fs::path p_ext = p;
                     p_ext.replace_extension("");
-                    zck_extract(p, p_ext, false); // TODO: consider activating validation?
+                    zck_extract(p, p_ext, false);  // TODO: consider activating validation?
                 }
-                catch(const std::exception& ex)
+                catch (const std::exception& ex)
                 {
                     spdlog::warn(fmt::format(
                         "Failed to extract {} (skipped) : {}", p.u8string(), ex.what()));
                 }
                 catch (...)
                 {
-                    spdlog::warn(fmt::format("Failed to extract {} (skipped) : unknown error", p.u8string()));
+                    spdlog::warn(fmt::format("Failed to extract {} (skipped) : unknown error",
+                                             p.u8string()));
                 }
             }
         }

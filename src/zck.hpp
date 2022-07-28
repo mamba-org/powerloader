@@ -5,7 +5,7 @@
 
 #include <powerloader/export.hpp>
 #include <powerloader/enums.hpp>
-#include <powerloader/target.hpp>
+#include "target.hpp"
 
 extern "C"
 {

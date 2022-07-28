@@ -5,10 +5,12 @@
 
 #include <powerloader/export.hpp>
 #include <powerloader/mirror.hpp>
-#include <powerloader/target.hpp>
+#include <powerloader/url.hpp>
 
 namespace powerloader
 {
+
+    class Target;
 
     struct POWERLOADER_API S3CanonicalRequest
     {

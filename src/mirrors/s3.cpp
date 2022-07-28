@@ -9,8 +9,8 @@ extern "C"
 
 #include <powerloader/mirrors/s3.hpp>
 #include <powerloader/mirror.hpp>
-#include <powerloader/target.hpp>
 #include <powerloader/url.hpp>
+#include "target.hpp"
 
 namespace powerloader
 {
