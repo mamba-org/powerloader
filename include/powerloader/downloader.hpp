@@ -35,6 +35,12 @@ namespace powerloader
 
     class Context;
 
+    struct DownloadOptions
+    {
+        // Extracts zchunk files which have been downloaded if true.
+        bool extract_zchunk_files = true;
+    };
+
     class POWERLOADER_API Downloader
     {
     public:
@@ -47,7 +53,7 @@ namespace powerloader
 
         // Proceed to download the targets previously specified using `Downloader::add(target)`.
         // After calling this fonction, no other operations are valid except destroying this object.
-        bool download();
+        bool download(DownloadOptions options = {});
 
     private:
         /** Check the finished transfer
@@ -88,6 +94,8 @@ namespace powerloader
         bool can_retry_download(int num_of_tried_mirrors, const std::string& url);
         bool check_msgs(bool failfast);
         bool set_max_speeds_to_transfers();
+
+        void extract_zchunk_files();
 
         bool failfast = false;
         CURLM* multi_handle;

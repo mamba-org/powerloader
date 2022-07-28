@@ -706,7 +706,7 @@ namespace powerloader
         return prepare_next_transfers();
     }
 
-    bool Downloader::download()
+    bool Downloader::download(DownloadOptions options)
     {
         int still_running, repeats = 0;
         const long max_wait_msecs = 1000;
@@ -789,6 +789,9 @@ namespace powerloader
             return false;
         }
 
+        if (options.extract_zchunk_files)
+            extract_zchunk_files();
+
         return true;
         // check if all targets are in finished state
         // finished = true;
@@ -816,5 +819,43 @@ namespace powerloader
         }
 
         return true;
+    }
+
+    void Downloader::extract_zchunk_files()
+    {
+#ifdef WITH_ZCHUNK
+        std::set<DownloadTarget*> dl_targets; // TODO: replace by flat_set when available.
+
+        for (auto* target : m_targets)
+        {
+            dl_targets.insert(&target->target());
+        }
+
+        for (auto* dl_target : dl_targets)
+        {
+            if (dl_target->is_zchunck())
+            {
+                fs::path p = dl_target->filename();
+                try
+                {
+                    if (!fs::exists(p))  // Skip if file ended up not downloaded.
+                        continue;
+                    fs::path p_ext = p;
+                    p_ext.replace_extension("");
+                    zck_extract(p, p_ext, false); // TODO: consider activating validation?
+                }
+                catch(const std::exception& ex)
+                {
+                    spdlog::warn(fmt::format(
+                        "Failed to extract {} (skipped) : {}", p.u8string(), ex.what()));
+                }
+                catch (...)
+                {
+                    spdlog::warn(fmt::format("Failed to extract {} (skipped) : unknown error", p.u8string()));
+                }
+            }
+        }
+
+#endif
     }
 }
