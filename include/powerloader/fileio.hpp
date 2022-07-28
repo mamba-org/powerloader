@@ -42,9 +42,9 @@ namespace powerloader
         FileIO() = default;
 
 #ifdef _WIN32
-        inline explicit FileIO(const fs::path& file_path,
-                               const wchar_t* mode,
-                               std::error_code& ec) noexcept
+        explicit FileIO(const fs::path& file_path,
+                        const wchar_t* mode,
+                        std::error_code& ec) noexcept
             : m_path(file_path)
         {
             m_fs = ::_wfsopen(file_path.wstring().c_str(), mode, _SH_DENYNO);
@@ -55,9 +55,7 @@ namespace powerloader
             }
         }
 #else
-        inline explicit FileIO(const fs::path& file_path,
-                               const char* mode,
-                               std::error_code& ec) noexcept
+        explicit FileIO(const fs::path& file_path, const char* mode, std::error_code& ec) noexcept
             : m_path(file_path)
         {
             m_fs = ::fopen(file_path.c_str(), mode);
@@ -73,7 +71,7 @@ namespace powerloader
         }
 #endif
 
-        inline ~FileIO()
+        ~FileIO()
         {
             if (m_fs)
             {
@@ -86,7 +84,7 @@ namespace powerloader
             }
         }
 
-        inline int fd() const noexcept
+        int fd() const noexcept
         {
 #ifndef _WIN32
             return ::fileno(m_fs);
@@ -95,22 +93,22 @@ namespace powerloader
 #endif
         }
 
-        inline std::streamoff seek(int offset, int origin) const noexcept
+        std::streamoff seek(int offset, int origin) const noexcept
         {
             return ::fseek(m_fs, offset, origin);
         }
 
-        inline std::streamoff seek(unsigned int offset, int origin) const noexcept
+        std::streamoff seek(unsigned int offset, int origin) const noexcept
         {
             return this->seek(static_cast<long long>(offset), origin);
         }
 
-        inline std::streamoff seek(long offset, int origin) const noexcept
+        std::streamoff seek(long offset, int origin) const noexcept
         {
             return ::fseek(m_fs, offset, origin);
         }
 
-        inline std::streamoff seek(unsigned long offset, int origin) const noexcept
+        std::streamoff seek(unsigned long offset, int origin) const noexcept
         {
 #ifdef _WIN32
             return ::_fseeki64(m_fs, static_cast<long long>(offset), origin);
@@ -120,7 +118,7 @@ namespace powerloader
 #endif
         }
 
-        inline std::streamoff seek(long long offset, int origin) const noexcept
+        std::streamoff seek(long long offset, int origin) const noexcept
         {
 #ifdef _WIN32
             return ::_fseeki64(m_fs, offset, origin);
@@ -129,43 +127,43 @@ namespace powerloader
 #endif
         }
 
-        inline bool open()
+        bool open()
         {
             return m_fs != nullptr;
         }
 
-        inline std::streamoff tell() const
+        std::streamoff tell() const
         {
             return ::ftell(m_fs);
         }
 
-        inline std::streamoff seek(unsigned long long offset, int origin) const noexcept
+        std::streamoff seek(unsigned long long offset, int origin) const noexcept
         {
             assert(offset < LLONG_MAX);
             return this->seek(static_cast<long long>(offset), origin);
         }
 
-        inline int eof() const noexcept
+        int eof() const noexcept
         {
             return ::feof(m_fs);
         }
 
-        inline std::size_t read(void* buffer,
-                                std::size_t element_size,
-                                std::size_t element_count) const noexcept
+        std::size_t read(void* buffer,
+                         std::size_t element_size,
+                         std::size_t element_count) const noexcept
         {
             assert(m_fs);
             return ::fread(buffer, element_size, element_count, m_fs);
         }
 
-        inline std::size_t write(const void* buffer,
-                                 std::size_t element_size,
-                                 std::size_t element_count) const noexcept
+        std::size_t write(const void* buffer,
+                          std::size_t element_size,
+                          std::size_t element_count) const noexcept
         {
             return ::fwrite(buffer, element_size, element_count, m_fs);
         }
 
-        inline std::streamoff put(int c) const noexcept
+        std::streamoff put(int c) const noexcept
         {
             return ::fputc(c, m_fs);
         }
@@ -183,17 +181,17 @@ namespace powerloader
 #endif
         }
 
-        inline void flush()
+        void flush()
         {
             ::fflush(m_fs);
         }
 
-        inline const fs::path& path() const
+        const fs::path& path() const
         {
             return m_path;
         }
 
-        inline bool copy_from(const FileIO& other)
+        bool copy_from(const FileIO& other)
         {
             constexpr std::size_t bufsize = 2048;
             char buf[bufsize];
@@ -213,7 +211,7 @@ namespace powerloader
             return size != std::size_t(0);
         }
 
-        inline bool replace_from(const FileIO& other)
+        bool replace_from(const FileIO& other)
         {
             std::error_code ec;
             truncate(0, ec);
@@ -251,7 +249,7 @@ namespace powerloader
             }
         }
 
-        inline int error()
+        int error()
         {
             return ::ferror(m_fs);
         }
