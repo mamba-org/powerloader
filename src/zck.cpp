@@ -18,16 +18,9 @@ namespace powerloader
 
     bool zck_valid_header_base(const Checksum& chksum, std::ptrdiff_t zck_header_size, int fd);
 
-    // bool zck_clear_header(Target& target);
-
     std::vector<fs::path> get_recursive_files(const fs::path& dir, const std::string& suffix);
 
-    // TODO replace...
-    // int lr_copy_content(int source, int dest);
-
     bool find_local_zck_header(Target& target);
-
-    // bool prep_zck_header(Target& target);
 
     bool find_local_zck_chunks(Target& target);
 
