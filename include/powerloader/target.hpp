@@ -17,7 +17,7 @@ namespace powerloader
 {
     namespace fs = std::filesystem;
 
-    class POWERLOADER_API Target
+    class Target
     {
     public:
         /** Header callback for CURL handles.
