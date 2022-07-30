@@ -2,12 +2,29 @@
 
 #include "zck.hpp"
 #include <powerloader/context.hpp>
-#include <powerloader/target.hpp>
+#include "target.hpp"
 #include <powerloader/download_target.hpp>
 
 namespace powerloader
 {
 #ifdef WITH_ZCHUNK
+
+    zck_hash zck_hash_from_checksum(ChecksumType checksum_type);
+    ChecksumType checksum_type_from_zck_hash(zck_hash hash_type);
+
+    zckCtx* init_zck_read(const Checksum& chksum, ptrdiff_t zck_header_size, int fd);
+
+    zckCtx* zck_init_read_base(const Checksum& chksum, std::ptrdiff_t zck_header_size, int fd);
+
+    bool zck_valid_header_base(const Checksum& chksum, std::ptrdiff_t zck_header_size, int fd);
+
+    std::vector<fs::path> get_recursive_files(const fs::path& dir, const std::string& suffix);
+
+    bool find_local_zck_header(Target& target);
+
+    bool find_local_zck_chunks(Target& target);
+
+    bool prepare_zck_body(Target& target);
 
 
     zck_hash zck_hash_from_checksum(ChecksumType checksum_type)

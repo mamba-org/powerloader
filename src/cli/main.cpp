@@ -25,8 +25,8 @@ enum KindOf
 
 struct
 {
-    std::size_t done;
-    std::size_t total;
+    std::size_t done = 0;
+    std::size_t total = 0;
 
     std::map<DownloadTarget*, curl_off_t> total_done;
 } global_progress;
@@ -314,28 +314,12 @@ handle_download(Context& ctx,
         dl.add(t);
     }
 
-    bool success = dl.download();
+    const bool success = dl.download({ /*.extract_zchunk_files*/ do_zck_extract });
     if (!success)
     {
         spdlog::error("Download was not successful");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
-
-#ifdef WITH_ZCHUNK
-    if (do_zck_extract)
-    {
-        for (auto& t : targets)
-        {
-            if (t->is_zchunck())
-            {
-                fs::path p = t->filename();
-                fs::path p_ext = p;
-                p_ext.replace_extension("");
-                zck_extract(p, p_ext, false);
-            }
-        }
-    }
-#endif
     return 0;
 }
 

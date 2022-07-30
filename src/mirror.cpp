@@ -2,7 +2,7 @@
 
 #include <powerloader/mirror.hpp>
 #include <powerloader/mirrors/oci.hpp>
-#include <powerloader/target.hpp>
+#include "target.hpp"
 
 namespace powerloader
 {
