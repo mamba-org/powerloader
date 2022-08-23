@@ -185,6 +185,7 @@ target_include_directories(powerloader PUBLIC
     ${ZCK_INCLUDE_DIRS}
 )
 target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
+set_target_properties(powerloader PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 if (DEV)
     add_executable(dpowerloader ${POWERLOADER_SOURCE_DIR}/main.cpp)
@@ -219,7 +220,7 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-set(LIBMAMBA_CMAKECONFIG_INSTALL_DIR
+set(POWERLOADER_CMAKECONFIG_INSTALL_DIR
     "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "install path for libpowerloaderConfig.cmake")
 
 install(TARGETS powerloader libpowerloader
@@ -229,8 +230,38 @@ install(TARGETS powerloader libpowerloader
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-install(DIRECTORY include/ # source directory
-        DESTINATION "include" # target directory
+install(DIRECTORY "${POWERLOADER_INCLUDE_DIR}/" # source directory
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" # target directory
         FILES_MATCHING # install only matched files
-        PATTERN "**.**" # select all files
+        PATTERN "*.hpp"
+        PATTERN "*.h"
 )
+
+# Makes the project importable from the build directory
+export(EXPORT ${PROJECT_NAME}-targets
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
+
+# Configure 'mambaConfig.cmake' for a build tree
+set(POWERLOADER_CONFIG_CODE "####### Expanded from \@POWERLOADER_CONFIG_CODE\@ #######\n")
+set(POWERLOADER_CONFIG_CODE "${POWERLOADER_CONFIG_CODE}set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_SOURCE_DIR}/cmake;\${CMAKE_MODULE_PATH}\")\n")
+set(POWERLOADER_CONFIG_CODE "${POWERLOADER_CONFIG_CODE}##################################################")
+configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+                              "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+                              INSTALL_DESTINATION ${PROJECT_BINARY_DIR})
+
+# Configure 'mambaConfig.cmake' for an install tree
+set(POWERLOADER_CONFIG_CODE "")
+configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+                              "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
+                              INSTALL_DESTINATION ${POWERLOADER_CMAKECONFIG_INSTALL_DIR})
+
+
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                                 VERSION ${POWERLOADER_VERSION}
+                                 COMPATIBILITY AnyNewerVersion)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
+                ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                DESTINATION ${POWERLOADER_CMAKECONFIG_INSTALL_DIR})
+install(EXPORT ${PROJECT_NAME}-targets
+        FILE ${PROJECT_NAME}Targets.cmake
+        DESTINATION ${POWERLOADER_CMAKECONFIG_INSTALL_DIR})
