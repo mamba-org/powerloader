@@ -1,0 +1,40 @@
+name: Fully static build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  powerloader_full_static:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: environment-static-dev.yml
+
+      - name: build powerloader
+        shell: bash -l {0}
+        run: |
+          mkdir build; cd build
+          export USE_ZCHUNK=ON
+          cmake .. \
+            -GNinja \
+            -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+            -DWITH_ZCHUNK=$USE_ZCHUNK \
+            -DBUILD_STATIC_DEPS=ON
+          ninja
+      - name: run powerloader tests
+        shell: bash -l {0}
+        run: |
+          cd build
+          ninja test

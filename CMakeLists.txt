@@ -47,21 +47,16 @@ message(STATUS "xeus binary version: v${POWERLOADER_BINARY_VERSION}")
 # Compilation options
 option(WITH_ZCHUNK "Enable zchunk" ON)
 option(DEV "Enable dev" OFF)
-option(BUILD_SHARED_LIBS "Build as shared libraries" ON)
+option(BUILD_SHARED "Build shared powerloader library" OFF)
+option(BUILD_STATIC "Build static powerloader library" OFF)
+option(BUILD_STATIC_DEPS "Build static powerloader library with static linkage to its dependencies" OFF)
+#option(BUILD_SHARED_LIBS "Build as shared libraries" ON)
 
 # Test options
 option(ENABLE_TESTS "Enable tests" ON)
-option(ENABLE_PYTHON "Enable python bindings" ON)
+option(ENABLE_PYTHON "Enable python bindings" OFF)
 
-# Dependencies
-# ============
 
-find_package(CURL REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(CLI11 REQUIRED)
-find_package(yaml-cpp REQUIRED)
-find_package(tl-expected REQUIRED)
-find_package(spdlog REQUIRED)
 
 if (WITH_ZCHUNK)
     find_library(ZCK_LIBRARY zck REQUIRED)
@@ -115,81 +110,211 @@ endif()
 # Targets and link
 # ================
 
-add_library(libpowerloader
-    ${LIBPOWERLOADER_SRCS}
-    ${LIBPOWERLOADER_PUBLIC_HEADERS} # Makes headers visible in IDEs
-)
+macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
+    string(TOUPPER "${linkage}" linkage_upper)
+    if (NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")
+        message(FATAL_ERROR "Invalid library linkage: ${linkage}")
+    endif ()
 
-set_target_properties(libpowerloader
-    PROPERTIES PREFIX ""
-)
+    string(TOUPPER "${deps_linkage}" deps_linkage_upper)
+    if (NOT ${deps_linkage_upper} MATCHES "^(SHARED|STATIC)$")
+        message(FATAL_ERROR "Invalid library dependencies linkage: ${deps_linkage_upper}")
+    endif ()
 
-get_target_property(library_type libpowerloader TYPE)
-if(library_type STREQUAL SHARED_LIBRARY)
-    # As a shared library: build exports symbols, usage will import.
-    target_compile_definitions(libpowerloader PRIVATE POWERLOADER_EXPORTS)
-elseif(library_type STREQUAL STATIC_LIBRARY)
-    # As a static library: no symbol import/export from any side.
-    target_compile_definitions(libpowerloader PUBLIC POWERLOADER_STATIC)
-else()
-    message(ERROR "libpowerloader used as neither shared or static library: not supported")
-endif()
+    # Output
+    # ======
+    add_library(${target_name} ${linkage_upper} ${LIBPOWERLOADER_SRCS} ${LIBPOWERLOADER_PUBLIC_HEADERS})
+    set_target_properties(${target_name} PROPERTIES PREFIX "")
 
-target_include_directories(
-    libpowerloader
-    PUBLIC
-        $<BUILD_INTERFACE:${POWERLOADER_INCLUDE_DIR}>
-        $<INSTALL_INTERFACE:include>
-    PRIVATE
-        ${POWERLOADER_SOURCE_DIR}
-)
+    if (${linkage_upper} STREQUAL "STATIC")
+        # As a static library: no symbol import/export from any side.
+        target_compile_definitions(${target_name} PUBLIC POWERLOADER_STATIC)
+    else ()
+        # As a shared library: build exports symbols, usage will import.
+        target_compile_definitions(${target_name} PRIVATE POWERLOADER_EXPORTS)
+    endif()
 
-if (MSVC)
-    target_compile_definitions(libpowerloader PUBLIC -DNOMINMAX)
-    target_compile_options(libpowerloader
+    target_include_directories(
+        ${target_name}
+        PUBLIC
+            $<BUILD_INTERFACE:${POWERLOADER_INCLUDE_DIR}>
+            $<INSTALL_INTERFACE:include>
         PRIVATE
-            /wd4275 # Disable warning C4275: We know that we use templates instances in our symbol exports.
-            /wd4251 # Disable warning C4251: We know that we use templates instances in our symbol exports.
-            /permissive-
-#             /W4 # Recommended warning level 4
+            ${POWERLOADER_SOURCE_DIR}
     )
-else()
-    target_compile_options(libpowerloader
-        PRIVATE
-            -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic
+
+    if (MSVC)
+        target_compile_definitions(${target_name} PUBLIC -DNOMINMAX)
+        target_compile_options(${target_name}
+            PRIVATE
+                /wd4275 # Disable warning C4275: We know that we use templates instances in our symbol exports.
+                /wd4251 # Disable warning C4251: We know that we use templates instances in our symbol exports.
+                /permissive-
+                #/W4 # Recommended warning level 4
+       )
+    else()
+        target_compile_options(${target_name}
+            PRIVATE
+                -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic
+        )
+    endif()
+    
+    # Commmon dependencies
+    # ============
+
+    find_package(tl-expected REQUIRED)
+    find_package(spdlog REQUIRED)
+    
+    if (MSVC)
+        set(SPDLOG_TARGET spdlog::spdlog_header_only)
+        set(WINSOCK_LIBS wsock32 ws2_32)
+    else()
+        set(SPDLOG_TARGET spdlog::spdlog)
+    endif()
+
+    
+    if (${deps_linkage_upper} STREQUAL "STATIC")
+        message("   -> Statically linking against libpowerloader (static) dependencies")
+        if (UNIX)
+            set(REQUIRED_STATIC_DEPS
+                libcurl.a
+                libssh2.a
+
+                libgssapi_krb5.a
+                libkrb5.a
+                libk5crypto.a
+                libkrb5support.a
+                libcom_err.a
+
+                libssl.a
+                libcrypto.a
+                
+                libzck.a
+                
+                libnghttp2.a
+                
+                libzstd.a
+                libz.a
+                )
+
+            set(STATIC_DEPS "")
+            foreach(LIB ${REQUIRED_STATIC_DEPS})
+                message("Searching for ${LIB}")
+                set(TMP_LIB "${LIB}-NOTFOUND")
+                find_library(TMP_LIB NAMES "${LIB}")
+                list(APPEND STATIC_DEPS "${TMP_LIB}")
+            endforeach(LIB)
+
+            #            if (APPLE)
+            #    find_library(SECURITY_LIBRARY Security)
+            #    find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+            #    message("Found library: ${SECURITY_LIBRARY}\n${COREFOUNDATION_LIBRARY}")
+            #    list(APPEND STATIC_DEPS ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
+            #endif()
+
+            message("   -> Found static dependencies:")
+            foreach(LIB ${STATIC_DEPS})
+                message("      - ${LIB}")
+            endforeach(LIB)
+
+            if (APPLE)
+                set (POWERLOADER_FORCE_DYNAMIC_LIBS resolv)
+                target_link_options(${target_name} PRIVATE -static-libstdc++)
+            elseif (UNIX)
+                set(POWERLOADER_FORCE_DYNAMIC_LIBS rt dl resolv)
+                target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
+            endif()
+
+        target_link_libraries(${target_name}
+            PUBLIC
+                tl::expected
+                ${SPDLOG_TARGET}
+                ${STATIC_DEPS}
+                ${POWERLOADER_FORCE_DYNAMIC_LIBS}
+        )
+        endif()
+    else ()
+        message("   -> Dynamically linking against libpowerloader (shared) dependencies")
+
+        find_package(CURL REQUIRED)
+        find_package(OpenSSL REQUIRED)
+        
+        target_link_libraries(${target_name}
+            PUBLIC
+                tl::expected
+                ${SPDLOG_TARGET}
+            PRIVATE
+                ${CURL_LIBRARIES}
+                ${ZCK_LIBRARY}
+                ${OPENSSL_LIBRARIES}
+                ${WINSOCK_LIBS}
     )
-endif()
+    endif ()
 
+    if (WITH_ZCHUNK)
+        target_compile_definitions(${target_name} PUBLIC WITH_ZCHUNK)
+        if (MSVC)
+            target_compile_definitions(${target_name} PUBLIC /wd4996)
+        endif()
+    endif ()
 
-if (MSVC)
-    set(SPDLOG_TARGET spdlog::spdlog_header_only)
-    set(WINSOCK_LIBS wsock32 ws2_32)
-else()
-    set(SPDLOG_TARGET spdlog::spdlog)
-endif()
-target_link_libraries(libpowerloader
-    PUBLIC
-        tl::expected
-        ${SPDLOG_TARGET}
-    PRIVATE
-        ${CURL_LIBRARIES}
-        ${ZCK_LIBRARY}
-        ${OPENSSL_LIBRARIES}
-        ${WINSOCK_LIBS}
-)
+    list(APPEND libpowerloader_targets ${target_name})
+endmacro()
 
+set(libpowerloader_targets "")
+
+if (BUILD_SHARED)
+    message(STATUS "Adding shared libpowerloader target")
+    libpowerloader_create_target(libpowerloader SHARED SHARED libpowerloader)
+endif ()
+
+if (BUILD_STATIC)
+    message(STATUS "Adding static libpowerloader target")
+
+    # On Windows, a static library should use a different output name
+    # to avoid the conflict with the import library of a shared one.
+    if (CMAKE_HOST_WIN32)
+        libpowerloader_create_target(libpowerloader-static STATIC SHARED libpowerloader_static)
+    else ()
+        libpowerloader_create_target(libpowerloader-static STATIC SHARED libpowerloader)
+    endif ()
+endif ()
+
+if (BUILD_STATIC_DEPS)
+    message(STATUS "Adding full-static libpowerloader target")
+    libpowerloader_create_target(libpowerloader-full-static STATIC STATIC libpowerloader_full_static)
+endif ()
+
+if (NOT (BUILD_SHARED OR BUILD_STATIC OR BUILD_STATIC_DEPS))
+    message(FATAL_ERROR "Select at least a build variant for libpowerloader")
+endif ()
+
+# powerloader executable
+# ======================
 
 add_executable(powerloader ${POWERLOADER_SOURCE_DIR}/cli/main.cpp)
 target_include_directories(powerloader PUBLIC
     ${CURL_INCLUDE_DIRS}
     ${ZCK_INCLUDE_DIRS}
 )
-target_link_libraries(powerloader libpowerloader CLI11::CLI11 yaml-cpp)
+
+if (BUILD_SHARED)
+    set(powerloader_dependency libpowerloader)
+elseif (BUILD_STATIC)
+    set(powerloader_dependency libpowerloader-static)
+else ()
+    set(powerloader_dependency libpowerloader-full-static)
+endif ()
+
+find_package(CLI11 REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
+target_link_libraries(powerloader ${powerloader_dependency} CLI11::CLI11 yaml-cpp)
 set_target_properties(powerloader PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 if (DEV)
     add_executable(dpowerloader ${POWERLOADER_SOURCE_DIR}/main.cpp)
-    target_link_libraries(dpowerloader libpowerloader)
+    target_link_libraries(dpowerloader ${powerloader_dependency})
     if (WITH_ZCHUNK)
         target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
     endif()
@@ -197,10 +322,6 @@ endif()
 
 if (WITH_ZCHUNK)
     target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
-    target_compile_definitions(libpowerloader PUBLIC WITH_ZCHUNK)
-    if (MSVC)
-        target_compile_definitions(libpowerloader PUBLIC /wd4996)
-    endif()
 endif()
 
 # Tests
@@ -223,7 +344,7 @@ include(CMakePackageConfigHelpers)
 set(POWERLOADER_CMAKECONFIG_INSTALL_DIR
     "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "install path for libpowerloaderConfig.cmake")
 
-install(TARGETS powerloader libpowerloader
+install(TARGETS powerloader ${libpowerloader_targets}
         EXPORT ${PROJECT_NAME}-targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
