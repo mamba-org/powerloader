@@ -1,0 +1,15 @@
+name: powerloader-dev
+channels:
+  - conda-forge
+dependencies:
+  - vs2019_win-64
+  - ninja
+  - vcpkg
+  - curl
+  - cpp-expected
+  - spdlog
+  - nlohmann_json
+  - zchunk-static
+  # Tests
+  - gtest
+  - gmock
