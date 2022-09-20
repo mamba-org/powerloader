@@ -158,13 +158,13 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic
         )
     endif()
-    
+
     # Commmon dependencies
     # ============
 
     find_package(tl-expected REQUIRED)
     find_package(spdlog REQUIRED)
-    
+
     if (MSVC)
         set(SPDLOG_TARGET spdlog::spdlog_header_only)
         set(WINSOCK_LIBS wsock32 ws2_32)
@@ -172,7 +172,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
         set(SPDLOG_TARGET spdlog::spdlog)
     endif()
 
-    
+
     if (${deps_linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libpowerloader (static) dependencies")
         if (UNIX)
@@ -188,11 +188,11 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
 
                 libssl.a
                 libcrypto.a
-                
+
                 libzck.a
-                
+
                 libnghttp2.a
-                
+
                 libzstd.a
                 libz.a
                 )
@@ -238,7 +238,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
 
         find_package(CURL REQUIRED)
         find_package(OpenSSL REQUIRED)
-        
+
         target_link_libraries(${target_name}
             PUBLIC
                 tl::expected

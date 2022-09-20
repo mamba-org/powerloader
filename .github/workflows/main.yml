@@ -61,7 +61,7 @@ jobs:
         run: |
           cd build
           ninja test
-      
+
       - name: build powerloader
         if: runner.os == 'Windows'
         shell: cmd /C CALL {0}
