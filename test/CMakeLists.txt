@@ -13,7 +13,7 @@ add_executable(test_powerloader ${TEST_SRCS})
 
 target_link_libraries(test_powerloader
     PRIVATE
-        libpowerloader
+        ${powerloader_dependency}
         GTest::GTest
         GTest::Main
 )
@@ -22,5 +22,5 @@ set_property(TARGET test_powerloader PROPERTY CXX_STANDARD 17)
 add_custom_target(test
     COMMAND test_powerloader
     DEPENDS test_powerloader
-    WORKING_DIRECTORY $<TARGET_FILE_DIR:libpowerloader>
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:${powerloader_dependency}>
 )

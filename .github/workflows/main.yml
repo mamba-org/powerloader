@@ -2,12 +2,14 @@ name: CI
 on:
   push:
     branches:
-      - master
       - main
   pull_request:
     branches:
-      - master
       - main
+
+defaults:
+  run:
+    shell: bash -l {0}
 
 jobs:
   test:
@@ -16,37 +18,50 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        shared-library: [ON, OFF]
+        build_type: [static_build, shared_build]
 
     name: test
     steps:
       - uses: actions/checkout@v2
+
       - name: install mamba
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: environment.yml
+
+      - name: static build option
+        if: matrix.build_type == 'static_build'
+        run: |
+          CMAKE_EXTRA_ARGS="$CMAKE_EXTRA_ARGS -DBUILD_STATIC=ON"
+          echo "CMAKE_EXTRA_ARGS=$CMAKE_EXTRA_ARGS" >> $GITHUB_ENV
+
+      - name: shared build option
+        if: matrix.build_type == 'shared_build'
+        run: |
+          CMAKE_EXTRA_ARGS="$CMAKE_EXTRA_ARGS -DBUILD_SHARED=ON"
+          echo "CMAKE_EXTRA_ARGS=$CMAKE_EXTRA_ARGS" >> $GITHUB_ENV
+
       - name: build powerloader
         if: runner.os != 'Windows'
         shell: bash -l {0}
         run: |
           mkdir build; cd build
           export USE_ZCHUNK=ON
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            USE_ZCHUNK=OFF
-          fi
           cmake .. \
             -GNinja \
             -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
             -DWITH_ZCHUNK=$USE_ZCHUNK \
             -DENABLE_TESTS=ON \
-            -DBUILD_SHARED_LIBS=${{matrix.shared-library}}
+            ${{ env.CMAKE_EXTRA_ARGS }}
           ninja
+
       - name: run powerloader tests
         if: runner.os != 'Windows'
         shell: bash -l {0}
         run: |
           cd build
           ninja test
+
       - name: build powerloader
         if: runner.os == 'Windows'
         shell: cmd /C CALL {0}
@@ -59,7 +74,7 @@ jobs:
           cmake .. -DCMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library ^
                    -DENABLE_TESTS=ON ^
                    -DWITH_ZCHUNK=OFF ^
-                   -DBUILD_SHARED_LIBS=${{matrix.shared-library}} ^
+                   ${{ env.CMAKE_EXTRA_ARGS }} ^
                    -G "Ninja"
           ninja
           ninja test

@@ -1,0 +1,24 @@
+name: powerloader-dev
+channels:
+  - conda-forge
+dependencies:
+  - cmake
+  - ninja
+  - cxx-compiler
+  - libcurl-static
+  - openssl
+  - libopenssl-static
+  - libnghttp2-static
+  - zstd-static
+  - libssh2-static
+  - krb5-static
+  - zchunk-static
+  - cpp-expected
+  - spdlog
+  - nlohmann_json
+  # powerloader executable, not linking statically for now
+  - cli11
+  - yaml-cpp
+  # Tests
+  - gtest
+  - gmock
