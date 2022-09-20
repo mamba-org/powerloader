@@ -50,7 +50,7 @@ option(DEV "Enable dev" OFF)
 option(BUILD_SHARED "Build shared powerloader library" OFF)
 option(BUILD_STATIC "Build static powerloader library" OFF)
 option(BUILD_STATIC_DEPS "Build static powerloader library with static linkage to its dependencies" OFF)
-#option(BUILD_SHARED_LIBS "Build as shared libraries" ON)
+option(BUILD_EXE "Build powerloader executable" OFF)
 
 # Test options
 option(ENABLE_TESTS "Enable tests" ON)
@@ -205,13 +205,6 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                 list(APPEND STATIC_DEPS "${TMP_LIB}")
             endforeach(LIB)
 
-            #            if (APPLE)
-            #    find_library(SECURITY_LIBRARY Security)
-            #    find_library(COREFOUNDATION_LIBRARY CoreFoundation)
-            #    message("Found library: ${SECURITY_LIBRARY}\n${COREFOUNDATION_LIBRARY}")
-            #    list(APPEND STATIC_DEPS ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
-            #endif()
-
             message("   -> Found static dependencies:")
             foreach(LIB ${STATIC_DEPS})
                 message("      - ${LIB}")
@@ -289,14 +282,8 @@ if (NOT (BUILD_SHARED OR BUILD_STATIC OR BUILD_STATIC_DEPS))
     message(FATAL_ERROR "Select at least a build variant for libpowerloader")
 endif ()
 
-# powerloader executable
-# ======================
-
-add_executable(powerloader ${POWERLOADER_SOURCE_DIR}/cli/main.cpp)
-target_include_directories(powerloader PUBLIC
-    ${CURL_INCLUDE_DIRS}
-    ${ZCK_INCLUDE_DIRS}
-)
+# Dependencies for executable and tests
+# =====================================
 
 if (BUILD_SHARED)
     set(powerloader_dependency libpowerloader)
@@ -306,22 +293,35 @@ else ()
     set(powerloader_dependency libpowerloader-full-static)
 endif ()
 
-find_package(CLI11 REQUIRED)
-find_package(yaml-cpp REQUIRED)
+# powerloader executable
+# ======================
 
-target_link_libraries(powerloader ${powerloader_dependency} CLI11::CLI11 yaml-cpp)
-set_target_properties(powerloader PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+if (BUILD_EXE)
+    add_executable(powerloader ${POWERLOADER_SOURCE_DIR}/cli/main.cpp)
+    target_include_directories(powerloader PUBLIC
+        ${CURL_INCLUDE_DIRS}
+        ${ZCK_INCLUDE_DIRS}
+    )
 
-if (DEV)
-    add_executable(dpowerloader ${POWERLOADER_SOURCE_DIR}/main.cpp)
-    target_link_libraries(dpowerloader ${powerloader_dependency})
-    if (WITH_ZCHUNK)
-        target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
+    find_package(CLI11 REQUIRED)
+    find_package(yaml-cpp REQUIRED)
+
+    target_link_libraries(powerloader ${powerloader_dependency} CLI11::CLI11 yaml-cpp)
+    set_target_properties(powerloader PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+    if (DEV)
+        add_executable(dpowerloader ${POWERLOADER_SOURCE_DIR}/main.cpp)
+        target_link_libraries(dpowerloader ${powerloader_dependency})
+        if (WITH_ZCHUNK)
+            target_compile_definitions(dpowerloader PUBLIC WITH_ZCHUNK)
+        endif()
     endif()
-endif()
 
-if (WITH_ZCHUNK)
-    target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
+    if (WITH_ZCHUNK)
+        target_compile_definitions(powerloader PUBLIC WITH_ZCHUNK)
+    endif()
+
+    list(APPEND libpowerloader_targets powerloader)
 endif()
 
 # Tests
@@ -344,7 +344,7 @@ include(CMakePackageConfigHelpers)
 set(POWERLOADER_CMAKECONFIG_INSTALL_DIR
     "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "install path for libpowerloaderConfig.cmake")
 
-install(TARGETS powerloader ${libpowerloader_targets}
+install(TARGETS ${libpowerloader_targets}
         EXPORT ${PROJECT_NAME}-targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

@@ -31,7 +31,8 @@ jobs:
             -GNinja \
             -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
             -DWITH_ZCHUNK=$USE_ZCHUNK \
-            -DBUILD_STATIC_DEPS=ON
+            -DBUILD_STATIC_DEPS=ON \
+            -DBUILD_EXE=OFF
           ninja
       - name: run powerloader tests
         shell: bash -l {0}

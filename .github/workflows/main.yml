@@ -52,6 +52,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
             -DWITH_ZCHUNK=$USE_ZCHUNK \
             -DENABLE_TESTS=ON \
+            -DBUILD_EXE=ON \
             ${{ env.CMAKE_EXTRA_ARGS }}
           ninja
 
@@ -74,6 +75,7 @@ jobs:
           cmake .. -DCMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library ^
                    -DENABLE_TESTS=ON ^
                    -DWITH_ZCHUNK=OFF ^
+                   -DBUILD_EXE=ON ^
                    ${{ env.CMAKE_EXTRA_ARGS }} ^
                    -G "Ninja"
           ninja
