@@ -16,9 +16,6 @@ dependencies:
   - cpp-expected
   - spdlog
   - nlohmann_json
-  # powerloader executable, not linking statically for now
-  - cli11
-  - yaml-cpp
   # Tests
   - gtest
   - gmock
