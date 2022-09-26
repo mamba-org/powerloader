@@ -124,7 +124,11 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
     # Output
     # ======
     add_library(${target_name} ${linkage_upper} ${LIBPOWERLOADER_SRCS} ${LIBPOWERLOADER_PUBLIC_HEADERS})
-    set_target_properties(${target_name} PROPERTIES PREFIX "")
+    set_target_properties(
+        ${target_name}
+        PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME "${output_name}")
 
     if (${linkage_upper} STREQUAL "STATIC")
         # As a static library: no symbol import/export from any side.
@@ -286,7 +290,7 @@ if (BUILD_STATIC)
 
     # On Windows, a static library should use a different output name
     # to avoid the conflict with the import library of a shared one.
-    if (CMAKE_HOST_WIN32)
+    if (WIN32)
         libpowerloader_create_target(libpowerloader-static STATIC SHARED libpowerloader_static)
     else ()
         libpowerloader_create_target(libpowerloader-static STATIC SHARED libpowerloader)
