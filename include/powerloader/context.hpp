@@ -40,6 +40,10 @@ namespace powerloader
         long max_parallel_downloads = 5L;
         long max_downloads_per_mirror = -1L;
 
+        // This can improve throughput significantly
+        // see https://github.com/curl/curl/issues/9601
+        long transfer_buffersize = 100 * 1024;
+
         bool preserve_filetime = true;
         bool ftp_use_seepsv = true;
 
