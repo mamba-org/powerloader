@@ -50,6 +50,7 @@ namespace powerloader
         setopt(CURLOPT_CONNECTTIMEOUT, ctx.connect_timeout);
         setopt(CURLOPT_LOW_SPEED_TIME, ctx.low_speed_time);
         setopt(CURLOPT_LOW_SPEED_LIMIT, ctx.low_speed_limit);
+        setopt(CURLOPT_BUFFERSIZE, ctx.transfer_buffersize);
 
         if (ctx.disable_ssl)
         {
