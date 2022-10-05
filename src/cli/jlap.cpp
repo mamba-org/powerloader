@@ -116,14 +116,14 @@ apply_jlap()
             std::cout << "Applying patch " << i++ << " from " << repo_bsum.substr(0, 8) << "… to "
                       << pf["to"].get<std::string>().substr(0, 8) << "… ";
             repo_bsum = pf["to"];
-            // nlohmann::inplace_patch(jrdata, pf["patch"]);
-            jrdata.patch(pf["patch"]);
+            jrdata.patch_inplace(pf["patch"]);
             auto t1 = std::chrono::high_resolution_clock::now();
             std::cout << "took "
                       << std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count()
                       << " ns." << std::endl;
         }
     }
+
     {
         std::ofstream rpatched("final_repodata.json");
         rpatched << jrdata.dump(2) << "\n";
@@ -174,7 +174,7 @@ main()
         }
     }
 
-    h.url("https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap");
+    h.url("https://conda.anaconda.org/conda-forge/osx-arm64/repodata.jlap");
     if (start_offset != 0)
     {
         std::cout << "Resuming from offset: " << start_offset << " (cutting "
@@ -182,6 +182,11 @@ main()
         h.setopt(CURLOPT_RESUME_FROM_LARGE, static_cast<curl_off_t>(start_offset));
     }
     auto response = h.perform();
+    if (!response.ok() && response.http_status == 416) {
+        // offset is wrong, overwrite the entire file
+        h.setopt(CURLOPT_RESUME_FROM_LARGE, 0);
+        response = h.perform();
+    }
 
     if (response.ok())
     {
