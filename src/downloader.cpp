@@ -566,7 +566,6 @@ namespace powerloader
             // Cleanup
             curl_multi_remove_handle(multi_handle, current_target->curl_handle());
 
-            // call_end_callback()
             if (!result)
             {
                 result.error().log();
