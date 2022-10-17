@@ -193,6 +193,7 @@ namespace powerloader
         {
             if (target->m_protocol == Protocol::kHTTP && starts_with(header, "HTTP/"))
             {
+                // TODO handle 304 better?
                 if (contains(header, "200")
                     || (contains(header, "206") && !contains(header, "connection established")))
                 {

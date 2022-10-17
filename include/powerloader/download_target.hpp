@@ -180,8 +180,7 @@ namespace powerloader
 
         progress_callback_t set_progress_callback(progress_callback_t callback)
         {
-            std::exchange(callback, m_progress_callback);
-            return callback;
+            return std::exchange(m_progress_callback, callback);
         }
 
         const end_callback_t& end_callback() const
@@ -191,14 +190,12 @@ namespace powerloader
 
         end_callback_t set_end_callback(end_callback_t callback)
         {
-            std::exchange(callback, m_end_callback);
-            return callback;
+            return std::exchange(m_end_callback, callback);
         }
 
         std::shared_ptr<Mirror> set_mirror_to_use(std::shared_ptr<Mirror> mirror)
         {
-            std::exchange(mirror, m_used_mirror);
-            return mirror;
+            return std::exchange(m_used_mirror, mirror);
         }
 
         std::shared_ptr<Mirror> used_mirror() const noexcept
