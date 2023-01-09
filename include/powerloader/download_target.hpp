@@ -55,6 +55,12 @@ namespace powerloader
 
         void set_error(const DownloaderError& err);
 
+        /// Returns a DownloadError if there was a falure at download or nullptr if no error was set.
+        const DownloaderError* get_error() const noexcept
+        {
+            return m_error.get();
+        }
+
         bool resume() const noexcept
         {
             return m_resume;
