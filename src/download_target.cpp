@@ -102,11 +102,6 @@ namespace powerloader
         return fs::exists(m_filename) && validate_checksum(m_filename);
     }
 
-    void DownloadTarget::set_error(const DownloaderError& err)
-    {
-        m_error = std::make_unique<DownloaderError>(err);
-    }
-
     void DownloadTarget::set_cache_options(const CacheControl& cache_control)
     {
         m_cache_control = cache_control;

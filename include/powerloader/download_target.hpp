@@ -53,13 +53,15 @@ namespace powerloader
         bool validate_checksum(const fs::path& path);
         bool already_downloaded();
 
-        void set_error(const DownloaderError& err);
-
-        /// Returns a DownloadError if there was a falure at download or nullptr if no error was
-        /// set.
-        const DownloaderError* get_error() const noexcept
+        void set_error(DownloaderError err)
         {
-            return m_error.get();
+            m_error = std::move(err);
+        }
+
+        /// Returns a DownloadError if there was a falure at download or none if no error was set so far.
+        std::optional<DownloaderError> get_error() const noexcept
+        {
+            return m_error;
         }
 
         bool resume() const noexcept
@@ -258,8 +260,7 @@ namespace powerloader
 
         std::shared_ptr<Mirror> m_used_mirror;
         std::string m_effective_url;
-        std::unique_ptr<DownloaderError> m_error;  // TODO: check if it's used somewhere outside
-                                                   // this project, or use in tests at least.
+        std::optional<DownloaderError> m_error;
 
         std::unique_ptr<zck_target> m_p_zck;
 
