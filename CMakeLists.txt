@@ -222,7 +222,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                 find_library(SYSTEMCONFIGURATION_LIBRARY SystemConfiguration)
                 find_library(COREFOUNDATION_LIBRARY CoreFoundation)
                 message("Found library: ${SECURITY_LIBRARY}\n${COREFOUNDATION_LIBRARY}\n${SYSTEMCONFIGURATION_LIBRARY}")
-                target_link_options(${target_name} PRIVATE
+                target_link_libraries(${target_name} PRIVATE
                     ${COREFOUNDATION_LIBRARY}
                     ${SECURITY_LIBRARY}
                     ${SYSTEMCONFIGURATION_LIBRARY}
