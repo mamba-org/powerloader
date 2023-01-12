@@ -266,7 +266,7 @@ namespace powerloader
 
                 if (target->target().expected_size() > 0 && lkey == "content-length")
                 {
-                    ptrdiff_t content_length = std::stoll(std::string(value));
+                    std::uintmax_t content_length = std::stoll(std::string(value));
                     spdlog::info("Server returned Content-Length: {}", content_length);
                     if (content_length > 0 && content_length != target->target().expected_size())
                     {
@@ -530,6 +530,13 @@ namespace powerloader
             m_state = DownloadState::kPREPARATION;
 
             CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+            if (cm_rc != CURLM_OK)
+            {
+                spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));
+                this->set_failed(DownloaderError{
+                    ErrorLevel::FATAL, ErrorCode::PD_CURL, "curl_multi_add_handle() failed" });
+                return;
+            }
             return;
         }
 
@@ -654,9 +661,14 @@ namespace powerloader
         }
 
         // Add the new handle to the curl multi handle
-        CURL* handle = h;
-        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, handle);
-        assert(cm_rc == CURLM_OK);
+        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+        if (cm_rc != CURLM_OK)
+        {
+            spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));
+            this->set_failed(DownloaderError{
+                ErrorLevel::FATAL, ErrorCode::PD_CURL, "curl_multi_add_handle() failed" });
+            return;
+        }
 
         // Set the state of transfer as running
         m_state = DownloadState::kRUNNING;

@@ -113,19 +113,19 @@ namespace powerloader
             return m_byterange_end;
         }
 
-        std::ptrdiff_t expected_size() const noexcept
+        std::uintmax_t expected_size() const noexcept
         {
             return m_expected_size;
         }
 
         // TOOD: check SOC (why is this modifed outside)
-        void set_expected_size(std::ptrdiff_t value)
+        void set_expected_size(std::uintmax_t value)
         {
             // TODO: add checks?
             m_expected_size = value;
         }
 
-        std::ptrdiff_t orig_size() const noexcept
+        std::uintmax_t orig_size() const noexcept
         {
             return m_orig_size;
         }
@@ -247,8 +247,8 @@ namespace powerloader
         std::size_t m_byterange_start = 0;
         std::size_t m_byterange_end = 0;
         std::string m_range;
-        std::ptrdiff_t m_expected_size = 0;
-        std::ptrdiff_t m_orig_size = 0;
+        std::uintmax_t m_expected_size = 0;
+        std::uintmax_t m_orig_size = 0;
 
         progress_callback_t m_progress_callback;
         end_callback_t m_end_callback;

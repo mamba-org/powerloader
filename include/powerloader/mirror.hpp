@@ -138,10 +138,8 @@ namespace powerloader
 
         Protocol m_protocol = Protocol::kHTTP;
         MirrorState m_state = MirrorState::READY;
-        bool m_authenticated = false;
 
         std::chrono::steady_clock::time_point m_next_allowed_retry;
-        std::chrono::steady_clock::duration m_next_wait_duration;
 
         MirrorStats m_stats;
 
