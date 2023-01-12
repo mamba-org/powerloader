@@ -217,6 +217,16 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
             if (APPLE)
                 set (POWERLOADER_FORCE_DYNAMIC_LIBS resolv)
                 target_link_options(${target_name} PRIVATE -static-libstdc++)
+
+                find_library(SECURITY_LIBRARY Security)
+                find_library(SYSTEMCONFIGURATION_LIBRARY SystemConfiguration)
+                find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+                message("Found library: ${SECURITY_LIBRARY}\n${COREFOUNDATION_LIBRARY}\n${SYSTEMCONFIGURATION_LIBRARY}")
+                target_link_options(${target_name} PRIVATE
+                    ${COREFOUNDATION_LIBRARY}
+                    ${SECURITY_LIBRARY}
+                    ${SYSTEMCONFIGURATION_LIBRARY}
+                )
             elseif (UNIX)
                 set(POWERLOADER_FORCE_DYNAMIC_LIBS rt dl resolv)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
