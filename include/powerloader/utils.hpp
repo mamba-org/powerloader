@@ -129,7 +129,7 @@ namespace powerloader
     // Removes duplicate values (compared using `==`) from a sequence container.
     // This will change the order of the elements.
     // Returns the new end iterator for the container.
-    template<typename SequenceContainer> // TODO: use a concept once C++20 is available
+    template <typename SequenceContainer>  // TODO: use a concept once C++20 is available
     auto erase_duplicates(SequenceContainer&& container)
     {
         // TODO: use ranges once c++20 is available

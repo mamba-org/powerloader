@@ -40,24 +40,25 @@ namespace powerloader
 #endif
     }
 
-    // Creates a `DownloadTarget` given an URL.
-    // When the url is a regular url (with "://"), mirrors will be added to the `Context` for it's host
-    // if not already existing.
-    std::shared_ptr<DownloadTarget> DownloadTarget::from_url(Context& ctx, const std::string& target_url, const fs::path& destination_path)
+    std::shared_ptr<DownloadTarget> DownloadTarget::from_url(Context& ctx,
+                                                             const std::string& target_url,
+                                                             const fs::path& destination_path)
     {
         if (contains(target_url, "://"))
         {
             // even when we get a regular URL like `http://test.com/download.tar.gz`
             // we want to create a "mirror" for `http://test.com` to make sure we correctly
             // retry and wait on mirror failures
-            URLHandler uh{target_url};
+            URLHandler uh{ target_url };
             const std::string url = uh.url();
             const std::string host = uh.host();
             const std::string path = uh.path();
             const std::string mirror_url = url.substr(0, url.size() - path.size());
-            const fs::path dst = destination_path.empty() ? fs::path{rsplit(path, "/", 1).back()} : destination_path;
+            const fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
+                                                          : destination_path;
 
-            // Note that `ctx.mirror_map[host]` will create the vector by default at key `host` if it doesnt already exists.
+            // Note that `ctx.mirror_map[host]` will create the vector by default at key `host` if
+            // it doesnt already exists.
             ctx.mirror_map[host].push_back(std::make_shared<Mirror>(ctx, mirror_url));
 
             return std::make_shared<DownloadTarget>(path.substr(1, std::string::npos), host, dst);
@@ -72,8 +73,8 @@ namespace powerloader
             const auto mirror = parts[0];
             const auto path = parts[1];
 
-            fs::path dst
-                = destination_path.empty() ? fs::path{rsplit(path, "/", 1).back()} : destination_path;
+            fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
+                                                    : destination_path;
 
             // if (!dest_folder.empty())
             //     dst = dest_folder + "/" + dst;
