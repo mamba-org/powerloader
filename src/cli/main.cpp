@@ -263,7 +263,7 @@ handle_download(Context& ctx,
 #endif
 
         using namespace std::placeholders;
-        target->set_progress_callback(std::bind(&progress_callback, targets.back().get(), _1, _2));
+        target->set_progress_callback(std::bind(&progress_callback, target.get(), _1, _2));
 
         spdlog::info("Downloading {} from {} to {}",
                      target->path(),
