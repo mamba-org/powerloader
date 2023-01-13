@@ -59,7 +59,8 @@ namespace powerloader
         // it's host if not already existing.
         static std::shared_ptr<DownloadTarget> from_url(Context& ctx,
                                                         const std::string& target_url,
-                                                        const fs::path& destination_path);
+                                                        const fs::path& destination_path,
+                                                        const fs::path& destination_dir);
 
         void set_cache_options(const CacheControl& cache_control);
         void add_handle_options(CURLHandle& handle);

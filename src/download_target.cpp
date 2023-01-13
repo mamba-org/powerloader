@@ -42,7 +42,8 @@ namespace powerloader
 
     std::shared_ptr<DownloadTarget> DownloadTarget::from_url(Context& ctx,
                                                              const std::string& target_url,
-                                                             const fs::path& destination_path)
+                                                             const fs::path& destination_path,
+                                                             const fs::path& destination_dir)
     {
         if (contains(target_url, "://"))
         {
@@ -76,8 +77,8 @@ namespace powerloader
             fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
                                                     : destination_path;
 
-            // if (!dest_folder.empty())
-            //     dst = dest_folder + "/" + dst;
+            if (!destination_dir.empty())
+                dst = destination_dir / dst;
 
             return std::make_shared<DownloadTarget>(path, mirror, dst);
         }

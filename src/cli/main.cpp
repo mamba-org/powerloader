@@ -246,7 +246,7 @@ handle_download(Context& ctx,
 
     for (const auto& url : urls)
     {
-        auto target = DownloadTarget::from_url(ctx, url, metadata.outfile);
+        auto target = DownloadTarget::from_url(ctx, url, metadata.outfile, dest_folder);
         target->set_resume(resume);
 
         if (!metadata.sha256.empty())
