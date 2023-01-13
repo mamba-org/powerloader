@@ -1,3 +1,4 @@
+#include "powerloader/context.hpp"
 #include <powerloader/download_target.hpp>
 
 #ifdef WITH_ZCHUNK
@@ -15,11 +16,11 @@ namespace powerloader
 
     DownloadTarget::DownloadTarget(const std::string& path,
                                    const std::string& base_url,
-                                   const fs::path& filename)
+                                   const fs::path& destination)
         : m_is_zchunk(ends_with(path, ".zck"))
         , m_path(path)
         , m_base_url(base_url)
-        , m_filename(filename)
+        , m_destination_path(destination)
     {
         if (path.find("://") != std::string::npos)
         {
@@ -34,9 +35,51 @@ namespace powerloader
         if (m_is_zchunk)
         {
             m_p_zck = std::make_unique<zck_target>();
-            m_p_zck->zck_cache_file = filename;
+            m_p_zck->zck_cache_file = m_destination_path;
         }
 #endif
+    }
+
+    // Creates a `DownloadTarget` given an URL.
+    // When the url is a regular url (with "://"), mirrors will be added to the `Context` for it's host
+    // if not already existing.
+    std::shared_ptr<DownloadTarget> DownloadTarget::from_url(Context& ctx, const std::string& target_url, const fs::path& destination_path)
+    {
+        if (contains(target_url, "://"))
+        {
+            // even when we get a regular URL like `http://test.com/download.tar.gz`
+            // we want to create a "mirror" for `http://test.com` to make sure we correctly
+            // retry and wait on mirror failures
+            URLHandler uh{target_url};
+            const std::string url = uh.url();
+            const std::string host = uh.host();
+            const std::string path = uh.path();
+            const std::string mirror_url = url.substr(0, url.size() - path.size());
+            const fs::path dst = destination_path.empty() ? fs::path{rsplit(path, "/", 1).back()} : destination_path;
+
+            // Note that `ctx.mirror_map[host]` will create the vector by default at key `host` if it doesnt already exists.
+            ctx.mirror_map[host].push_back(std::make_shared<Mirror>(ctx, mirror_url));
+
+            return std::make_shared<DownloadTarget>(path.substr(1, std::string::npos), host, dst);
+        }
+        else
+        {
+            const std::vector<std::string> parts = split(target_url, ":");
+            if (parts.size() != 2)
+            {
+                throw std::runtime_error("Not the correct number of : in the url");
+            }
+            const auto mirror = parts[0];
+            const auto path = parts[1];
+
+            fs::path dst
+                = destination_path.empty() ? fs::path{rsplit(path, "/", 1).back()} : destination_path;
+
+            // if (!dest_folder.empty())
+            //     dst = dest_folder + "/" + dst;
+
+            return std::make_shared<DownloadTarget>(path, mirror, dst);
+        }
     }
 
     DownloadTarget::~DownloadTarget() = default;
@@ -99,7 +142,7 @@ namespace powerloader
     {
         if (m_checksums.empty())
             return false;
-        return fs::exists(m_filename) && validate_checksum(m_filename);
+        return fs::exists(m_destination_path) && validate_checksum(m_destination_path);
     }
 
     void DownloadTarget::set_cache_options(const CacheControl& cache_control)

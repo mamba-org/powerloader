@@ -44,13 +44,20 @@ namespace powerloader
 
         DownloadTarget(const std::string& path,
                        const std::string& base_url,
-                       const fs::path& filename);
+                       const fs::path& destination);
+
         ~DownloadTarget();
 
         DownloadTarget(const DownloadTarget&) = delete;
         DownloadTarget& operator=(const DownloadTarget&) = delete;
         DownloadTarget(DownloadTarget&&) = delete;
         DownloadTarget& operator=(DownloadTarget&&) = delete;
+
+
+        // Creates a `DownloadTarget` given an URL.
+        // When the url is a regular url (with "://"), mirrors will be added to the `Context` for it's host
+        // if not already existing.
+        static std::shared_ptr<DownloadTarget> from_url(Context& ctx, const std::string& target_url, const fs::path& destination_path);
 
         void set_cache_options(const CacheControl& cache_control);
         void add_handle_options(CURLHandle& handle);
@@ -107,9 +114,9 @@ namespace powerloader
             return m_path;
         }
 
-        const std::filesystem::path& filename() const noexcept
+        const std::filesystem::path& destination_path() const noexcept
         {
-            return m_filename;
+            return m_destination_path;
         }
 
         std::size_t byterange_start() const noexcept
@@ -276,7 +283,7 @@ namespace powerloader
         std::string m_base_url;
         std::unique_ptr<FileIO> m_outfile;
 
-        fs::path m_filename;
+        fs::path m_destination_path;
 
         std::size_t m_byterange_start = 0;
         std::size_t m_byterange_end = 0;

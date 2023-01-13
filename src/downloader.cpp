@@ -834,7 +834,7 @@ namespace powerloader
         {
             if (dl_target->is_zchunck())
             {
-                fs::path p = dl_target->filename();
+                fs::path p = dl_target->destination_path();
                 try
                 {
                     if (!fs::exists(p))  // Skip if file ended up not downloaded.

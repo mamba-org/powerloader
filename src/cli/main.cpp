@@ -1,6 +1,7 @@
+#include "powerloader/download_target.hpp"
 #include <CLI/CLI.hpp>
 #include <spdlog/spdlog.h>
-#include <spdlog/fmt/fmt.h>
+#include <fmt/std.h>
 #include <yaml-cpp/yaml.h>
 
 #include <powerloader/mirror.hpp>
@@ -243,68 +244,30 @@ handle_download(Context& ctx,
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2
     std::vector<std::shared_ptr<DownloadTarget>> targets;
 
-    for (auto& x : urls)
+    for (const auto& url : urls)
     {
-        if (contains(x, "://"))
-        {
-            // even when we get a regular URL like `http://test.com/download.tar.gz`
-            // we want to create a "mirror" for `http://test.com` to make sure we correctly
-            // retry and wait on mirror failures
-            URLHandler uh(x);
-            std::string url = uh.url();
-            std::string host = uh.host();
-            std::string path = uh.path();
-            std::string mirror_url = url.substr(0, url.size() - path.size());
-            std::string dst
-                = metadata.outfile.empty() ? rsplit(uh.path(), "/", 1).back() : metadata.outfile;
-
-            if (ctx.mirror_map.find(host) == ctx.mirror_map.end())
-            {
-                ctx.mirror_map[host] = std::vector<std::shared_ptr<Mirror>>();
-            }
-            ctx.mirror_map[host].push_back(std::make_shared<Mirror>(ctx, mirror_url));
-            targets.emplace_back(new DownloadTarget(path.substr(1, std::string::npos), host, dst));
-        }
-        else
-        {
-            std::vector<std::string> parts = split(x, ":");
-            std::string path, mirror;
-            if (parts.size() == 2)
-            {
-                mirror = parts[0];
-                path = parts[1];
-            }
-            else
-            {
-                throw std::runtime_error("Not the correct number of : in the url");
-            }
-            std::string dst
-                = metadata.outfile.empty() ? rsplit(path, "/", 1).back() : metadata.outfile;
-
-            if (!dest_folder.empty())
-                dst = dest_folder + "/" + dst;
-
-            spdlog::info("Downloading {} from {} to {}", path, mirror, dst);
-            targets.emplace_back(new DownloadTarget(path, mirror, dst));
-        }
-        targets.back()->set_resume(resume);
+        auto target = DownloadTarget::from_url(ctx, url, metadata.outfile);
+        target->set_resume(resume);
 
         if (!metadata.sha256.empty())
-            targets.back()->add_checksum(Checksum{ ChecksumType::kSHA256, metadata.sha256 });
+            target->add_checksum(Checksum{ ChecksumType::kSHA256, metadata.sha256 });
         if (metadata.filesize > 0)
-            targets.back()->set_expected_size(metadata.filesize);
+            target->set_expected_size(metadata.filesize);
             // TODO we should have two different fields for those two
 #ifdef WITH_ZCHUNK
         if (!metadata.zck_header_sha256.empty())
-            targets.back()->zck().zck_header_checksum = std::make_unique<Checksum>(
+            target->zck().zck_header_checksum = std::make_unique<Checksum>(
                 Checksum{ ChecksumType::kSHA256, metadata.zck_header_sha256 });
         if (metadata.zck_header_size > 0)
-            targets.back()->zck().zck_header_size = metadata.zck_header_size;
+            target->zck().zck_header_size = metadata.zck_header_size;
 #endif
 
         using namespace std::placeholders;
-        targets.back()->set_progress_callback(
+        target->set_progress_callback(
             std::bind(&progress_callback, targets.back().get(), _1, _2));
+
+        spdlog::info("Downloading {} from {} to {}", target->path(), target->base_url(), target->destination_path().string());
+        targets.push_back(std::move(target));
     }
 
     Downloader dl{ ctx };
@@ -502,6 +465,9 @@ main(int argc, char** argv)
             ctx.mirror_map = parse_mirrors(ctx, config["mirrors"]);
         }
     }
+
+    powerloader::erase_duplicates(du_files);
+
     if (app.got_subcommand("upload"))
     {
         return handle_upload(ctx, du_files, mirrors);
