@@ -58,7 +58,8 @@ namespace powerloader
             m_error = std::move(err);
         }
 
-        /// Returns a DownloadError if there was a falure at download or none if no error was set so far.
+        /// Returns a DownloadError if there was a falure at download or none if no error was set so
+        /// far.
         std::optional<DownloaderError> get_error() const noexcept
         {
             return m_error;
