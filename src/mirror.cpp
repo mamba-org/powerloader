@@ -8,7 +8,8 @@
 namespace powerloader
 {
     Mirror::Mirror(MirrorID id, const Context& ctx, const std::string& url)
-        : m_url(url), m_id(id)
+        : m_url(url)
+        , m_id(id)
     {
         if (url.back() == '/')
             m_url = m_url.substr(0, m_url.size() - 1);
@@ -22,7 +23,6 @@ namespace powerloader
     Mirror::Mirror(const Context& ctx, const std::string& url)
         : Mirror(MirrorID::make_id<Mirror>(url), ctx, url)
     {
-
     }
 
     Mirror::~Mirror() = default;

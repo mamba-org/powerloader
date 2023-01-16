@@ -52,11 +52,12 @@ namespace powerloader
         }
     }
 
-    namespace details{
+    namespace details
+    {
         bool already_exists(const MirrorID& id, const mirror_set& mirrors)
         {
-            for(auto&& mirror : mirrors)
-                if(mirror->id() == id)
+            for (auto&& mirror : mirrors)
+                if (mirror->id() == id)
                     return true;
             return false;
         }

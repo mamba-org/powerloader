@@ -75,7 +75,10 @@ namespace powerloader
         Mirror& operator=(Mirror&&) = delete;
 
         // Identifier used to compare mirror instances.
-        const MirrorID& id() const { return m_id; }
+        const MirrorID& id() const
+        {
+            return m_id;
+        }
 
         // URL of the mirror
         const std::string& url() const
@@ -138,8 +141,14 @@ namespace powerloader
         virtual std::string format_url(Target* target) const;
 
         // TODO: use operator<=> instead once C++20 is enabled.
-        [[nodiscard]] friend bool operator<(const Mirror& left, const Mirror& right){ return left.id() < right.id(); }
-        [[nodiscard]] friend bool operator==(const Mirror& left, const Mirror& right){ return left.id() == right.id(); }
+        [[nodiscard]] friend bool operator<(const Mirror& left, const Mirror& right)
+        {
+            return left.id() < right.id();
+        }
+        [[nodiscard]] friend bool operator==(const Mirror& left, const Mirror& right)
+        {
+            return left.id() == right.id();
+        }
 
     private:
         std::string m_url;

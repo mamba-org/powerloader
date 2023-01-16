@@ -288,7 +288,8 @@ handle_download(Context& ctx,
     return 0;
 }
 
-mirror_map_type parse_mirrors(const Context& ctx, const YAML::Node& node)
+mirror_map_type
+parse_mirrors(const Context& ctx, const YAML::Node& node)
 {
     assert(node.IsMap());
     mirror_map_type res;
