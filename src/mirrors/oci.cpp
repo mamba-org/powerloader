@@ -40,7 +40,7 @@ namespace powerloader
     OCIMirror::OCIMirror(const Context& ctx,
                          const std::string& host,
                          const std::string& repo_prefix)
-        : Mirror(ctx, host)
+        : Mirror(MirrorID::make_id<OCIMirror>(host, repo_prefix), ctx, host)
         , m_repo_prefix(repo_prefix)
         , m_scope("pull")
     {
@@ -52,7 +52,9 @@ namespace powerloader
                          const std::string& scope,
                          const std::string& username,
                          const std::string& password)
-        : Mirror(ctx, host)
+        : Mirror(MirrorID::make_id<OCIMirror>(host, repo_prefix, scope, username, password),
+                 ctx,
+                 host)
         , m_repo_prefix(repo_prefix)
         , m_scope(scope)
         , m_username(username)

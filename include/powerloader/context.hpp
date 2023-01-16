@@ -1,6 +1,7 @@
 #ifndef POWERLOADER_CONTEXT_HPP
 #define POWERLOADER_CONTEXT_HPP
 
+#include <memory>
 #include <vector>
 #include <string>
 #include <chrono>
@@ -9,13 +10,46 @@
 #include <spdlog/spdlog.h>
 
 #include <powerloader/export.hpp>
-
+#include <powerloader/mirrorid.hpp>
 
 namespace powerloader
 {
     namespace fs = std::filesystem;
 
+    class Context;
     struct Mirror;
+
+    using mirror_set = std::vector<std::shared_ptr<Mirror>>; // TODO: replace by std::flat_set once available.
+    using mirror_map_base = std::map<std::string, mirror_set>; // TODO: replace by std::flat_map once available.
+
+    namespace details
+    {
+        bool already_exists(const MirrorID& id, const mirror_set& mirrors);
+    }
+
+    // TOOD: make this harder to get wrong by limiting insertion operations to only `add_unique_mirror`.
+    class mirror_map_type : public mirror_map_base
+    {
+    public:
+        using mirror_map_base::mirror_map_base;
+
+        // Create, store and return a new instance of MirrorType created with `args` IFF no other
+        // instance was created before with this type and arguments, returns null otherwise.
+        template<typename MirrorType, typename... Args>
+        auto add_unique_mirror(const std::string& host_name, Context& ctx, Args&&... args) // TODO: replace std::string by std::string_view as soon as a conversion is added.
+            -> std::shared_ptr<MirrorType>
+        {
+            const auto new_id = MirrorID::make_id<MirrorType>(args...);
+            auto& mirrors = (*this)[std::string(host_name)];
+            if(details::already_exists(new_id, mirrors))
+                return {};
+
+            auto mirror = std::make_shared<MirrorType>(ctx, std::forward<Args>(args)...);
+            mirrors.push_back(mirror);
+            return mirror;
+        }
+
+    };
 
     class POWERLOADER_API Context
     {
@@ -52,7 +86,6 @@ namespace powerloader
         std::size_t max_resume_count = 3;
         std::chrono::steady_clock::duration retry_default_timeout = std::chrono::seconds(2);
 
-        using mirror_map_type = std::map<std::string, std::vector<std::shared_ptr<Mirror>>>;
         mirror_map_type mirror_map;
 
         std::vector<std::string> additional_httpheaders;

@@ -9,6 +9,9 @@ extern "C"
 }
 #endif
 
+#include <powerloader/mirror.hpp>
+
+
 namespace powerloader
 {
     static std::atomic<bool> is_context_alive{ false };
@@ -46,6 +49,16 @@ namespace powerloader
         else
         {
             spdlog::set_level(spdlog::level::warn);
+        }
+    }
+
+    namespace details{
+        bool already_exists(const MirrorID& id, const mirror_set& mirrors)
+        {
+            for(auto&& mirror : mirrors)
+                if(mirror->id() == id)
+                    return true;
+            return false;
         }
     }
 }

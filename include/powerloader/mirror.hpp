@@ -14,7 +14,7 @@
 #include <powerloader/curl.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/utils.hpp>
-
+#include <powerloader/mirrorid.hpp>
 
 namespace powerloader
 {
@@ -65,6 +65,7 @@ namespace powerloader
     // mirrors should be dict -> urls mapping
     struct POWERLOADER_API Mirror
     {
+        Mirror(MirrorID id, const Context& ctx, const std::string& url);
         Mirror(const Context& ctx, const std::string& url);
         virtual ~Mirror();
 
@@ -72,6 +73,9 @@ namespace powerloader
         Mirror& operator=(const Mirror&) = delete;
         Mirror(Mirror&&) = delete;
         Mirror& operator=(Mirror&&) = delete;
+
+        // Identifier used to compare mirror instances.
+        const MirrorID& id() const { return m_id; }
 
         // URL of the mirror
         const std::string& url() const
@@ -133,8 +137,13 @@ namespace powerloader
         // virtual void add_extra_headers(Target* target) { return; };
         virtual std::string format_url(Target* target) const;
 
+        // TODO: use operator<=> instead once C++20 is enabled.
+        [[nodiscard]] friend bool operator<(const Mirror& left, const Mirror& right){ return left.id() < right.id(); }
+        [[nodiscard]] friend bool operator==(const Mirror& left, const Mirror& right){ return left.id() == right.id(); }
+
     private:
         std::string m_url;
+        const MirrorID m_id;
 
         Protocol m_protocol = Protocol::kHTTP;
         MirrorState m_state = MirrorState::READY;

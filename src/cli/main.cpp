@@ -288,11 +288,10 @@ handle_download(Context& ctx,
     return 0;
 }
 
-std::map<std::string, std::vector<std::shared_ptr<Mirror>>>
-parse_mirrors(const Context& ctx, const YAML::Node& node)
+mirror_map_type parse_mirrors(const Context& ctx, const YAML::Node& node)
 {
     assert(node.IsMap());
-    std::map<std::string, std::vector<std::shared_ptr<Mirror>>> res;
+    mirror_map_type res;
 
     auto get_env_from_str = [](const std::string& s, const std::string default_val)
     {
@@ -310,7 +309,6 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
     for (YAML::Node::const_iterator oit = node.begin(); oit != node.end(); ++oit)
     {
         std::string mirror_name = oit->first.as<std::string>();
-        res[mirror_name] = std::vector<std::shared_ptr<Mirror>>();
 
         assert(oit->second.IsSequence());
         for (YAML::Node::const_iterator it = oit->second.begin(); it != oit->second.end(); ++it)
