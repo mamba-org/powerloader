@@ -361,24 +361,28 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
             if (kof == KindOf::kS3)
             {
                 spdlog::info("Adding S3 mirror: {} -> {}", mirror_name, creds.url.url());
-                result.create_unique_mirror<S3Mirror>(mirror_name, ctx, creds.url.url(), creds.region, creds.user, creds.password);
+                result.create_unique_mirror<S3Mirror>(
+                    mirror_name, ctx, creds.url.url(), creds.region, creds.user, creds.password);
             }
             else if (kof == KindOf::kOCI)
             {
                 spdlog::info("Adding OCI mirror: {} -> {}", mirror_name, creds.url.url());
-                std::shared_ptr<OCIMirror> mirror = [&]{
+                std::shared_ptr<OCIMirror> mirror = [&]
+                {
                     if (!creds.password.empty())
                     {
-                        return result.create_unique_mirror<OCIMirror>(mirror_name,ctx,
-                                                                    creds.url.url_without_path(),
-                                                                    creds.url.path(),
-                                                                    "pull",
-                                                                    creds.user,
-                                                                    creds.password );
+                        return result.create_unique_mirror<OCIMirror>(mirror_name,
+                                                                      ctx,
+                                                                      creds.url.url_without_path(),
+                                                                      creds.url.path(),
+                                                                      "pull",
+                                                                      creds.user,
+                                                                      creds.password);
                     }
                     else
                     {
-                        return result.create_unique_mirror<OCIMirror>(mirror_name, ctx, creds.url.url_without_path(), creds.url.path());
+                        return result.create_unique_mirror<OCIMirror>(
+                            mirror_name, ctx, creds.url.url_without_path(), creds.url.path());
                     }
                 }();
                 mirror->set_fn_tag_split_function(

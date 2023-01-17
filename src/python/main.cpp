@@ -36,9 +36,7 @@ PYBIND11_MODULE(pypowerloader, m)
         .def(py::init<>())
         .def("get_mirrors", &mirror_map_type::get_mirrors)
         .def("add_unique_mirror", &mirror_map_type::get_mirrors)
-        .def("as_dict", [](const mirror_map_type& value){
-            return value.as_map();
-        });
+        .def("as_dict", [](const mirror_map_type& value) { return value.as_map(); });
 
     py::class_<Context, std::unique_ptr<Context>>(m, "Context")
         .def(py::init([] { return std::make_unique<Context>(); }))

@@ -35,25 +35,34 @@ namespace powerloader
     class mirror_map_type : private mirror_map_base
     {
     public:
-        using mirror_map_base::mirror_map_base;
         using mirror_map_base::clear;
+        using mirror_map_base::mirror_map_base;
 
         // Get a list of unique mirorrs if existing for the provided host name, or an empty list
         // otherwise.
-        mirror_set get_mirrors(const std::string& host_name) const; // TODO: replace std::string by std::string_view as soon as a conversion is added.
+        mirror_set get_mirrors(
+            const std::string& host_name) const;  // TODO: replace std::string by std::string_view
+                                                  // as soon as a conversion is added.
 
         // Returns a copy of this container's values in the shape of a map.
-        mirror_map_base as_map() const { return *this; }
+        mirror_map_base as_map() const
+        {
+            return *this;
+        }
 
         // Returns true if there are registered mirrors stored here, false if none are.
-        bool has_mirrors(const std::string& host_name) const; // TODO: replace std::string by std::string_view as soon as a conversion is added.
+        bool has_mirrors(
+            const std::string& host_name) const;  // TODO: replace std::string by std::string_view
+                                                  // as soon as a conversion is added.
 
-        // Creates, stores and return a new instance of `MirrorType` created with `args` IFF no other
-        // mirror is already registed with the same id for the specified host, returns null otherwise.
+        // Creates, stores and return a new instance of `MirrorType` created with `args` IFF no
+        // other mirror is already registed with the same id for the specified host, returns null
+        // otherwise.
         template <typename MirrorType, typename... Args>
         auto create_unique_mirror(const std::string& host_name,
-                               const Context& ctx,
-                               Args&&... args)  // TODO: replace std::string by std::string_view as soon as a conversion is added.
+                                  const Context& ctx,
+                                  Args&&... args)  // TODO: replace std::string by std::string_view
+                                                   // as soon as a conversion is added.
             -> std::shared_ptr<MirrorType>
         {
             static_assert(std::is_base_of_v<Mirror, MirrorType>);
@@ -68,8 +77,8 @@ namespace powerloader
             return mirror;
         }
 
-        // Stores a provided Mirror IFF no other mirror is already registed with the same id for the specified host.
-        // Returns true if the mirror has been stored, false otherwise.
+        // Stores a provided Mirror IFF no other mirror is already registed with the same id for the
+        // specified host. Returns true if the mirror has been stored, false otherwise.
         bool add_unique_mirror(const std::string& host_name, std::shared_ptr<Mirror> mirror);
 
         // Reset the whole mapping to a new set of host -> mirrors values.
@@ -77,7 +86,6 @@ namespace powerloader
         // Every `mirror_set` in `new_values` must have no duplicates mirrors for that set,
         // otherwise this will throw a `std::invalid_argument` exception.
         void reset(mirror_map_base new_values = {});
-
     };
 
     class POWERLOADER_API Context
