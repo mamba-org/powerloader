@@ -122,6 +122,10 @@ namespace powerloader
         {
             ok = curl_easy_setopt(m_handle, opt, val.c_str());
         }
+        else if constexpr (std::is_same<T, bool>())
+        {
+            ok = curl_easy_setopt(m_handle, opt, val ? 1L : 0L);
+        }
         else
         {
             ok = curl_easy_setopt(m_handle, opt, val);
