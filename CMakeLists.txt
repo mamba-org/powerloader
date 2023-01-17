@@ -51,6 +51,7 @@ option(BUILD_SHARED "Build shared powerloader library" OFF)
 option(BUILD_STATIC "Build static powerloader library" OFF)
 option(BUILD_STATIC_DEPS "Build static powerloader library with static linkage to its dependencies" OFF)
 option(BUILD_EXE "Build powerloader executable" OFF)
+option(WITH_ZSTD "Build powerloader with zstd" ON)
 
 # Test options
 option(ENABLE_TESTS "Enable tests" ON)
@@ -63,6 +64,10 @@ if (WITH_ZCHUNK)
     find_file(ZCK_H_FILE NAMES zck.h REQUIRED)
     message("Found file: ${ZCK_H_FILE}")
     get_filename_component(ZCK_INCLUDE_DIRS ${ZCK_H_FILE} DIRECTORY)
+endif()
+
+if (WITH_ZSTD)
+    find_package(zstd REQUIRED)
 endif()
 
 # Source files
@@ -105,6 +110,10 @@ set(LIBPOWERLOADER_SRCS
 if (WITH_ZCHUNK)
     list(APPEND LIBPOWERLOADER_SRCS ${POWERLOADER_SOURCE_DIR}/zck.cpp
                                     ${POWERLOADER_SOURCE_DIR}/zck.hpp)
+endif()
+
+if (WITH_ZSTD)
+    list(APPEND LIBPOWERLOADER_SRCS ${POWERLOADER_SOURCE_DIR}/compression.cpp)
 endif()
 
 # Targets and link
@@ -275,6 +284,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                 ${ZCK_LIBRARY}
                 ${OPENSSL_LIBRARIES}
                 ${WINSOCK_LIBS}
+                zstd::libzstd_shared
     )
     endif ()
 
@@ -283,6 +293,10 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
         if (MSVC)
             target_compile_definitions(${target_name} PUBLIC /wd4996)
         endif()
+    endif ()
+
+    if (WITH_ZSTD)
+        target_compile_definitions(${target_name} PUBLIC WITH_ZSTD)
     endif ()
 
     list(APPEND libpowerloader_targets ${target_name})

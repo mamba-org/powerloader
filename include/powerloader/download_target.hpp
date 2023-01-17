@@ -23,6 +23,12 @@ namespace powerloader
         std::string last_modified;
     };
 
+    enum CompressionType
+    {
+        NONE,
+        ZSTD,
+    };
+
     class POWERLOADER_API DownloadTarget
     {
     public:
@@ -248,6 +254,17 @@ namespace powerloader
             return m_head_only;
         }
 
+        CompressionType compression() const noexcept
+        {
+            return m_compression_type;
+        }
+
+        DownloadTarget& set_compression_type(CompressionType new_value) noexcept
+        {
+            m_compression_type = new_value;
+            return *this;
+        }
+
     private:
         bool m_is_zchunk = false;
         bool m_resume = true;
@@ -280,6 +297,8 @@ namespace powerloader
         std::unique_ptr<zck_target> m_p_zck;
 
         CacheControl m_cache_control;
+
+        CompressionType m_compression_type = CompressionType::NONE;
     };
 
 }
