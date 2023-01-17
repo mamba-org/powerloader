@@ -235,10 +235,24 @@ namespace powerloader
             m_checksums.push_back(value);
         }
 
+        // only request HEAD info, to check wether a URL exists or not
+        DownloadTarget& set_head_only(bool new_value) noexcept
+        {
+            m_head_only = new_value;
+            return *this;
+        }
+
+        // if this is set, activate CURLOPT_NOBODY
+        bool head_only() const noexcept
+        {
+            return m_head_only;
+        }
+
     private:
         bool m_is_zchunk = false;
         bool m_resume = true;
         bool m_no_cache = false;
+        bool m_head_only = false;
 
         std::string m_complete_url;
         std::string m_path;

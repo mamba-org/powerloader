@@ -543,6 +543,10 @@ namespace powerloader
         // Set URL
         h.url(full_url);
 
+        if (m_target->head_only())
+        {
+            h.setopt(CURLOPT_NOBODY, true);
+        }
         // Prepare FILE
 #ifdef WITH_ZCHUNK
         if (!m_target->is_zchunck())

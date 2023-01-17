@@ -78,30 +78,46 @@ namespace powerloader
         bool can_retry_transfer_with_fewer_connections() const;
         void lower_mirror_parallel_connections();
 
+        void assert_target() const noexcept
+        {
+            if (!m_target)
+            {
+                spdlog::critical("No target set for target with base URL: {}", target().base_url());
+            }
+        }
+
         const DownloadTarget& target() const noexcept
         {
-            assert(m_target);
+            assert_target();
             return *m_target;
         }
 
         // TODO: don't allow external code from manipulating this internal target.
         DownloadTarget& target() noexcept
         {
-            assert(m_target);
+            assert_target();
             return *m_target;
+        }
+
+        void assert_mirror() const noexcept
+        {
+            if (!m_mirror)
+            {
+                spdlog::critical("No mirror set for target with base URL: {}", target().base_url());
+            }
         }
 
         // TODO: don't expose ownership
         const std::shared_ptr<Mirror>& mirror() const noexcept
         {
-            assert(m_mirror);
+            assert_mirror();
             return m_mirror;
         }
 
         // TODO: don't expose ownership
         std::shared_ptr<Mirror>& mirror() noexcept
         {
-            assert(m_mirror);
+            assert_mirror();
             return m_mirror;
         }
 

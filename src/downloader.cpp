@@ -729,7 +729,7 @@ namespace powerloader
             bool check = check_msgs(failfast);
             if (!check)
             {
-                curl_multi_cleanup(multi_handle);
+                // curl_multi_cleanup(multi_handle);
                 for (auto& target : m_running_transfers)
                 {
                     target->set_failed(DownloaderError{ ErrorLevel::FATAL,
@@ -785,7 +785,6 @@ namespace powerloader
         if (is_sig_interrupted())
         {
             spdlog::info("Download interrupted");
-            curl_multi_cleanup(multi_handle);
             return false;
         }
 
