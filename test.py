@@ -28,6 +28,6 @@ dl.add(downTarg)
 # dl.download()
 mirror = pypowerloader.Mirror(con, baseurl)
 
-print("mirror_map1: " + str(con.mirror_map))
-con.mirror_map = {"conda-forge": [mirror], "test": []}
-print("mirror_map2: " + str(con.mirror_map))
+print("mirror_map1: " + str(con.mirror_map.as_dict()))
+con.mirror_map.reset({"conda-forge": [mirror], "test": []})
+print("mirror_map2: " + str(con.mirror_map.as_dict()))

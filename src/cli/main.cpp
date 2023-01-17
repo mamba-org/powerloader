@@ -1,5 +1,6 @@
 #include "powerloader/download_target.hpp"
 #include <CLI/CLI.hpp>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <fmt/std.h>
 #include <yaml-cpp/yaml.h>
@@ -292,7 +293,7 @@ mirror_map_type
 parse_mirrors(const Context& ctx, const YAML::Node& node)
 {
     assert(node.IsMap());
-    mirror_map_type res;
+    mirror_map_type result;
 
     auto get_env_from_str = [](const std::string& s, const std::string default_val)
     {
@@ -360,39 +361,38 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
             if (kof == KindOf::kS3)
             {
                 spdlog::info("Adding S3 mirror: {} -> {}", mirror_name, creds.url.url());
-                res[mirror_name].emplace_back(
-                    new S3Mirror{ ctx, creds.url.url(), creds.region, creds.user, creds.password });
+                result.create_unique_mirror<S3Mirror>(mirror_name, ctx, creds.url.url(), creds.region, creds.user, creds.password);
             }
             else if (kof == KindOf::kOCI)
             {
                 spdlog::info("Adding OCI mirror: {} -> {}", mirror_name, creds.url.url());
-                if (!creds.password.empty())
-                {
-                    res[mirror_name].emplace_back(new OCIMirror{ ctx,
-                                                                 creds.url.url_without_path(),
-                                                                 creds.url.path(),
-                                                                 "pull",
-                                                                 creds.user,
-                                                                 creds.password });
-                }
-                else
-                {
-                    res[mirror_name].emplace_back(
-                        new OCIMirror{ ctx, creds.url.url_without_path(), creds.url.path() });
-                }
-                std::dynamic_pointer_cast<OCIMirror>(res[mirror_name].back())
-                    ->set_fn_tag_split_function(
-                        oci_fn_split_tag);  // TODO: this is weird, maybe move that code/function in
-                                            // oci so that this is not necessary?
+                std::shared_ptr<OCIMirror> mirror = [&]{
+                    if (!creds.password.empty())
+                    {
+                        return result.create_unique_mirror<OCIMirror>(mirror_name,ctx,
+                                                                    creds.url.url_without_path(),
+                                                                    creds.url.path(),
+                                                                    "pull",
+                                                                    creds.user,
+                                                                    creds.password );
+                    }
+                    else
+                    {
+                        return result.create_unique_mirror<OCIMirror>(mirror_name, ctx, creds.url.url_without_path(), creds.url.path());
+                    }
+                }();
+                mirror->set_fn_tag_split_function(
+                    oci_fn_split_tag);  // TODO: this is weird, maybe move that code/function in
+                                        // oci so that this is not necessary?
             }
             else if (kof == KindOf::kHTTP)
             {
                 spdlog::info("Adding HTTP mirror: {} -> {}", mirror_name, creds.url.url());
-                res[mirror_name].emplace_back(std::make_shared<Mirror>(ctx, creds.url.url()));
+                result.create_unique_mirror<Mirror>(mirror_name, ctx, creds.url.url());
             }
         }
     }
-    return res;
+    return result;
 }
 
 

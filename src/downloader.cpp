@@ -49,16 +49,13 @@ namespace powerloader
         if (!dl_target)
             return;
 
-        if (ctx.mirror_map.find(dl_target->base_url()) != ctx.mirror_map.end())
+        auto mirrors = ctx.mirror_map.get_mirrors(dl_target->base_url());
+        if (!mirrors.empty())
         {
-            m_targets.emplace_back(
-                new Target(ctx, dl_target, ctx.mirror_map.at(dl_target->base_url())));
             dl_target->clear_base_url();
         }
-        else
-        {
-            m_targets.emplace_back(new Target(ctx, dl_target));
-        }
+
+        m_targets.emplace_back(new Target(ctx, dl_target, std::move(mirrors)));
     }
 
     /** Check the finished transfer

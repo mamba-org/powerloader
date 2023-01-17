@@ -1,3 +1,4 @@
+#include "powerloader/context.hpp"
 #include <pybind11/iostream.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -30,6 +31,14 @@ PYBIND11_MODULE(pypowerloader, m)
 
     py::class_<Mirror, std::shared_ptr<Mirror>>(m, "Mirror")
         .def(py::init<const Context&, const std::string&>());
+
+    py::class_<mirror_map_type>(m, "MirrorMap")
+        .def(py::init<>())
+        .def("get_mirrors", &mirror_map_type::get_mirrors)
+        .def("add_unique_mirror", &mirror_map_type::get_mirrors)
+        .def("as_dict", [](const mirror_map_type& value){
+            return value.as_map();
+        });
 
     py::class_<Context, std::unique_ptr<Context>>(m, "Context")
         .def(py::init([] { return std::make_unique<Context>(); }))

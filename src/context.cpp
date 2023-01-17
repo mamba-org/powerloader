@@ -1,6 +1,9 @@
 #include <powerloader/context.hpp>
 
+#include <algorithm>
 #include <exception>
+#include <set>
+#include <stdexcept>
 
 #ifdef WITH_ZCHUNK
 extern "C"
@@ -52,6 +55,47 @@ namespace powerloader
         }
     }
 
+
+    mirror_set mirror_map_type::get_mirrors(const std::string& host_name) const
+    {
+        auto find_it = find(host_name);
+        if(find_it == end())
+            return {};
+
+        return find_it->second;
+    }
+
+    // Returns true if there are registered mirrors stored here, false if none are.
+    bool mirror_map_type::has_mirrors(const std::string& host_name) const
+    {
+        auto find_it = find(host_name);
+        return find_it != end() && !find_it->second.empty();
+    }
+
+    bool mirror_map_type::add_unique_mirror(const std::string& host_name, std::shared_ptr<Mirror> mirror)
+    {
+        auto find_it = find(host_name);
+        if(find_it != end())
+        {
+            auto& mirrors = find_it->second;
+            if(details::already_exists(mirror->id(), mirrors))
+                return false;
+            mirrors.push_back(std::move(mirror));
+        }
+        else
+        {
+            (*this)[host_name] = { std::move(mirror) };
+        }
+        return true;
+    }
+
+    void mirror_map_type::reset(mirror_map_base new_values)
+    {
+        if(details::is_every_mirror_unique_per_host(new_values))
+            throw std::invalid_argument("mirror map must have unique mirrors per host name");
+        static_cast<mirror_map_base&>(*this) = std::move(new_values);
+    }
+
     namespace details
     {
         bool already_exists(const MirrorID& id, const mirror_set& mirrors)
@@ -60,6 +104,21 @@ namespace powerloader
                 if (mirror->id() == id)
                     return true;
             return false;
+        }
+
+        bool is_every_mirror_unique_per_host(const mirror_map_base& mirrors)
+        {
+            std::set<MirrorID> mirrors_ids; // TODO: replace by flat_set once available.
+            for(const auto& slot: mirrors)
+            {
+                for(const auto& mirror: slot.second)
+                {
+                    auto [_, success] = mirrors_ids.insert(mirror->id());
+                    if(!success)
+                        return false;
+                }
+            }
+            return true;
         }
     }
 }
