@@ -22,10 +22,7 @@ namespace powerloader
     class Context;
     class CURLHandle;
 
-    extern "C"
-    {
 #include <curl/curl.h>
-    }
 
     class POWERLOADER_API curl_error : public std::runtime_error
     {

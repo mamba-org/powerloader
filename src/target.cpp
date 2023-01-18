@@ -4,6 +4,10 @@
 #include "zck.hpp"
 #endif
 
+#ifdef WITH_ZSTD
+#include "compression.hpp"
+#endif
+
 namespace powerloader
 {
     Target::Target(const Context& ctx,
@@ -639,9 +643,23 @@ namespace powerloader
         h.setopt(CURLOPT_HEADERFUNCTION, &Target::header_callback);
         h.setopt(CURLOPT_HEADERDATA, this);
 
-        // Prepare write callback
-        h.setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
-        h.setopt(CURLOPT_WRITEDATA, this);
+        if (!m_target->head_only())
+        {
+            if (m_target->compression() == CompressionType::ZSTD)
+            {
+#ifdef WITH_ZSTD
+                m_zstd_stream = std::make_unique<ZstdStream>(&Target::write_callback, this);
+                h.setopt(CURLOPT_WRITEFUNCTION, &ZstdStream::write_callback);
+                h.setopt(CURLOPT_WRITEDATA, m_zstd_stream.get());
+#endif
+            }
+            // Prepare write callback
+            else
+            {
+                h.setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
+                h.setopt(CURLOPT_WRITEDATA, this);
+            }
+        }
 
         // Set extra HTTP headers
         if (this->mirror())

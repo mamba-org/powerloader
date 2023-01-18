@@ -1,4 +1,4 @@
-exclude: '^test/conda_mock/static'
+exclude: '^(test/conda_mock/static|testdata/)'
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0

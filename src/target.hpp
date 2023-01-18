@@ -13,6 +13,8 @@
 #include <powerloader/mirror.hpp>
 #include <powerloader/utils.hpp>
 
+#include "compression.hpp"
+
 namespace powerloader
 {
     namespace fs = std::filesystem;
@@ -253,6 +255,10 @@ namespace powerloader
                                        std::size_t size,
                                        std::size_t nitems,
                                        Target* self);
+
+#ifdef WITH_ZSTD
+        std::unique_ptr<ZstdStream> m_zstd_stream;
+#endif
     };
 }
 
