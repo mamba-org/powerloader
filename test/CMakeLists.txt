@@ -1,9 +1,9 @@
-find_package(GTest)
+find_package(doctest)
 
 include_directories(${GTEST_INCLUDE_DIRS} SYSTEM)
 
-
 set(TEST_SRCS
+    test_main.cpp
     test_s3.cpp
     test_fileio.cpp
     test_url.cpp
@@ -13,11 +13,11 @@ set(TEST_SRCS
 
 add_executable(test_powerloader ${TEST_SRCS})
 
-target_link_libraries(test_powerloader
+target_link_libraries(
+    test_powerloader
     PRIVATE
-        ${powerloader_dependency}
-        GTest::GTest
-        GTest::Main
+    ${powerloader_dependency}
+    doctest::doctest
 )
 set_property(TARGET test_powerloader PROPERTY CXX_STANDARD 17)
 

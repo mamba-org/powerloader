@@ -11,5 +11,4 @@ dependencies:
   - nlohmann_json
   - zchunk-static
   # Tests
-  - gtest
-  - gmock
+  - doctest
