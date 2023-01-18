@@ -43,7 +43,8 @@ namespace powerloader
     std::shared_ptr<DownloadTarget> DownloadTarget::from_url(Context& ctx,
                                                              const std::string& target_url,
                                                              const fs::path& destination_path,
-                                                             const fs::path& destination_dir)
+                                                             const fs::path& destination_dir,
+                                                             std::optional<std::string> hostname_override)
     {
         if (contains(target_url, "://"))
         {
@@ -52,7 +53,7 @@ namespace powerloader
             // retry and wait on mirror failures
             URLHandler uh{ target_url };
             const std::string url = uh.url();
-            const std::string host = uh.host();
+            const std::string host = hostname_override ? hostname_override.value() : uh.host();
             const std::string path = uh.path();
             const std::string mirror_url = uh.url_without_path();
             const fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
@@ -69,7 +70,7 @@ namespace powerloader
             {
                 throw std::runtime_error("Not the correct number of : in the url");
             }
-            const auto mirror = parts[0];
+            const auto mirror = hostname_override ? hostname_override.value() : parts[0];
             const auto path = parts[1];
 
             fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }

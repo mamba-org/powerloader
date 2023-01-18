@@ -57,10 +57,15 @@ namespace powerloader
         // Creates a `DownloadTarget` given an URL.
         // When the url is a regular url (with "://"), mirrors will be added to the `Context` for
         // it's host if not already existing.
+        // @param target_url        The complete url to interpret.
+        // @param destination_path  Name or path of the resulting local file.
+        // @param destination_dir   Path to the directory where the resulting file should be stored.
+        // @param hostname_override If provided, this base url will be used instead of the one from the target url.
         static std::shared_ptr<DownloadTarget> from_url(Context& ctx,
                                                         const std::string& target_url,
                                                         const fs::path& destination_path,
-                                                        const fs::path& destination_dir);
+                                                        const fs::path& destination_dir,
+                                                        std::optional<std::string> hostname_override = std::nullopt);
 
         void set_cache_options(const CacheControl& cache_control);
         void add_handle_options(CURLHandle& handle);
