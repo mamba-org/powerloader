@@ -11,9 +11,7 @@ dependencies:
   - cli11
   - zchunk
   - spdlog
-  - gtest
-  # necessary for gtest cmake to work properly
-  - gmock
+  - doctest
   - yaml-cpp
   - pytest
   - pyyaml
@@ -21,5 +19,4 @@ dependencies:
   - pybind11
   - requests
   - cpp-expected
-  - pip:
-    - pytest-xprocess
+  - pytest-xprocess

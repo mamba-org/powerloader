@@ -19,9 +19,9 @@ namespace powerloader
         constexpr static size_t BUFFER_SIZE = 256000;
 
         template <class T>
-        ZstdStream(curl_write_callback_t<T> write_callback, T* write_callback_data)
+        ZstdStream(curl_write_callback_t<T> callback, T* write_callback_data)
             : stream(ZSTD_createDCtx())
-            , m_write_callback((curl_write_callback) write_callback)
+            , m_write_callback((curl_write_callback) callback)
             , m_write_callback_data(write_callback_data)
         {
             ZSTD_initDStream(stream);
