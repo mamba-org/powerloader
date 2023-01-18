@@ -40,9 +40,7 @@ namespace powerloader
 
         // Get a list of unique mirorrs if existing for the provided host name, or an empty list
         // otherwise.
-        mirror_set get_mirrors(
-            const std::string& host_name) const;  // TODO: replace std::string by std::string_view
-                                                  // as soon as a conversion is added.
+        mirror_set get_mirrors(std::string_view host_name) const;
 
         // Returns a copy of this container's values in the shape of a map.
         mirror_map_base as_map() const
@@ -51,18 +49,13 @@ namespace powerloader
         }
 
         // Returns true if there are registered mirrors stored here, false if none are.
-        bool has_mirrors(
-            const std::string& host_name) const;  // TODO: replace std::string by std::string_view
-                                                  // as soon as a conversion is added.
+        bool has_mirrors(std::string_view host_name) const;
 
         // Creates, stores and return a new instance of `MirrorType` created with `args` IFF no
         // other mirror is already registed with the same id for the specified host, returns null
         // otherwise.
         template <typename MirrorType, typename... Args>
-        auto create_unique_mirror(const std::string& host_name,
-                                  const Context& ctx,
-                                  Args&&... args)  // TODO: replace std::string by std::string_view
-                                                   // as soon as a conversion is added.
+        auto create_unique_mirror(std::string_view host_name, const Context& ctx, Args&&... args)
             -> std::shared_ptr<MirrorType>
         {
             static_assert(std::is_base_of_v<Mirror, MirrorType>);
@@ -79,7 +72,7 @@ namespace powerloader
 
         // Stores a provided Mirror IFF no other mirror is already registed with the same id for the
         // specified host. Returns true if the mirror has been stored, false otherwise.
-        bool add_unique_mirror(const std::string& host_name, std::shared_ptr<Mirror> mirror);
+        bool add_unique_mirror(std::string_view host_name, std::shared_ptr<Mirror> mirror);
 
         // Reset the whole mapping to a new set of host -> mirrors values.
         // Without arguments, this clears all values.

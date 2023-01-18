@@ -56,9 +56,9 @@ namespace powerloader
     }
 
 
-    mirror_set mirror_map_type::get_mirrors(const std::string& host_name) const
+    mirror_set mirror_map_type::get_mirrors(std::string_view host_name) const
     {
-        auto find_it = find(host_name);
+        auto find_it = find(std::string(host_name));
         if (find_it == end())
             return {};
 
@@ -66,16 +66,16 @@ namespace powerloader
     }
 
     // Returns true if there are registered mirrors stored here, false if none are.
-    bool mirror_map_type::has_mirrors(const std::string& host_name) const
+    bool mirror_map_type::has_mirrors(std::string_view host_name) const
     {
-        auto find_it = find(host_name);
+        auto find_it = find(std::string(host_name));
         return find_it != end() && !find_it->second.empty();
     }
 
-    bool mirror_map_type::add_unique_mirror(const std::string& host_name,
+    bool mirror_map_type::add_unique_mirror(std::string_view host_name,
                                             std::shared_ptr<Mirror> mirror)
     {
-        auto find_it = find(host_name);
+        auto find_it = find(std::string(host_name));
         if (find_it != end())
         {
             auto& mirrors = find_it->second;
@@ -85,7 +85,7 @@ namespace powerloader
         }
         else
         {
-            (*this)[host_name] = { std::move(mirror) };
+            (*this)[std::string(host_name)] = { std::move(mirror) };
         }
         return true;
     }
