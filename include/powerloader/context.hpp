@@ -37,6 +37,8 @@ namespace powerloader
     public:
         using mirror_map_base::clear;
         using mirror_map_base::mirror_map_base;
+        using mirror_map_base::size;
+        using mirror_map_base::empty;
 
         // Get a list of unique mirorrs if existing for the provided host name, or an empty list
         // otherwise.
