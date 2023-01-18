@@ -40,11 +40,12 @@ namespace powerloader
 #endif
     }
 
-    std::shared_ptr<DownloadTarget> DownloadTarget::from_url(Context& ctx,
-                                                             const std::string& target_url,
-                                                             const fs::path& destination_path,
-                                                             const fs::path& destination_dir,
-                                                             std::optional<std::string> hostname_override)
+    std::shared_ptr<DownloadTarget> DownloadTarget::from_url(
+        Context& ctx,
+        const std::string& target_url,
+        const fs::path& destination_path,
+        const fs::path& destination_dir,
+        std::optional<std::string> hostname_override)
     {
         if (contains(target_url, "://"))
         {
