@@ -54,7 +54,7 @@ namespace powerloader
             const std::string url = uh.url();
             const std::string host = uh.host();
             const std::string path = uh.path();
-            const std::string mirror_url = url.substr(0, url.size() - path.size());
+            const std::string mirror_url = uh.url_without_path();
             const fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
                                                           : destination_path;
 
