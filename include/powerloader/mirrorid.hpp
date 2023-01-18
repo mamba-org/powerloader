@@ -8,14 +8,23 @@ namespace powerloader
 {
 
     // Identifies a Mirror and is used to compare Mirrors.
-    struct MirrorID
+    class MirrorID
     {
         std::string value;
+    public:
+
+        MirrorID() = default;
+        MirrorID(const MirrorID&) = default;
+        MirrorID& operator=(const MirrorID&) = default;
+        MirrorID(MirrorID&&) = default;
+        MirrorID& operator=(MirrorID&&) = default;
+
+        explicit MirrorID(std::string_view v) : value(v) {}
 
         template <typename MirrorType, typename... StringType>
         static MirrorID make_id(StringType&&... args)
         {
-            return { std::string{} + fmt::format("{}:", typeid(MirrorType).name())
+            return MirrorID{ std::string{} + fmt::format("{}:", typeid(MirrorType).name())
                      + (fmt::format("{},", args) + ...) };
         }
 

@@ -92,7 +92,7 @@ namespace powerloader
 
     void mirror_map_type::reset(mirror_map_base new_values)
     {
-        if (details::is_every_mirror_unique_per_host(new_values))
+        if (!details::is_every_mirror_unique_per_host(new_values))
             throw std::invalid_argument("mirror map must have unique mirrors per host name");
         static_cast<mirror_map_base&>(*this) = std::move(new_values);
     }
@@ -109,9 +109,9 @@ namespace powerloader
 
         bool is_every_mirror_unique_per_host(const mirror_map_base& mirrors)
         {
-            std::set<MirrorID> mirrors_ids;  // TODO: replace by flat_set once available.
             for (const auto& slot : mirrors)
             {
+                std::set<MirrorID> mirrors_ids;  // TODO: replace by flat_set once available.
                 for (const auto& mirror : slot.second)
                 {
                     auto [_, success] = mirrors_ids.insert(mirror->id());
