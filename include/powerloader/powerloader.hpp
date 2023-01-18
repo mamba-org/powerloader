@@ -34,7 +34,7 @@
 
 // Project version
 #define POWERLOADER_VERSION_MAJOR 0
-#define POWERLOADER_VERSION_MINOR 3
+#define POWERLOADER_VERSION_MINOR 4
 #define POWERLOADER_VERSION_PATCH 0
 
 // Binary version
