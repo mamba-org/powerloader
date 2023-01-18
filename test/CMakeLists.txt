@@ -8,6 +8,7 @@ set(TEST_SRCS
     test_fileio.cpp
     test_url.cpp
     test_compression.cpp
+    test_utility.cpp
 )
 
 add_executable(test_powerloader ${TEST_SRCS})

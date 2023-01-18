@@ -58,7 +58,7 @@ namespace powerloader
             reset();
 
             std::error_code ec;
-            fs::rename(m_temp_file, m_target->filename(), ec);
+            fs::rename(m_temp_file, m_target->destination_path(), ec);
 
             if (!ec && m_ctx.preserve_filetime)
             {
@@ -69,7 +69,7 @@ namespace powerloader
                 if (remote_filetime.value() >= 0)
                 {
                     fs::file_time_type tp(std::chrono::seconds(remote_filetime.value()));
-                    fs::last_write_time(m_target->filename(), tp, ec);
+                    fs::last_write_time(m_target->destination_path(), tp, ec);
                 }
             }
         }
@@ -130,7 +130,7 @@ namespace powerloader
     void Target::open_target_file()
     {
         // Use supplied filename
-        fs::path fn = m_target->filename();
+        fs::path fn = m_target->destination_path();
         m_temp_file = fn.replace_extension(fn.extension().string() + PARTEXT);
         spdlog::info("Opening file {}", m_temp_file.string());
 

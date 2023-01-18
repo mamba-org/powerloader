@@ -39,7 +39,7 @@ namespace powerloader
 
         Target(const Context& ctx,
                std::shared_ptr<DownloadTarget> dl_target,
-               std::vector<std::shared_ptr<Mirror>> mirrors = {});
+               mirror_set mirrors = {});
 
         ~Target();
 

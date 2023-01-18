@@ -44,13 +44,30 @@ namespace powerloader
 
         DownloadTarget(const std::string& path,
                        const std::string& base_url,
-                       const fs::path& filename);
+                       const fs::path& destination);
+
         ~DownloadTarget();
 
         DownloadTarget(const DownloadTarget&) = delete;
         DownloadTarget& operator=(const DownloadTarget&) = delete;
         DownloadTarget(DownloadTarget&&) = delete;
         DownloadTarget& operator=(DownloadTarget&&) = delete;
+
+
+        // Creates a `DownloadTarget` given an URL.
+        // When the url is a regular url (with "://"), mirrors will be added to the `Context` for
+        // it's host if not already existing.
+        // @param target_url        The complete url to interpret.
+        // @param destination_path  Name or path of the resulting local file.
+        // @param destination_dir   Path to the directory where the resulting file should be stored.
+        // @param hostname_override If provided, this base url will be used instead of the one from
+        // the target url.
+        static std::shared_ptr<DownloadTarget> from_url(Context& ctx,
+                                                        const std::string& target_url,
+                                                        const fs::path& destination_path,
+                                                        const fs::path& destination_dir,
+                                                        std::optional<std::string> hostname_override
+                                                        = std::nullopt);
 
         void set_cache_options(const CacheControl& cache_control);
         void add_handle_options(CURLHandle& handle);
@@ -107,9 +124,9 @@ namespace powerloader
             return m_path;
         }
 
-        const std::filesystem::path& filename() const noexcept
+        const std::filesystem::path& destination_path() const noexcept
         {
-            return m_filename;
+            return m_destination_path;
         }
 
         std::size_t byterange_start() const noexcept
@@ -276,7 +293,7 @@ namespace powerloader
         std::string m_base_url;
         std::unique_ptr<FileIO> m_outfile;
 
-        fs::path m_filename;
+        fs::path m_destination_path;
 
         std::size_t m_byterange_start = 0;
         std::size_t m_byterange_end = 0;

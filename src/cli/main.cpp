@@ -1,6 +1,8 @@
+#include "powerloader/download_target.hpp"
 #include <CLI/CLI.hpp>
+#include <memory>
 #include <spdlog/spdlog.h>
-#include <spdlog/fmt/fmt.h>
+#include <fmt/std.h>
 #include <yaml-cpp/yaml.h>
 
 #include <powerloader/mirror.hpp>
@@ -243,68 +245,32 @@ handle_download(Context& ctx,
     // https://conda.anaconda.org/conda-forge/linux-64/xtensor-123.tar.bz2
     std::vector<std::shared_ptr<DownloadTarget>> targets;
 
-    for (auto& x : urls)
+    for (const auto& url : urls)
     {
-        if (contains(x, "://"))
-        {
-            // even when we get a regular URL like `http://test.com/download.tar.gz`
-            // we want to create a "mirror" for `http://test.com` to make sure we correctly
-            // retry and wait on mirror failures
-            URLHandler uh(x);
-            std::string url = uh.url();
-            std::string host = uh.host();
-            std::string path = uh.path();
-            std::string mirror_url = url.substr(0, url.size() - path.size());
-            std::string dst
-                = metadata.outfile.empty() ? rsplit(uh.path(), "/", 1).back() : metadata.outfile;
-
-            if (ctx.mirror_map.find(host) == ctx.mirror_map.end())
-            {
-                ctx.mirror_map[host] = std::vector<std::shared_ptr<Mirror>>();
-            }
-            ctx.mirror_map[host].push_back(std::make_shared<Mirror>(ctx, mirror_url));
-            targets.emplace_back(new DownloadTarget(path.substr(1, std::string::npos), host, dst));
-        }
-        else
-        {
-            std::vector<std::string> parts = split(x, ":");
-            std::string path, mirror;
-            if (parts.size() == 2)
-            {
-                mirror = parts[0];
-                path = parts[1];
-            }
-            else
-            {
-                throw std::runtime_error("Not the correct number of : in the url");
-            }
-            std::string dst
-                = metadata.outfile.empty() ? rsplit(path, "/", 1).back() : metadata.outfile;
-
-            if (!dest_folder.empty())
-                dst = dest_folder + "/" + dst;
-
-            spdlog::info("Downloading {} from {} to {}", path, mirror, dst);
-            targets.emplace_back(new DownloadTarget(path, mirror, dst));
-        }
-        targets.back()->set_resume(resume);
+        auto target = DownloadTarget::from_url(ctx, url, metadata.outfile, dest_folder);
+        target->set_resume(resume);
 
         if (!metadata.sha256.empty())
-            targets.back()->add_checksum(Checksum{ ChecksumType::kSHA256, metadata.sha256 });
+            target->add_checksum(Checksum{ ChecksumType::kSHA256, metadata.sha256 });
         if (metadata.filesize > 0)
-            targets.back()->set_expected_size(metadata.filesize);
+            target->set_expected_size(metadata.filesize);
             // TODO we should have two different fields for those two
 #ifdef WITH_ZCHUNK
         if (!metadata.zck_header_sha256.empty())
-            targets.back()->zck().zck_header_checksum = std::make_unique<Checksum>(
+            target->zck().zck_header_checksum = std::make_unique<Checksum>(
                 Checksum{ ChecksumType::kSHA256, metadata.zck_header_sha256 });
         if (metadata.zck_header_size > 0)
-            targets.back()->zck().zck_header_size = metadata.zck_header_size;
+            target->zck().zck_header_size = metadata.zck_header_size;
 #endif
 
         using namespace std::placeholders;
-        targets.back()->set_progress_callback(
-            std::bind(&progress_callback, targets.back().get(), _1, _2));
+        target->set_progress_callback(std::bind(&progress_callback, target.get(), _1, _2));
+
+        spdlog::info("Downloading {} from {} to {}",
+                     target->path(),
+                     target->base_url(),
+                     target->destination_path().string());
+        targets.push_back(std::move(target));
     }
 
     Downloader dl{ ctx };
@@ -323,11 +289,11 @@ handle_download(Context& ctx,
     return 0;
 }
 
-std::map<std::string, std::vector<std::shared_ptr<Mirror>>>
+mirror_map_type
 parse_mirrors(const Context& ctx, const YAML::Node& node)
 {
     assert(node.IsMap());
-    std::map<std::string, std::vector<std::shared_ptr<Mirror>>> res;
+    mirror_map_type result;
 
     auto get_env_from_str = [](const std::string& s, const std::string default_val)
     {
@@ -345,7 +311,6 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
     for (YAML::Node::const_iterator oit = node.begin(); oit != node.end(); ++oit)
     {
         std::string mirror_name = oit->first.as<std::string>();
-        res[mirror_name] = std::vector<std::shared_ptr<Mirror>>();
 
         assert(oit->second.IsSequence());
         for (YAML::Node::const_iterator it = oit->second.begin(); it != oit->second.end(); ++it)
@@ -396,39 +361,42 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
             if (kof == KindOf::kS3)
             {
                 spdlog::info("Adding S3 mirror: {} -> {}", mirror_name, creds.url.url());
-                res[mirror_name].emplace_back(
-                    new S3Mirror{ ctx, creds.url.url(), creds.region, creds.user, creds.password });
+                result.create_unique_mirror<S3Mirror>(
+                    mirror_name, ctx, creds.url.url(), creds.region, creds.user, creds.password);
             }
             else if (kof == KindOf::kOCI)
             {
                 spdlog::info("Adding OCI mirror: {} -> {}", mirror_name, creds.url.url());
-                if (!creds.password.empty())
+                std::shared_ptr<OCIMirror> mirror = [&]
                 {
-                    res[mirror_name].emplace_back(new OCIMirror{ ctx,
-                                                                 creds.url.url_without_path(),
-                                                                 creds.url.path(),
-                                                                 "pull",
-                                                                 creds.user,
-                                                                 creds.password });
-                }
-                else
-                {
-                    res[mirror_name].emplace_back(
-                        new OCIMirror{ ctx, creds.url.url_without_path(), creds.url.path() });
-                }
-                std::dynamic_pointer_cast<OCIMirror>(res[mirror_name].back())
-                    ->set_fn_tag_split_function(
-                        oci_fn_split_tag);  // TODO: this is weird, maybe move that code/function in
-                                            // oci so that this is not necessary?
+                    if (!creds.password.empty())
+                    {
+                        return result.create_unique_mirror<OCIMirror>(mirror_name,
+                                                                      ctx,
+                                                                      creds.url.url_without_path(),
+                                                                      creds.url.path(),
+                                                                      "pull",
+                                                                      creds.user,
+                                                                      creds.password);
+                    }
+                    else
+                    {
+                        return result.create_unique_mirror<OCIMirror>(
+                            mirror_name, ctx, creds.url.url_without_path(), creds.url.path());
+                    }
+                }();
+                mirror->set_fn_tag_split_function(
+                    oci_fn_split_tag);  // TODO: this is weird, maybe move that code/function in
+                                        // oci so that this is not necessary?
             }
             else if (kof == KindOf::kHTTP)
             {
                 spdlog::info("Adding HTTP mirror: {} -> {}", mirror_name, creds.url.url());
-                res[mirror_name].emplace_back(std::make_shared<Mirror>(ctx, creds.url.url()));
+                result.create_unique_mirror<Mirror>(mirror_name, ctx, creds.url.url());
             }
         }
     }
-    return res;
+    return result;
 }
 
 
@@ -502,6 +470,9 @@ main(int argc, char** argv)
             ctx.mirror_map = parse_mirrors(ctx, config["mirrors"]);
         }
     }
+
+    powerloader::erase_duplicates(du_files);
+
     if (app.got_subcommand("upload"))
     {
         return handle_upload(ctx, du_files, mirrors);
