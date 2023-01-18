@@ -10,12 +10,18 @@ namespace powerloader
 #include <zstd.h>
 #include <curl/curl.h>
 
-    struct ZstdStream
+    template <class T>
+    using curl_write_callback_t = size_t (*)(char* ptr, size_t size, size_t nmemb, T* self);
+
+    class ZstdStream
     {
+    public:
         constexpr static size_t BUFFER_SIZE = 256000;
-        ZstdStream(curl_write_callback write_callback, void* write_callback_data)
+
+        template <class T>
+        ZstdStream(curl_write_callback_t<T> write_callback, T* write_callback_data)
             : stream(ZSTD_createDCtx())
-            , m_write_callback(write_callback)
+            , m_write_callback((curl_write_callback) write_callback)
             , m_write_callback_data(write_callback_data)
         {
             ZSTD_initDStream(stream);
@@ -33,6 +39,7 @@ namespace powerloader
             return static_cast<ZstdStream*>(self)->write(ptr, size * nmemb);
         }
 
+    private:
         ZSTD_DCtx* stream;
         char buffer[BUFFER_SIZE];
 

@@ -645,24 +645,20 @@ namespace powerloader
 
         if (!m_target->head_only())
         {
-#ifdef WITH_ZSTD
             if (m_target->compression() == CompressionType::ZSTD)
             {
-                m_zstd_stream = std::make_unique<ZstdStream>(
-                    (curl_write_callback) &Target::write_callback, this);
-
+#ifdef WITH_ZSTD
+                m_zstd_stream = std::make_unique<ZstdStream>(&Target::write_callback, this);
                 h.setopt(CURLOPT_WRITEFUNCTION, &ZstdStream::write_callback);
                 h.setopt(CURLOPT_WRITEDATA, m_zstd_stream.get());
+#endif
             }
             // Prepare write callback
             else
             {
-#endif
                 h.setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
                 h.setopt(CURLOPT_WRITEDATA, this);
-#ifdef WITH_ZSTD
             }
-#endif
         }
 
         // Set extra HTTP headers
