@@ -4,11 +4,12 @@ channels:
 dependencies:
   - vs2019_win-64
   - ninja
-  - vcpkg
-  - curl
   - cpp-expected
   - spdlog
   - nlohmann_json
   - zchunk-static
+  - libcurl-static
+  - zstd-static
+  - libopenssl-static
   # Tests
   - doctest
