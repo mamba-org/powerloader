@@ -58,11 +58,16 @@ jobs:
         shell: cmd /C CALL {0}
         run: |
           call micromamba activate build_env
+          dir %CONDA_PREFIX%\Library\lib
+
+      - name: build powerloader
+        shell: cmd /C CALL {0}
+        run: |
+          call micromamba activate build_env
           mkdir build
           cd build
           cmake .. ^
-            -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-            -D CMAKE_PREFIX_PATH="%VCPKG_ROOT%\installed\x64-windows-static;%CMAKE_PREFIX_PATH%" ^
+            -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
             -D WITH_ZCHUNK=ON ^
             -D BUILD_STATIC_DEPS=ON  ^
             -D BUILD_EXE=OFF ^
