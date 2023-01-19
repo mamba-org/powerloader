@@ -249,10 +249,10 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                     ${POWERLOADER_FORCE_DYNAMIC_LIBS}
             )
         elseif (WIN32)
-            find_library(CURL_LIBRARY NAME libcurl)
-            find_library(CRYPTO_LIBRARY NAMES libcrypto)
-            find_library(ZSTD_LIBRARY NAME zstd_static)
-            find_library(ZCHUNK_LIBRARY NAMES libzck)
+            find_library(CURL_LIBRARY NAME libcurl_a.lib)
+            find_library(CRYPTO_LIBRARY NAMES libcrypto.lib)
+            find_library(ZSTD_LIBRARY NAME zstd_static.lib)
+            find_library(ZCHUNK_LIBRARY NAMES libzck.lib)
 
             target_link_libraries(${target_name} PUBLIC
                 ${CURL_LIBRARY}
