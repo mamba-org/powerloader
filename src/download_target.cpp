@@ -22,14 +22,8 @@ namespace powerloader
         , m_base_url(base_url)
         , m_destination_path(destination)
     {
-        if (path.find("://") != std::string::npos)
-        {
-            m_complete_url = path;
-        }
-        else if (base_url.find("://") != std::string::npos)
-        {
-            m_complete_url = join_url(base_url, path);
-        }
+        spdlog::warn(
+            "DownloadTarget::DownloadTarget: {}, {}, {}", path, base_url, destination.string());
 
 #if WITH_ZCHUNK
         if (m_is_zchunk)
@@ -59,10 +53,12 @@ namespace powerloader
             const std::string mirror_url = uh.url_without_path();
             const fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
                                                           : destination_path;
+            spdlog::warn("SETTING MIRRORR >>>> {}, {}", host, mirror_url);
 
-            ctx.mirror_map.create_unique_mirror<Mirror>(host, ctx, mirror_url);
+            ctx.mirror_map.create_unique_mirror<Mirror>(mirror_url, ctx, mirror_url);
 
-            return std::make_shared<DownloadTarget>(path.substr(1, std::string::npos), host, dst);
+            return std::make_shared<DownloadTarget>(
+                path.substr(1, std::string::npos), mirror_url, dst);
         }
         else
         {
@@ -73,7 +69,14 @@ namespace powerloader
             }
             const auto mirror = hostname_override ? hostname_override.value() : parts[0];
             const auto path = parts[1];
-
+            if (!ctx.mirror_map.has_mirrors(mirror))
+            {
+                throw std::runtime_error("Mirror " + mirror + " not found");
+            }
+            else
+            {
+                spdlog::warn("Mirror {} already exists", mirror);
+            }
             fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
                                                     : destination_path;
 
@@ -85,11 +88,6 @@ namespace powerloader
     }
 
     DownloadTarget::~DownloadTarget() = default;
-
-    bool DownloadTarget::has_complete_url() const
-    {
-        return !m_complete_url.empty();
-    }
 
     bool DownloadTarget::validate_checksum(const fs::path& path)
     {

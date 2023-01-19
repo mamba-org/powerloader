@@ -72,7 +72,6 @@ namespace powerloader
         void set_cache_options(const CacheControl& cache_control);
         void add_handle_options(CURLHandle& handle);
 
-        bool has_complete_url() const;
         bool validate_checksum(const fs::path& path);
         bool already_downloaded();
 
@@ -111,12 +110,6 @@ namespace powerloader
         void clear_base_url()
         {
             m_base_url.clear();
-        }
-
-
-        const std::string& complete_url() const noexcept
-        {
-            return m_complete_url;
         }
 
         const std::string& path() const noexcept
@@ -167,14 +160,14 @@ namespace powerloader
             return m_range;
         }
 
-        bool is_zchunck() const noexcept
+        bool is_zchunk() const noexcept
         {
             return m_is_zchunk;
         }
 
         const zck_target& zck() const
         {
-            if (!is_zchunck())  // TODO: REVIEW: should this be an assert?
+            if (!is_zchunk())  // TODO: REVIEW: should this be an assert?
                 throw std::invalid_argument("attempted to access zchunk data but there is none");
             return *m_p_zck;
         }
@@ -182,7 +175,7 @@ namespace powerloader
         // TODO: ownership/access issue: mostly modified outside
         zck_target& zck()
         {
-            if (!is_zchunck())  // TODO: REVIEW: should this be an assert?
+            if (!is_zchunk())  // TODO: REVIEW: should this be an assert?
                 throw std::invalid_argument("attempted to access zchunk data but there is none");
             return *m_p_zck;
         }
@@ -288,7 +281,6 @@ namespace powerloader
         bool m_no_cache = false;
         bool m_head_only = false;
 
-        std::string m_complete_url;
         std::string m_path;
         std::string m_base_url;
         std::unique_ptr<FileIO> m_outfile;

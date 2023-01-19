@@ -35,7 +35,10 @@ namespace powerloader
     class mirror_map_type : private mirror_map_base
     {
     public:
+        using mirror_map_base::begin;
         using mirror_map_base::clear;
+        using mirror_map_base::empty;
+        using mirror_map_base::end;
         using mirror_map_base::empty;
         using mirror_map_base::mirror_map_base;
         using mirror_map_base::size;
