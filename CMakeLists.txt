@@ -254,10 +254,14 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
             find_library(ZSTD_LIBRARY NAME zstd_static.lib)
             find_library(ZCHUNK_LIBRARY NAMES libzck.lib)
 
+            message("CURL_LIBRARY = ${CURL_LIBRARY}")
+            message("CRYPTO_LIBRARY = ${CRYPTO_LIBRARY}")
+            message("ZSTD_LIBRARY = ${ZSTD_LIBRARY}")
+            message("ZCHUNK_LIBRARY = ${ZCHUNK_LIBRARY}")
             target_link_libraries(${target_name} PUBLIC
                 ${CURL_LIBRARY}
                 ${CRYPTO_LIBRARY}
-                ${SZTD_LIBRARY}
+                ${ZSTD_LIBRARY}
                 ${ZCHUNK_LIBRARY}
             )
 
