@@ -49,10 +49,11 @@ namespace powerloader
         if (!dl_target)
             return;
 
-        auto mirrors = ctx.mirror_map.get_mirrors(dl_target->base_url());
-        if (!mirrors.empty())
+        auto mirrors = ctx.mirror_map.get_mirrors(dl_target->mirror_name());
+        if (mirrors.empty())
         {
-            dl_target->clear_base_url();
+            // TODO proper error handling here! :)
+            throw std::runtime_error("No mirrors found!");
         }
 
         m_targets.emplace_back(new Target(ctx, dl_target, std::move(mirrors)));
@@ -302,7 +303,7 @@ namespace powerloader
         return tl::unexpected(DownloaderError(
             { ErrorLevel::FATAL,
               ErrorCode::PD_NOURL,
-              fmt::format("No suitable mirror found for {}", target->target().base_url()) }));
+              fmt::format("No suitable mirror found for {}", target->target().mirror_name()) }));
     }
 
     // Select next target
@@ -319,7 +320,7 @@ namespace powerloader
 
             bool have_mirrors = !target->mirrors().empty();
             // Sanity check
-            if (target->target().base_url().empty() && !have_mirrors)
+            if (target->target().mirror_name().empty() && !have_mirrors)
             {
                 // Used relative path with empty internal mirrorlist and no basepath specified!
                 return tl::unexpected(DownloaderError{
@@ -652,7 +653,8 @@ namespace powerloader
                 if (!retry)
                 {
                     // No more mirrors to try or base_url used or fatal error
-                    spdlog::error("Retries exceeded for {}", current_target->target().base_url());
+                    spdlog::error("Retries exceeded for {}",
+                                  current_target->target().mirror_name());
 
                     assert(!result);
                     const CbReturnCode rc = current_target->set_failed(result.error());

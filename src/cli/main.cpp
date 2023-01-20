@@ -267,8 +267,8 @@ handle_download(Context& ctx,
         target->set_progress_callback(std::bind(&progress_callback, target.get(), _1, _2));
 
         spdlog::info("Downloading {} from {} to {}",
+                     target->mirror_name(),
                      target->path(),
-                     target->base_url(),
                      target->destination_path().string());
         targets.push_back(std::move(target));
     }

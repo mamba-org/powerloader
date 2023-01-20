@@ -15,15 +15,17 @@ namespace powerloader
 #endif
 
     DownloadTarget::DownloadTarget(const std::string& path,
-                                   const std::string& base_url,
+                                   const std::string& mirror_name,
                                    const fs::path& destination)
         : m_is_zchunk(ends_with(path, ".zck"))
         , m_path(path)
-        , m_base_url(base_url)
+        , m_mirror_name(mirror_name)
         , m_destination_path(destination)
     {
-        spdlog::warn(
-            "DownloadTarget::DownloadTarget: {}, {}, {}", path, base_url, destination.string());
+        spdlog::warn("DownloadTarget::DownloadTarget: {}::{} -> {}",
+                     m_mirror_name,
+                     m_path,
+                     destination.string());
 
 #if WITH_ZCHUNK
         if (m_is_zchunk)

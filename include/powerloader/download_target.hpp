@@ -102,14 +102,9 @@ namespace powerloader
             return m_no_cache;
         }
 
-        const std::string& base_url() const noexcept
+        const std::string& mirror_name() const noexcept
         {
-            return m_base_url;
-        }
-
-        void clear_base_url()
-        {
-            m_base_url.clear();
+            return m_mirror_name;
         }
 
         const std::string& path() const noexcept
@@ -282,7 +277,7 @@ namespace powerloader
         bool m_head_only = false;
 
         std::string m_path;
-        std::string m_base_url;
+        std::string m_mirror_name;
         std::unique_ptr<FileIO> m_outfile;
 
         fs::path m_destination_path;

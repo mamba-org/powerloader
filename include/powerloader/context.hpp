@@ -37,7 +37,6 @@ namespace powerloader
     public:
         using mirror_map_base::begin;
         using mirror_map_base::clear;
-        using mirror_map_base::empty;
         using mirror_map_base::end;
         using mirror_map_base::empty;
         using mirror_map_base::mirror_map_base;
