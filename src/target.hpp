@@ -37,6 +37,7 @@ namespace powerloader
                                           std::size_t nitems,
                                           Target* self);
 
+        // Requires: there should be at least one mirror provided.
         Target(const Context& ctx,
                std::shared_ptr<DownloadTarget> dl_target,
                mirror_set mirrors = {});
@@ -102,26 +103,9 @@ namespace powerloader
             return *m_target;
         }
 
-        void assert_mirror() const noexcept
-        {
-            if (!m_mirror)
-            {
-                spdlog::critical("No mirror set for target with base URL: {}",
-                                 target().mirror_name());
-            }
-        }
-
         // TODO: don't expose ownership
         const std::shared_ptr<Mirror>& mirror() const noexcept
         {
-            assert_mirror();
-            return m_mirror;
-        }
-
-        // TODO: don't expose ownership
-        std::shared_ptr<Mirror>& mirror() noexcept
-        {
-            assert_mirror();
             return m_mirror;
         }
 
