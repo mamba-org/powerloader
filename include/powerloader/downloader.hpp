@@ -74,7 +74,7 @@ namespace powerloader
         bool is_max_mirrors_unlimited();
 
         tl::expected<std::shared_ptr<Mirror>, DownloaderError> select_suitable_mirror(
-            Target* target);
+            const Target& target);
 
         tl::expected<std::pair<Target*, std::string>, DownloaderError> select_next_target();
 

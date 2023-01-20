@@ -205,11 +205,9 @@ namespace powerloader
     }
 
     tl::expected<std::shared_ptr<Mirror>, DownloaderError> Downloader::select_suitable_mirror(
-        Target* target)
+        const Target& target)
     {
-        assert(target);
-
-        if (target->mirrors().empty())
+        if (target.mirrors().empty())
         {
             return tl::unexpected(DownloaderError{
                 ErrorLevel::FATAL, ErrorCode::PD_MIRRORS, "No mirrors added for target" });
@@ -227,7 +225,7 @@ namespace powerloader
         // number of allowed failures equal to dd->allowed_mirror_failures.
         do
         {
-            for (const auto& mirror : target->mirrors())
+            for (const auto& mirror : target.mirrors())
             {
                 const auto mirror_stats = mirror->stats();
                 if (mirrors_iterated == 0)
@@ -236,7 +234,7 @@ namespace powerloader
                     {
                         reiterate = true;
                     }
-                    if (target->tried_mirrors().count(mirror))
+                    if (target.tried_mirrors().count(mirror))
                     {
                         // This mirror was already tried for this target
                         continue;
@@ -264,7 +262,7 @@ namespace powerloader
                 }
 
                 if (mirrors_iterated == 0 && mirror->protocol() == Protocol::kFTP
-                    && target->target().is_zchunk())
+                    && target.target().is_zchunk())
                 {
                     continue;
                 }
@@ -297,13 +295,13 @@ namespace powerloader
                 // This mirror looks suitable - use it
                 return mirror;
             }
-        } while (reiterate && target->retries() < static_cast<std::size_t>(allowed_mirror_failures)
+        } while (reiterate && target.retries() < static_cast<std::size_t>(allowed_mirror_failures)
                  && ++mirrors_iterated < std::size_t(allowed_mirror_failures));
 
         return tl::unexpected(DownloaderError(
             { ErrorLevel::FATAL,
               ErrorCode::PD_NOURL,
-              fmt::format("No suitable mirror found for {}", target->target().mirror_name()) }));
+              fmt::format("No suitable mirror found for {}", target.target().mirror_name()) }));
     }
 
     // Select next target
@@ -311,14 +309,13 @@ namespace powerloader
     {
         for (auto* target : m_targets)
         {
-            std::shared_ptr<Mirror> mirror;
-            std::string full_url;
+            assert(target);
 
             // Pick only waiting targets
             if (target->state() != DownloadState::kWAITING)
                 continue;
 
-            bool have_mirrors = !target->mirrors().empty();
+            const bool have_mirrors = !target->mirrors().empty();
             // Sanity check
             if (target->target().mirror_name().empty() && !have_mirrors)
             {
@@ -330,7 +327,7 @@ namespace powerloader
             }
 
             // Prepare full target URL
-            auto res = select_suitable_mirror(target);
+            auto res = select_suitable_mirror(*target);
             if (!res)
             {
                 // TODO: review this: why is the callback called without changing the state
@@ -339,13 +336,13 @@ namespace powerloader
                 return tl::unexpected(res.error());
             }
 
-            mirror = res.value();
-
+            auto mirror = res.value();
             assert(mirror);
 
             // TODO: create a `name()` or similar function
             spdlog::info("Selected mirror: {}", mirror->url());
-            if (mirror && !mirror->needs_preparation(target))
+            std::string full_url;
+            if (!mirror->needs_preparation(target))
             {
                 full_url = mirror->format_url(target);
                 target->change_mirror(mirror);
@@ -385,7 +382,7 @@ namespace powerloader
             }
 
             // A waiting target found
-            if (mirror || !full_url.empty())
+            if (!full_url.empty())
             {
                 // Note: mirror is nullptr if base_url is used
                 target->change_mirror(mirror);
