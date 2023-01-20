@@ -15,21 +15,17 @@ namespace powerloader
 #endif
 
     DownloadTarget::DownloadTarget(const std::string& path,
-                                   const std::string& base_url,
+                                   const std::string& mirror_name,
                                    const fs::path& destination)
         : m_is_zchunk(ends_with(path, ".zck"))
         , m_path(path)
-        , m_base_url(base_url)
+        , m_mirror_name(mirror_name)
         , m_destination_path(destination)
     {
-        if (path.find("://") != std::string::npos)
-        {
-            m_complete_url = path;
-        }
-        else if (base_url.find("://") != std::string::npos)
-        {
-            m_complete_url = join_url(base_url, path);
-        }
+        spdlog::warn("DownloadTarget::DownloadTarget: {}::{} -> {}",
+                     m_mirror_name,
+                     m_path,
+                     destination.string());
 
 #if WITH_ZCHUNK
         if (m_is_zchunk)
@@ -53,6 +49,13 @@ namespace powerloader
             // we want to create a "mirror" for `http://test.com` to make sure we correctly
             // retry and wait on mirror failures
             URLHandler uh{ target_url };
+            if (uh.scheme() == "file")
+            {
+                spdlog::warn("PATH: {}", uh.path());
+                ctx.mirror_map.create_unique_mirror<Mirror>("[file]", ctx, "file://");
+                return std::make_shared<DownloadTarget>(uh.path(), "[file]", destination_path);
+            }
+
             const std::string url = uh.url();
             const std::string host = hostname_override ? hostname_override.value() : uh.host();
             const std::string path = uh.path();
@@ -60,9 +63,12 @@ namespace powerloader
             const fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
                                                           : destination_path;
 
-            ctx.mirror_map.create_unique_mirror<Mirror>(host, ctx, mirror_url);
+            spdlog::warn("SETTING MIRRORR >>>> {}, {}", host, mirror_url);
 
-            return std::make_shared<DownloadTarget>(path.substr(1, std::string::npos), host, dst);
+            ctx.mirror_map.create_unique_mirror<Mirror>(mirror_url, ctx, mirror_url);
+
+            return std::make_shared<DownloadTarget>(
+                path.substr(1, std::string::npos), mirror_url, dst);
         }
         else
         {
@@ -73,7 +79,14 @@ namespace powerloader
             }
             const auto mirror = hostname_override ? hostname_override.value() : parts[0];
             const auto path = parts[1];
-
+            if (!ctx.mirror_map.has_mirrors(mirror))
+            {
+                throw std::runtime_error("Mirror " + mirror + " not found");
+            }
+            else
+            {
+                spdlog::warn("Mirror {} already exists", mirror);
+            }
             fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
                                                     : destination_path;
 
@@ -85,11 +98,6 @@ namespace powerloader
     }
 
     DownloadTarget::~DownloadTarget() = default;
-
-    bool DownloadTarget::has_complete_url() const
-    {
-        return !m_complete_url.empty();
-    }
 
     bool DownloadTarget::validate_checksum(const fs::path& path)
     {

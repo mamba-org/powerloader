@@ -1,4 +1,6 @@
 #include "target.hpp"
+#include <algorithm>
+#include <stdexcept>
 
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
@@ -20,6 +22,22 @@ namespace powerloader
         , m_mirrors(std::move(mirrors))
         , m_ctx(ctx)
     {
+        // TOOD: consider replacing the following checks by assertions:
+        // at this implementation level the issue is really a programming error
+        // from the caller side and simply should never reach this point.
+        // We currently do this check all the time until we change ci to run tests on debug too.
+        if(!m_target)
+            throw std::invalid_argument("a valid download target must be provided");
+
+        if (m_mirrors.empty()
+            || std::any_of(
+                begin(m_mirrors), end(m_mirrors), [](const auto& mirror) { return !mirror; }))
+            throw std::invalid_argument("invalid mirrors provided: there must be only valid mirrors and at least one");
+
+        for (auto& m : m_mirrors)
+        {
+            spdlog::warn("Mirror: {} for target {}", m->url(), m_target->path());
+        }
     }
 
     Target::~Target()
@@ -30,7 +48,7 @@ namespace powerloader
     bool Target::zck_running() const
     {
 #ifdef WITH_ZCHUNK
-        return m_target->is_zchunck() && m_zck_state != ZckState::kFINISHED;
+        return m_target->is_zchunk() && m_zck_state != ZckState::kFINISHED;
 #else
         return false;
 #endif
@@ -186,7 +204,7 @@ namespace powerloader
         }
 
 #ifdef WITH_ZCHUNK
-        if (target->target().is_zchunck() && !target->m_range_fail && target->m_mirror
+        if (target->target().is_zchunk() && !target->m_range_fail
             && target->m_mirror->protocol() == Protocol::kHTTP)
             return zckheadercb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
@@ -326,7 +344,7 @@ namespace powerloader
         std::size_t cur_written_expected = nitems, cur_written;
 
 #ifdef WITH_ZCHUNK
-        if (self->m_target->is_zchunck() && !self->m_range_fail && self->m_mirror
+        if (self->m_target->is_zchunk() && !self->m_range_fail
             && self->m_mirror->protocol() == Protocol::kHTTP)
         {
             return zckwritecb(buffer, size, nitems, self);
@@ -439,7 +457,7 @@ namespace powerloader
         }
 
 #ifdef WITH_ZCHUNK
-        if (target->m_target->is_zchunck())
+        if (target->m_target->is_zchunk())
         {
             total_to_download = target->m_target->zck().total_to_download;
             now_downloaded = now_downloaded + target->m_target->zck().downloaded;
@@ -486,6 +504,8 @@ namespace powerloader
 
     void Target::change_mirror(std::shared_ptr<Mirror> mirror)
     {
+        if(!mirror)
+            throw std::invalid_argument("a mirror must be provided");
         m_mirror = std::move(mirror);
     }
 
@@ -528,7 +548,7 @@ namespace powerloader
         m_curl_handle.reset(new CURLHandle(m_ctx));
         CURLHandle& h = *(m_curl_handle);
 
-        if (m_mirror && m_mirror->needs_preparation(this))
+        if (m_mirror->needs_preparation(this))
         {
             m_mirror->prepare(m_target->path(), h);
             m_state = DownloadState::kPREPARATION;
@@ -553,14 +573,14 @@ namespace powerloader
         }
         // Prepare FILE
 #ifdef WITH_ZCHUNK
-        if (!m_target->is_zchunck())
+        if (!m_target->is_zchunk())
         {
 #endif
             this->open_target_file();
 #ifdef WITH_ZCHUNK
         }
         // If file is zchunk, prep it
-        if (m_target->is_zchunck())
+        if (m_target->is_zchunk())
         {
             if (!m_target->outfile())
             {
@@ -696,10 +716,7 @@ namespace powerloader
         m_state = DownloadState::kRUNNING;
 
         // Increase running transfers counter for mirror
-        if (m_mirror)
-        {
-            m_mirror->increase_running_transfers();
-        }
+        m_mirror->increase_running_transfers();
 
         // Set the state of header callback for this transfer
         m_headercb_state = HeaderCbState::kDEFAULT;
@@ -712,7 +729,7 @@ namespace powerloader
     tl::expected<void, DownloaderError> Target::finish_transfer(const std::string& effective_url)
     {
 #ifdef WITH_ZCHUNK
-        if (m_target->is_zchunck())
+        if (m_target->is_zchunk())
         {
             if (m_zck_state == ZckState::kHEADER_LEAD)
             {
@@ -819,21 +836,16 @@ namespace powerloader
                                        const tl::expected<void, DownloaderError>& result)
     {
         // TODO check if we were preparing here?
-        if (m_mirror)
-        {
-            m_tried_mirrors.insert(m_mirror);
-            m_mirror->update_statistics(was_success);
-            if (m_ctx.adaptive_mirror_sorting)
-                sort_mirrors(
-                    m_mirrors, m_mirror, was_success, result ? false : result.error().is_serious());
-        }
+        assert(m_mirror);
+        m_tried_mirrors.insert(m_mirror);
+        m_mirror->update_statistics(was_success);
+        if (m_ctx.adaptive_mirror_sorting)
+            sort_mirrors(
+                m_mirrors, m_mirror, was_success, result ? false : result.error().is_serious());
     }
 
     bool Target::can_retry_transfer_with_fewer_connections() const
     {
-        if (!m_mirror)
-            return false;
-
         const auto mirror_stats = m_mirror->stats();
         return m_mirror->has_running_transfers()
                || (mirror_stats.successful_transfers > 0
@@ -842,9 +854,6 @@ namespace powerloader
 
     void Target::lower_mirror_parallel_connections()
     {
-        if (!m_mirror)
-            return;
-
         if (m_mirror->has_running_transfers())
         {
             const auto mirror_stats = m_mirror->stats();
@@ -865,7 +874,7 @@ namespace powerloader
         m_retries++;
 
 #ifdef WITH_ZCHUNK
-        if (!m_target->is_zchunck() || m_zck_state == ZckState::kHEADER)
+        if (!m_target->is_zchunk() || m_zck_state == ZckState::kHEADER)
         {
 #endif
             // Truncate file - remove downloaded garbage (error html page etc.)
@@ -882,11 +891,10 @@ namespace powerloader
     void Target::finalize_transfer(const std::string& effective_url)
     {
 #ifdef WITH_ZCHUNK
-        if (m_target->is_zchunck() && m_zck_state != ZckState::kFINISHED)
+        if (m_target->is_zchunk() && m_zck_state != ZckState::kFINISHED)
         {
             m_state = DownloadState::kWAITING;
-            if (m_mirror)
-                m_tried_mirrors.erase(m_mirror);
+            m_tried_mirrors.erase(m_mirror);
         }
         else
         {
@@ -921,11 +929,7 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
         }
 #endif /* WITH_ZCHUNK */
-        if (m_mirror)
-        {
-            m_target->set_mirror_to_use(m_mirror);
-        }
-
+        m_target->set_mirror_to_use(m_mirror);
         m_target->set_effective_url(effective_url);
     }
 

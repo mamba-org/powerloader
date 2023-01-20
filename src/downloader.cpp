@@ -49,10 +49,11 @@ namespace powerloader
         if (!dl_target)
             return;
 
-        auto mirrors = ctx.mirror_map.get_mirrors(dl_target->base_url());
-        if (!mirrors.empty())
+        auto mirrors = ctx.mirror_map.get_mirrors(dl_target->mirror_name());
+        if (mirrors.empty())
         {
-            dl_target->clear_base_url();
+            // TODO proper error handling here! :)
+            throw std::runtime_error("No mirrors found!");
         }
 
         m_targets.emplace_back(new Target(ctx, dl_target, std::move(mirrors)));
@@ -104,7 +105,7 @@ namespace powerloader
                                                  target->headercb_interrupt_reason()) });
             }
 #ifdef WITH_ZCHUNK
-            else if (target->range_fail())
+            else if (target->range_fail() && target->target().is_zchunk())
             {
                 zckRange* range = zck_dl_get_range(target->target().zck().zck_dl);
                 int range_count = zck_get_range_count(range);
@@ -115,7 +116,7 @@ namespace powerloader
                                   target->mirror()->stats().max_ranges);
                 }
             }
-            else if (target->target().zck().zck_dl != nullptr
+            else if (target->target().is_zchunk() && target->target().zck().zck_dl != nullptr
                      && zck_is_error(zck_dl_get_zck(target->target().zck().zck_dl)) > 0)
             {
                 zckCtx* zck = zck_dl_get_zck(target->target().zck().zck_dl);
@@ -204,11 +205,9 @@ namespace powerloader
     }
 
     tl::expected<std::shared_ptr<Mirror>, DownloaderError> Downloader::select_suitable_mirror(
-        Target* target)
+        const Target& target)
     {
-        assert(target);
-
-        if (target->mirrors().empty())
+        if (target.mirrors().empty())
         {
             return tl::unexpected(DownloaderError{
                 ErrorLevel::FATAL, ErrorCode::PD_MIRRORS, "No mirrors added for target" });
@@ -226,7 +225,7 @@ namespace powerloader
         // number of allowed failures equal to dd->allowed_mirror_failures.
         do
         {
-            for (const auto& mirror : target->mirrors())
+            for (const auto& mirror : target.mirrors())
             {
                 const auto mirror_stats = mirror->stats();
                 if (mirrors_iterated == 0)
@@ -235,7 +234,7 @@ namespace powerloader
                     {
                         reiterate = true;
                     }
-                    if (target->tried_mirrors().count(mirror))
+                    if (target.tried_mirrors().count(mirror))
                     {
                         // This mirror was already tried for this target
                         continue;
@@ -263,7 +262,7 @@ namespace powerloader
                 }
 
                 if (mirrors_iterated == 0 && mirror->protocol() == Protocol::kFTP
-                    && target->target().is_zchunck())
+                    && target.target().is_zchunk())
                 {
                     continue;
                 }
@@ -296,13 +295,13 @@ namespace powerloader
                 // This mirror looks suitable - use it
                 return mirror;
             }
-        } while (reiterate && target->retries() < static_cast<std::size_t>(allowed_mirror_failures)
+        } while (reiterate && target.retries() < static_cast<std::size_t>(allowed_mirror_failures)
                  && ++mirrors_iterated < std::size_t(allowed_mirror_failures));
 
         return tl::unexpected(DownloaderError(
             { ErrorLevel::FATAL,
               ErrorCode::PD_NOURL,
-              fmt::format("No suitable mirror found for {}", target->target().complete_url()) }));
+              fmt::format("No suitable mirror found for {}", target.target().mirror_name()) }));
     }
 
     // Select next target
@@ -310,19 +309,15 @@ namespace powerloader
     {
         for (auto* target : m_targets)
         {
-            std::shared_ptr<Mirror> mirror;
-            std::string full_url;
+            assert(target);
 
             // Pick only waiting targets
             if (target->state() != DownloadState::kWAITING)
                 continue;
 
-            // Determine if path is a complete URL
-            bool complete_url_in_path = target->target().has_complete_url();
-
-            bool have_mirrors = !target->mirrors().empty();
+            const bool have_mirrors = !target->mirrors().empty();
             // Sanity check
-            if (target->target().base_url().empty() && !have_mirrors && !complete_url_in_path)
+            if (target->target().mirror_name().empty() && !have_mirrors)
             {
                 // Used relative path with empty internal mirrorlist and no basepath specified!
                 return tl::unexpected(DownloaderError{
@@ -332,43 +327,36 @@ namespace powerloader
             }
 
             // Prepare full target URL
-            if (complete_url_in_path)
+            auto res = select_suitable_mirror(*target);
+            if (!res)
             {
-                full_url = target->target().complete_url();
+                // TODO: review this: why is the callback called without changing the state
+                // of the target? (see Target::set_failed() for example).
+                target->call_end_callback(TransferStatus::kERROR);
+                return tl::unexpected(res.error());
+            }
+
+            auto mirror = res.value();
+            assert(mirror);
+
+            // TODO: create a `name()` or similar function
+            spdlog::info("Selected mirror: {}", mirror->url());
+            std::string full_url;
+            if (!mirror->needs_preparation(target))
+            {
+                full_url = mirror->format_url(target);
+                target->change_mirror(mirror);
             }
             else
             {
-                // Find a suitable mirror
-                auto res = select_suitable_mirror(target);
-                if (!res)
+                // No free mirror
+                if (!mirror->needs_preparation(target))
                 {
-                    // TODO: review this: why is the callback called without changing the state
-                    // of the target? (see Target::set_failed() for example).
-                    target->call_end_callback(TransferStatus::kERROR);
-                    return tl::unexpected(res.error());
-                }
-
-                mirror = res.value();
-
-                assert(mirror);
-
-                // TODO: create a `name()` or similar function
-                spdlog::info("Selected mirror: {}", mirror->url());
-                if (mirror && !mirror->needs_preparation(target))
-                {
-                    full_url = mirror->format_url(target);
-                    target->change_mirror(mirror);
-                }
-                else
-                {
-                    // No free mirror
-                    if (!mirror->needs_preparation(target))
-                    {
-                        spdlog::info("Currently there is no free mirror for {}",
-                                     target->target().path());
-                    }
+                    spdlog::info("Currently there is no free mirror for {}",
+                                 target->target().path());
                 }
             }
+            // }
 
             // If LRO_OFFLINE is specified, check if the obtained full_url is local or not
             // This condition should never be true for a full_url built from a mirror, because
@@ -394,7 +382,7 @@ namespace powerloader
             }
 
             // A waiting target found
-            if (mirror || !full_url.empty())
+            if (!full_url.empty())
             {
                 // Note: mirror is nullptr if base_url is used
                 target->change_mirror(mirror);
@@ -579,7 +567,6 @@ namespace powerloader
             if (!result)
             {
                 // int complete_url_in_path = strstr(target->target().path(), "://") ? 1 : 0;
-                int complete_url_in_path = false;
 
                 bool retry = false;
 
@@ -629,12 +616,11 @@ namespace powerloader
                         current_target->lower_mirror_parallel_connections();
                     }
 
+                    // TODO FIX remove complete url stuff
                     // complete_url_in_path and target->base_url() doesn't have an
                     // alternatives like using mirrors, therefore they are handled
                     // differently
-                    std::string complete_url_or_base_url
-                        = complete_url_in_path ? current_target->target().path()
-                                               : current_target->target().base_url();
+                    std::string complete_url_or_base_url = current_target->target().path();
                     if (can_retry_download(static_cast<int>(current_target->retries()),
                                            complete_url_or_base_url))
                     {
@@ -665,7 +651,7 @@ namespace powerloader
                 {
                     // No more mirrors to try or base_url used or fatal error
                     spdlog::error("Retries exceeded for {}",
-                                  current_target->target().complete_url());
+                                  current_target->target().mirror_name());
 
                     assert(!result);
                     const CbReturnCode rc = current_target->set_failed(result.error());
@@ -829,7 +815,7 @@ namespace powerloader
 
         for (auto* dl_target : dl_targets)
         {
-            if (dl_target->is_zchunck())
+            if (dl_target->is_zchunk())
             {
                 fs::path p = dl_target->destination_path();
                 try
