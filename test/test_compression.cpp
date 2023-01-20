@@ -17,7 +17,7 @@ TEST_SUITE("compression")
 
         Context ctx;
         // TODO file URL handling is doing some weird things
-        auto file_uri = path_to_url(filename);
+        auto file_uri = path_to_url(filename.string());
         auto target = DownloadTarget::from_url(ctx, file_uri, "out_zst.txt", ".");
 
         target->set_compression_type(CompressionType::ZSTD);
