@@ -49,12 +49,20 @@ namespace powerloader
             // we want to create a "mirror" for `http://test.com` to make sure we correctly
             // retry and wait on mirror failures
             URLHandler uh{ target_url };
+            if (uh.scheme() == "file") {
+                spdlog::warn("PATH: {}", uh.path());
+                ctx.mirror_map.create_unique_mirror<Mirror>("[file]", ctx, "file://");
+                return std::make_shared<DownloadTarget>(
+                    uh.path(), "[file]", destination_path);
+            }
+
             const std::string url = uh.url();
             const std::string host = hostname_override ? hostname_override.value() : uh.host();
             const std::string path = uh.path();
             const std::string mirror_url = uh.url_without_path();
             const fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
                                                           : destination_path;
+
             spdlog::warn("SETTING MIRRORR >>>> {}, {}", host, mirror_url);
 
             ctx.mirror_map.create_unique_mirror<Mirror>(mirror_url, ctx, mirror_url);
