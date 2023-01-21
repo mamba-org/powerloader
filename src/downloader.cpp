@@ -104,7 +104,7 @@ namespace powerloader
                                                  target->headercb_interrupt_reason()) });
             }
 #ifdef WITH_ZCHUNK
-            else if (target->range_fail())
+            else if (target->target().is_zchunk() && target->range_fail())
             {
                 zckRange* range = zck_dl_get_range(target->target().zck().zck_dl);
                 int range_count = zck_get_range_count(range);
@@ -115,7 +115,7 @@ namespace powerloader
                                   target->mirror()->stats().max_ranges);
                 }
             }
-            else if (target->target().zck().zck_dl != nullptr
+            else if (target->target().is_zchunk() && target->target().zck().zck_dl != nullptr
                      && zck_is_error(zck_dl_get_zck(target->target().zck().zck_dl)) > 0)
             {
                 zckCtx* zck = zck_dl_get_zck(target->target().zck().zck_dl);
@@ -263,7 +263,7 @@ namespace powerloader
                 }
 
                 if (mirrors_iterated == 0 && mirror->protocol() == Protocol::kFTP
-                    && target->target().is_zchunck())
+                    && target->target().is_zchunk())
                 {
                     continue;
                 }
@@ -829,7 +829,7 @@ namespace powerloader
 
         for (auto* dl_target : dl_targets)
         {
-            if (dl_target->is_zchunck())
+            if (dl_target->is_zchunk())
             {
                 fs::path p = dl_target->destination_path();
                 try

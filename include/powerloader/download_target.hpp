@@ -167,14 +167,14 @@ namespace powerloader
             return m_range;
         }
 
-        bool is_zchunck() const noexcept
+        bool is_zchunk() const noexcept
         {
             return m_is_zchunk;
         }
 
         const zck_target& zck() const
         {
-            if (!is_zchunck())  // TODO: REVIEW: should this be an assert?
+            if (!is_zchunk())  // TODO: REVIEW: should this be an assert?
                 throw std::invalid_argument("attempted to access zchunk data but there is none");
             return *m_p_zck;
         }
@@ -182,7 +182,7 @@ namespace powerloader
         // TODO: ownership/access issue: mostly modified outside
         zck_target& zck()
         {
-            if (!is_zchunck())  // TODO: REVIEW: should this be an assert?
+            if (!is_zchunk())  // TODO: REVIEW: should this be an assert?
                 throw std::invalid_argument("attempted to access zchunk data but there is none");
             return *m_p_zck;
         }
