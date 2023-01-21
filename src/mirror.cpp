@@ -11,7 +11,7 @@ namespace powerloader
         : m_url(url)
         , m_id(id)
     {
-        if (url.back() == '/')
+        if (url.back() == '/' && url != "file://")
             m_url = m_url.substr(0, m_url.size() - 1);
 
         if (ctx.max_downloads_per_mirror > 0)
@@ -125,7 +125,7 @@ namespace powerloader
 
     std::string Mirror::format_url(Target* target) const
     {
-        return fmt::format("{}/{}", m_url, target->target().path());
+        return join_url(m_url, target->target().path());
     }
 
     /** Sort mirrors. Penalize the error ones.

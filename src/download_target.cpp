@@ -53,6 +53,13 @@ namespace powerloader
             // we want to create a "mirror" for `http://test.com` to make sure we correctly
             // retry and wait on mirror failures
             URLHandler uh{ target_url };
+
+            if (uh.scheme() == "file")
+            {
+                ctx.mirror_map.create_unique_mirror<Mirror>("[file]", ctx, "file://");
+                return std::make_shared<DownloadTarget>(uh.path(), "[file]", destination_path);
+            }
+
             const std::string url = uh.url();
             const std::string host = hostname_override ? hostname_override.value() : uh.host();
             const std::string path = uh.path();
@@ -61,7 +68,6 @@ namespace powerloader
                                                           : destination_path;
 
             ctx.mirror_map.create_unique_mirror<Mirror>(host, ctx, mirror_url);
-
             return std::make_shared<DownloadTarget>(path.substr(1, std::string::npos), host, dst);
         }
         else
