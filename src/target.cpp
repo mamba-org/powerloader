@@ -30,7 +30,7 @@ namespace powerloader
     bool Target::zck_running() const
     {
 #ifdef WITH_ZCHUNK
-        return m_target->is_zchunck() && m_zck_state != ZckState::kFINISHED;
+        return m_target->is_zchunk() && m_zck_state != ZckState::kFINISHED;
 #else
         return false;
 #endif
@@ -186,7 +186,7 @@ namespace powerloader
         }
 
 #ifdef WITH_ZCHUNK
-        if (target->target().is_zchunck() && !target->m_range_fail && target->m_mirror
+        if (target->target().is_zchunk() && !target->m_range_fail && target->m_mirror
             && target->m_mirror->protocol() == Protocol::kHTTP)
             return zckheadercb(buffer, size, nitems, self);
 #endif /* WITH_ZCHUNK */
@@ -326,7 +326,7 @@ namespace powerloader
         std::size_t cur_written_expected = nitems, cur_written;
 
 #ifdef WITH_ZCHUNK
-        if (self->m_target->is_zchunck() && !self->m_range_fail && self->m_mirror
+        if (self->m_target->is_zchunk() && !self->m_range_fail && self->m_mirror
             && self->m_mirror->protocol() == Protocol::kHTTP)
         {
             return zckwritecb(buffer, size, nitems, self);
@@ -439,7 +439,7 @@ namespace powerloader
         }
 
 #ifdef WITH_ZCHUNK
-        if (target->m_target->is_zchunck())
+        if (target->m_target->is_zchunk())
         {
             total_to_download = target->m_target->zck().total_to_download;
             now_downloaded = now_downloaded + target->m_target->zck().downloaded;
@@ -553,14 +553,14 @@ namespace powerloader
         }
         // Prepare FILE
 #ifdef WITH_ZCHUNK
-        if (!m_target->is_zchunck())
+        if (!m_target->is_zchunk())
         {
 #endif
             this->open_target_file();
 #ifdef WITH_ZCHUNK
         }
         // If file is zchunk, prep it
-        if (m_target->is_zchunck())
+        if (m_target->is_zchunk())
         {
             if (!m_target->outfile())
             {
@@ -712,7 +712,7 @@ namespace powerloader
     tl::expected<void, DownloaderError> Target::finish_transfer(const std::string& effective_url)
     {
 #ifdef WITH_ZCHUNK
-        if (m_target->is_zchunck())
+        if (m_target->is_zchunk())
         {
             if (m_zck_state == ZckState::kHEADER_LEAD)
             {
@@ -865,7 +865,7 @@ namespace powerloader
         m_retries++;
 
 #ifdef WITH_ZCHUNK
-        if (!m_target->is_zchunck() || m_zck_state == ZckState::kHEADER)
+        if (!m_target->is_zchunk() || m_zck_state == ZckState::kHEADER)
         {
 #endif
             // Truncate file - remove downloaded garbage (error html page etc.)
@@ -882,7 +882,7 @@ namespace powerloader
     void Target::finalize_transfer(const std::string& effective_url)
     {
 #ifdef WITH_ZCHUNK
-        if (m_target->is_zchunck() && m_zck_state != ZckState::kFINISHED)
+        if (m_target->is_zchunk() && m_zck_state != ZckState::kFINISHED)
         {
             m_state = DownloadState::kWAITING;
             if (m_mirror)
