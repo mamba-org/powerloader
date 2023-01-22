@@ -112,9 +112,7 @@ namespace powerloader
                        const std::string& lregion,
                        const std::string& aws_access_key,
                        const std::string& aws_secret_key)
-        : Mirror(MirrorID::make_id<S3Mirror>(lbucket_url, lregion, aws_access_key, aws_secret_key),
-                 ctx,
-                 lbucket_url)
+        : Mirror(S3Mirror::id(lbucket_url, lregion), ctx, lbucket_url)
         , bucket_url(lbucket_url)
         , region(lregion)
         , aws_access_key_id(aws_access_key)
@@ -122,11 +120,6 @@ namespace powerloader
     {
         if (bucket_url.back() == '/')
             this->bucket_url = this->bucket_url.substr(0, this->bucket_url.size() - 1);
-    }
-
-    S3Mirror::S3Mirror(const Context& ctx, const std::string& url)
-        : Mirror(MirrorID::make_id<S3Mirror>(url), ctx, url)
-    {
     }
 
     S3Mirror::~S3Mirror() = default;

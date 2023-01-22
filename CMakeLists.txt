@@ -12,6 +12,10 @@ set(POWERLOADER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(POWERLOADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(POWERLOADER_TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
 
+if (MSVC)
+    message("Force Release build on Windows to prevent segfaults")
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 # Versionning
 # ===========
 
@@ -24,7 +28,7 @@ foreach(ver ${powerloader_version_defines})
     endif()
 endforeach()
 set(POWERLOADER_VERSION
-    ${POWERLAODER_VERSION_MAJOR}.${POWERLOADER_VERSION_MINOR}.${POWERLOADER_VERSION_PATCH})
+    "${POWERLOADER_VERSION_MAJOR}.${POWERLOADER_VERSION_MINOR}.${POWERLOADER_VERSION_PATCH}")
 message(STATUS "powerloader version: v${POWERLOADER_VERSION}")
 
 # Binary version
@@ -32,14 +36,14 @@ message(STATUS "powerloader version: v${POWERLOADER_VERSION}")
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
 file(STRINGS "${POWERLOADER_INCLUDE_DIR}/powerloader/powerloader.hpp" powerloader_version_defines
     REGEX "#define POWERLOADER_BINARY_(CURRENT|REVISION|AGE)")
-foreach(ver ${xeus_version_defines})
+foreach(ver ${powerloader_version_defines})
     if(ver MATCHES "#define POWERLOADER_BINARY_(CURRENT|REVISION|AGE) +([^ ]+)$")
         set(POWERLOADER_BINARY_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
     endif()
 endforeach()
 set(POWERLOADER_BINARY_VERSION
     ${POWERLOADER_BINARY_CURRENT}.${POWERLOADER_BINARY_REVISION}.${POWERLOADER_BINARY_AGE})
-message(STATUS "xeus binary version: v${POWERLOADER_BINARY_VERSION}")
+message(STATUS "powerloader binary version: v${POWERLOADER_BINARY_VERSION}")
 
 # Build options
 # =============
@@ -62,7 +66,6 @@ option(ENABLE_PYTHON "Enable python bindings" OFF)
 if (WITH_ZCHUNK)
     find_library(ZCK_LIBRARY zck REQUIRED)
     find_file(ZCK_H_FILE NAMES zck.h REQUIRED)
-    message("Found file: ${ZCK_H_FILE}")
     get_filename_component(ZCK_INCLUDE_DIRS ${ZCK_H_FILE} DIRECTORY)
 endif()
 

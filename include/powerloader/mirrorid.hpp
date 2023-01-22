@@ -19,16 +19,14 @@ namespace powerloader
         MirrorID(MirrorID&&) = default;
         MirrorID& operator=(MirrorID&&) = default;
 
-        explicit MirrorID(std::string_view v)
+        explicit MirrorID(const std::string& v)
             : value(v)
         {
         }
 
-        template <typename MirrorType, typename... StringType>
-        static MirrorID make_id(StringType&&... args)
+        std::string to_string() const
         {
-            return MirrorID{ std::string{} + fmt::format("{}:", typeid(MirrorType).name())
-                             + (fmt::format("{},", args) + ...) };
+            return fmt::format("MirrorID <{}>", value);
         }
 
         // TODO: use operator<=> instead once C++20 is enabled.

@@ -2,8 +2,28 @@
 #include <doctest/doctest.h>
 
 #include "powerloader/downloader.hpp"
+#include "powerloader/mirrors/oci.hpp"
+#include "powerloader/mirrors/s3.hpp"
 
 using namespace powerloader;
+
+TEST_SUITE("mirror_id")
+{
+    TEST_CASE("create_mirror_id")
+    {
+        // test that this does not segfault
+        std::string arg = "test";
+        const auto new_id = Mirror::id(arg);
+        CHECK_EQ(new_id.to_string(), "MirrorID <Mirror[test]>");
+
+        std::string arg2 = "test2";
+        const auto new_id2 = OCIMirror::id(arg, arg2);
+        CHECK_EQ(new_id2.to_string(), "MirrorID <OCIMirror[test/test2]>");
+
+        const auto new_id3 = S3Mirror::id(arg, arg2);
+        CHECK_EQ(new_id3.to_string(), "MirrorID <S3Mirror[test/test2]>");
+    }
+}
 
 TEST_SUITE("compression")
 {
