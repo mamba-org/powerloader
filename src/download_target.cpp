@@ -46,7 +46,7 @@ namespace powerloader
             URLHandler uh{ target_url };
             if (uh.scheme() == "file")
             {
-                ctx.mirror_map.create_unique_mirror<Mirror>("[file]", ctx, "file://");
+                ctx.mirror_map.create_unique_mirror<HTTPMirror>("[file]", ctx, "file://");
                 return std::make_shared<DownloadTarget>(uh.path(), "[file]", destination_path);
             }
 
@@ -57,7 +57,7 @@ namespace powerloader
             const fs::path dst = destination_path.empty() ? fs::path{ rsplit(path, "/", 1).back() }
                                                           : destination_path;
 
-            ctx.mirror_map.create_unique_mirror<Mirror>(host, ctx, mirror_url);
+            ctx.mirror_map.create_unique_mirror<HTTPMirror>(host, ctx, mirror_url);
             return std::make_shared<DownloadTarget>(path.substr(1, std::string::npos), host, dst);
         }
         else

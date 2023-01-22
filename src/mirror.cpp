@@ -7,24 +7,6 @@
 
 namespace powerloader
 {
-    Mirror::Mirror(MirrorID id, const Context& ctx, const std::string& url)
-        : m_url(url)
-        , m_id(id)
-    {
-        if (url.back() == '/' && url != "file://")
-            m_url = m_url.substr(0, m_url.size() - 1);
-
-        if (ctx.max_downloads_per_mirror > 0)
-        {
-            m_stats.allowed_parallel_connections = ctx.max_downloads_per_mirror;
-        }
-    }
-
-    Mirror::Mirror(const Context& ctx, const std::string& url)
-        : Mirror(Mirror::id(url), ctx, url)
-    {
-    }
-
     Mirror::~Mirror() = default;
 
     void Mirror::change_max_ranges(int new_value)
@@ -202,4 +184,49 @@ namespace powerloader
 
         return true;
     }
+
+    bool HTTPMirror::prepare(Target* target)
+    {
+        return true;
+    }
+
+    bool HTTPMirror::prepare(const std::string& path, CURLHandle& handle)
+    {
+        return true;
+    }
+
+    bool HTTPMirror::needs_preparation(Target* target) const
+    {
+        return false;
+    }
+
+    bool HTTPMirror::authenticate(CURLHandle& handle, const std::string& path)
+    {
+        if (!m_auth_password.empty())
+        {
+            spdlog::warn(
+                "Setting HTTP authentication for {} to {}:{}", path, m_auth_user, m_auth_password);
+            handle.setopt(CURLOPT_USERNAME, m_auth_user.c_str());
+            handle.setopt(CURLOPT_PASSWORD, m_auth_password.c_str());
+        }
+        return true;
+    }
+
+    void HTTPMirror::set_auth(const std::string& user, const std::string& password)
+    {
+        m_auth_user = user;
+        m_auth_password = password;
+    }
+
+
+    std::vector<std::string> HTTPMirror::get_auth_headers(const std::string& path) const
+    {
+        return {};
+    }
+
+    std::string HTTPMirror::format_url(Target* target) const
+    {
+        return join_url(url(), target->target().path());
+    }
+
 }

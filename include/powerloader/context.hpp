@@ -17,7 +17,7 @@ namespace powerloader
     namespace fs = std::filesystem;
 
     class Context;
-    struct Mirror;
+    class Mirror;
 
     using mirror_set
         = std::vector<std::shared_ptr<Mirror>>;  // TODO: replace by std::flat_set once available.
