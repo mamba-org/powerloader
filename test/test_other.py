@@ -56,6 +56,7 @@ class TestAll:
                 f"{mock_server_working}/broken_counts/static/packages/{file['name']}",
                 "-o",
                 file["output_path"],
+                "-v",
             ]
         )
         assert calculate_sha256(file["output_path"]) == checksums[file["name"]]

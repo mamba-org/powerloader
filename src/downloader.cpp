@@ -616,37 +616,23 @@ namespace powerloader
                         current_target->lower_mirror_parallel_connections();
                     }
 
-                    // complete_url_in_path and target->base_url() doesn't have an
-                    // alternatives like using mirrors, therefore they are handled
-                    // differently
-                    // std::string complete_url_or_base_url
-                    //     = complete_url_in_path ? current_target->target().path()
-                    //                            : current_target->target().base_url();
-                    // if (can_retry_download(static_cast<int>(current_target->retries()),
-                    //                        complete_url_or_base_url))
-                    // {
-                    //     // Try another mirror or retry
-                    //     if (!complete_url_or_base_url.empty())
-                    //     {
-                    //         spdlog::info("Ignore error - Retry download");
-                    //     }
-                    //     else
-                    //     {
-                    //         spdlog::info("Ignore error - Try another mirror");
-                    //     }
-                    //     retry = true;
-                    //     const auto is_ready_to_retry = current_target->set_retrying();
-                    //     if (!is_ready_to_retry)
-                    //         return false;
+                    if (can_retry_download(static_cast<int>(current_target->retries()),
+                                           effective_url))
+                    {
+                        // Try another mirror or retry
+                        retry = true;
+                        const auto is_ready_to_retry = current_target->set_retrying();
+                        if (!is_ready_to_retry)
+                            return false;
 
-                    //     // range fail
-                    //     // if (status_code == 416)
-                    //     // {
-                    //     //     // if our resume file is too large we need to completely truncate
-                    //     it
-                    //     //     current_target->original_offset = 0;
-                    //     // }
-                    // }
+                        // range fail
+                        // if (status_code == 416)
+                        // {
+                        // if our resume file is too large we need to completely truncate
+                        // it
+                        //     current_target->original_offset = 0;
+                        // }
+                    }
                 }
 
                 if (!retry)
