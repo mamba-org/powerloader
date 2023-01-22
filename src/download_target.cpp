@@ -15,22 +15,13 @@ namespace powerloader
 #endif
 
     DownloadTarget::DownloadTarget(const std::string& path,
-                                   const std::string& base_url,
+                                   const std::string& mirror_name,
                                    const fs::path& destination)
         : m_is_zchunk(ends_with(path, ".zck"))
         , m_path(path)
-        , m_base_url(base_url)
+        , m_mirror_name(mirror_name)
         , m_destination_path(destination)
     {
-        if (path.find("://") != std::string::npos)
-        {
-            m_complete_url = path;
-        }
-        else if (base_url.find("://") != std::string::npos)
-        {
-            m_complete_url = join_url(base_url, path);
-        }
-
 #if WITH_ZCHUNK
         if (m_is_zchunk)
         {
@@ -53,7 +44,6 @@ namespace powerloader
             // we want to create a "mirror" for `http://test.com` to make sure we correctly
             // retry and wait on mirror failures
             URLHandler uh{ target_url };
-
             if (uh.scheme() == "file")
             {
                 ctx.mirror_map.create_unique_mirror<Mirror>("[file]", ctx, "file://");
@@ -91,11 +81,6 @@ namespace powerloader
     }
 
     DownloadTarget::~DownloadTarget() = default;
-
-    bool DownloadTarget::has_complete_url() const
-    {
-        return !m_complete_url.empty();
-    }
 
     bool DownloadTarget::validate_checksum(const fs::path& path)
     {

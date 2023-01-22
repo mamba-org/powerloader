@@ -49,10 +49,10 @@ namespace powerloader
         if (!dl_target)
             return;
 
-        auto mirrors = ctx.mirror_map.get_mirrors(dl_target->base_url());
-        if (!mirrors.empty())
+        auto mirrors = ctx.mirror_map.get_mirrors(dl_target->mirror_name());
+        if (mirrors.empty())
         {
-            dl_target->clear_base_url();
+            throw std::runtime_error("No mirrors found for " + dl_target->mirror_name());
         }
 
         m_targets.emplace_back(new Target(ctx, dl_target, std::move(mirrors)));
@@ -299,10 +299,11 @@ namespace powerloader
         } while (reiterate && target->retries() < static_cast<std::size_t>(allowed_mirror_failures)
                  && ++mirrors_iterated < std::size_t(allowed_mirror_failures));
 
-        return tl::unexpected(DownloaderError(
-            { ErrorLevel::FATAL,
-              ErrorCode::PD_NOURL,
-              fmt::format("No suitable mirror found for {}", target->target().complete_url()) }));
+        return tl::unexpected(DownloaderError({ ErrorLevel::FATAL,
+                                                ErrorCode::PD_NOURL,
+                                                fmt::format("No suitable mirror found for {}::{}",
+                                                            target->target().mirror_name(),
+                                                            target->target().path()) }));
     }
 
     // Select next target
@@ -318,55 +319,44 @@ namespace powerloader
                 continue;
 
             // Determine if path is a complete URL
-            bool complete_url_in_path = target->target().has_complete_url();
-
             bool have_mirrors = !target->mirrors().empty();
             // Sanity check
-            if (target->target().base_url().empty() && !have_mirrors && !complete_url_in_path)
+            if (target->target().mirror_name().empty() && !have_mirrors)
             {
                 // Used relative path with empty internal mirrorlist and no basepath specified!
-                return tl::unexpected(DownloaderError{
-                    ErrorLevel::FATAL,
-                    ErrorCode::PD_UNFINISHED,
-                    "Empty mirrorlist and no basepath specified in DownloadTarget" });
+                return tl::unexpected(DownloaderError{ ErrorLevel::FATAL,
+                                                       ErrorCode::PD_UNFINISHED,
+                                                       "No mirror specified for DownloadTarget" });
             }
 
-            // Prepare full target URL
-            if (complete_url_in_path)
+            // Find a suitable mirror
+            auto res = select_suitable_mirror(target);
+            if (!res)
             {
-                full_url = target->target().complete_url();
+                // TODO: review this: why is the callback called without changing the state
+                // of the target? (see Target::set_failed() for example).
+                target->call_end_callback(TransferStatus::kERROR);
+                return tl::unexpected(res.error());
+            }
+
+            mirror = res.value();
+
+            assert(mirror);
+
+            // TODO: create a `name()` or similar function
+            spdlog::info("Selected mirror: {}", mirror->url());
+            if (mirror && !mirror->needs_preparation(target))
+            {
+                full_url = mirror->format_url(target);
+                target->change_mirror(mirror);
             }
             else
             {
-                // Find a suitable mirror
-                auto res = select_suitable_mirror(target);
-                if (!res)
+                // No free mirror
+                if (!mirror->needs_preparation(target))
                 {
-                    // TODO: review this: why is the callback called without changing the state
-                    // of the target? (see Target::set_failed() for example).
-                    target->call_end_callback(TransferStatus::kERROR);
-                    return tl::unexpected(res.error());
-                }
-
-                mirror = res.value();
-
-                assert(mirror);
-
-                // TODO: create a `name()` or similar function
-                spdlog::info("Selected mirror: {}", mirror->url());
-                if (mirror && !mirror->needs_preparation(target))
-                {
-                    full_url = mirror->format_url(target);
-                    target->change_mirror(mirror);
-                }
-                else
-                {
-                    // No free mirror
-                    if (!mirror->needs_preparation(target))
-                    {
-                        spdlog::info("Currently there is no free mirror for {}",
-                                     target->target().path());
-                    }
+                    spdlog::info("Currently there is no free mirror for {}",
+                                 target->target().path());
                 }
             }
 
@@ -578,9 +568,6 @@ namespace powerloader
             // There was an error during transfer
             if (!result)
             {
-                // int complete_url_in_path = strstr(target->target().path(), "://") ? 1 : 0;
-                int complete_url_in_path = false;
-
                 bool retry = false;
 
                 spdlog::error("Error during transfer");
@@ -629,24 +616,10 @@ namespace powerloader
                         current_target->lower_mirror_parallel_connections();
                     }
 
-                    // complete_url_in_path and target->base_url() doesn't have an
-                    // alternatives like using mirrors, therefore they are handled
-                    // differently
-                    std::string complete_url_or_base_url
-                        = complete_url_in_path ? current_target->target().path()
-                                               : current_target->target().base_url();
                     if (can_retry_download(static_cast<int>(current_target->retries()),
-                                           complete_url_or_base_url))
+                                           effective_url))
                     {
                         // Try another mirror or retry
-                        if (!complete_url_or_base_url.empty())
-                        {
-                            spdlog::info("Ignore error - Retry download");
-                        }
-                        else
-                        {
-                            spdlog::info("Ignore error - Try another mirror");
-                        }
                         retry = true;
                         const auto is_ready_to_retry = current_target->set_retrying();
                         if (!is_ready_to_retry)
@@ -655,7 +628,8 @@ namespace powerloader
                         // range fail
                         // if (status_code == 416)
                         // {
-                        //     // if our resume file is too large we need to completely truncate it
+                        // if our resume file is too large we need to completely truncate
+                        // it
                         //     current_target->original_offset = 0;
                         // }
                     }
@@ -665,7 +639,7 @@ namespace powerloader
                 {
                     // No more mirrors to try or base_url used or fatal error
                     spdlog::error("Retries exceeded for {}",
-                                  current_target->target().complete_url());
+                                  current_target->target().mirror_name());
 
                     assert(!result);
                     const CbReturnCode rc = current_target->set_failed(result.error());

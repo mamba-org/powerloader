@@ -47,11 +47,12 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
             self.send_response(404)
             self.end_headers()
 
-        def return_not_found_counts(self):
+        def return_server_error_counts(self):
             global failure_count
             failure_count += 1
             if failure_count < self.count_thresh:
-                self.return_not_found()
+                self.send_response(500)
+                self.end_headers()
             else:
                 failure_count = 0
                 self.serve_static()
@@ -171,7 +172,7 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
             elif err_type == "broken":
                 return self.serve_harm_checksum()
             elif err_type == "lazy":
-                return self.return_not_found_counts()
+                return self.return_server_error_counts()
             path = self.parse_path()
             return self.serve_file(path)
 
@@ -204,7 +205,7 @@ def conda_mock_handler(port, pkgs, err_type, username, pwd):
                 return self.clear_prev_headers()
 
             if self.path.startswith("/broken_counts/static/"):
-                return self.return_not_found_counts()
+                return self.return_server_error_counts()
 
             if self.path.startswith("/reset_broken_count"):
                 return self.reset_failure_count()

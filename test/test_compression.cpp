@@ -34,14 +34,16 @@ TEST_SUITE("compression")
         {
             fs::remove("out_zst.txt");
         }
-        auto target = std::make_shared<DownloadTarget>(
-            "file:///" + filename.string(), "test.txt", "out_zst.txt");
+
+        Context ctx;
+        std::string file_url = path_to_url(filename.string());
+        auto target = DownloadTarget::from_url(ctx, file_url, "out_zst.txt", "");
+
         target->set_compression_type(CompressionType::ZSTD);
         target->add_checksum(
             { ChecksumType::kSHA256,
               "06fa557926742aad170074b1ce955014a4213e960e8f09f07fa23371100dd18e" });
 
-        Context ctx;
         Downloader downloader(ctx);
         downloader.add(target);
         downloader.download();
