@@ -44,7 +44,6 @@ namespace powerloader
             // we want to create a "mirror" for `http://test.com` to make sure we correctly
             // retry and wait on mirror failures
             URLHandler uh{ target_url };
-
             if (uh.scheme() == "file")
             {
                 ctx.mirror_map.create_unique_mirror<Mirror>("[file]", ctx, "file://");
