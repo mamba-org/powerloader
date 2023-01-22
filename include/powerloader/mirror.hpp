@@ -150,6 +150,11 @@ namespace powerloader
             return left.id() == right.id();
         }
 
+        static MirrorID id(const std::string& url)
+        {
+            return MirrorID(fmt::format("Mirror[{}]", url));
+        }
+
     private:
         std::string m_url;
         const MirrorID m_id;

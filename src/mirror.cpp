@@ -21,7 +21,7 @@ namespace powerloader
     }
 
     Mirror::Mirror(const Context& ctx, const std::string& url)
-        : Mirror(MirrorID::make_id<Mirror>(url), ctx, url)
+        : Mirror(Mirror::id(url), ctx, url)
     {
     }
 

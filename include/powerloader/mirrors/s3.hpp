@@ -44,10 +44,12 @@ namespace powerloader
                  const std::string& aws_access_key,
                  const std::string& aws_secret_key);
 
-        S3Mirror(const Context& ctx, const std::string& url);
-
         ~S3Mirror();
 
+        static MirrorID id(const std::string& bucket_url, const std::string& region)
+        {
+            return MirrorID(fmt::format("S3Mirror[{}/{}]", bucket_url, region));
+        }
 
         std::vector<std::string> get_auth_headers(const std::string& path) const override;
         std::vector<std::string> get_auth_headers(S3CanonicalRequest& request) const;

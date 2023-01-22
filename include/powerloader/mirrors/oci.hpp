@@ -41,6 +41,10 @@ namespace powerloader
         // void add_extra_headers(Target* target);
         std::string format_url(Target* target) const override;
 
+        static MirrorID id(const std::string& host, const std::string& repo_prefix)
+        {
+            return MirrorID(fmt::format("OCIMirror[{}/{}]", host, repo_prefix));
+        }
 
         void set_fn_tag_split_function(
             const split_function_type& func);  // TODO: review, looks like a hack

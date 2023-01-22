@@ -55,6 +55,20 @@ namespace powerloader
         }
     }
 
+    std::string mirror_map_type::to_string() const
+    {
+        std::string result;
+        for (const auto& [mirror_name, mirrors] : *this)
+        {
+            result += mirror_name + ": [";
+            for (const auto& mirror : mirrors)
+            {
+                result += mirror->id().to_string() + ", ";
+            }
+            result += "]\n";
+        }
+        return result;
+    }
 
     mirror_set mirror_map_type::get_mirrors(std::string_view host_name) const
     {
