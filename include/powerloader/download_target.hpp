@@ -43,7 +43,7 @@ namespace powerloader
         using progress_callback_t = std::function<int(curl_off_t, curl_off_t)>;
 
         DownloadTarget(const std::string& path,
-                       const std::string& base_url,
+                       const std::string& mirror_name,
                        const fs::path& destination);
 
         ~DownloadTarget();
@@ -72,7 +72,6 @@ namespace powerloader
         void set_cache_options(const CacheControl& cache_control);
         void add_handle_options(CURLHandle& handle);
 
-        bool has_complete_url() const;
         bool validate_checksum(const fs::path& path);
         bool already_downloaded();
 
@@ -103,20 +102,9 @@ namespace powerloader
             return m_no_cache;
         }
 
-        const std::string& base_url() const noexcept
+        const std::string& mirror_name() const noexcept
         {
-            return m_base_url;
-        }
-
-        void clear_base_url()
-        {
-            m_base_url.clear();
-        }
-
-
-        const std::string& complete_url() const noexcept
-        {
-            return m_complete_url;
+            return m_mirror_name;
         }
 
         const std::string& path() const noexcept
@@ -290,7 +278,7 @@ namespace powerloader
 
         std::string m_complete_url;
         std::string m_path;
-        std::string m_base_url;
+        std::string m_mirror_name;
         std::unique_ptr<FileIO> m_outfile;
 
         fs::path m_destination_path;

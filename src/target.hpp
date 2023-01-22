@@ -84,7 +84,9 @@ namespace powerloader
         {
             if (!m_target)
             {
-                spdlog::critical("No target set for target with base URL: {}", target().base_url());
+                spdlog::critical("No target set for target with mirror: {}::{}",
+                                 target().mirror_name(),
+                                 target().path());
             }
         }
 
@@ -105,7 +107,9 @@ namespace powerloader
         {
             if (!m_mirror)
             {
-                spdlog::critical("No mirror set for target with base URL: {}", target().base_url());
+                spdlog::critical("No mirror set for target with mirror: {}::{}",
+                                 target().mirror_name(),
+                                 target().path());
             }
         }
 
