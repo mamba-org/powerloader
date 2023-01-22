@@ -252,25 +252,26 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                     ${POWERLOADER_FORCE_DYNAMIC_LIBS}
             )
         elseif (WIN32)
-            set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
-            # For Windows we have a vcpkg based build system right now.
+            find_library(CURL_LIBRARY NAME libcurl_a.lib)
+            find_library(CRYPTO_LIBRARY NAMES libcrypto.lib)
+            find_library(ZSTD_LIBRARY NAME zstd_static.lib)
+            find_library(ZCHUNK_LIBRARY NAMES libzck.lib)
 
-            find_package(CURL CONFIG REQUIRED)
-            find_library(CRYPTO_LIBRARIES NAMES libcrypto)
-            find_package(zstd CONFIG REQUIRED)
-            find_library(ZCHUNK_LIBRARY NAMES libzck)
-
+            message("CURL_LIBRARY = ${CURL_LIBRARY}")
+            message("CRYPTO_LIBRARY = ${CRYPTO_LIBRARY}")
+            message("ZSTD_LIBRARY = ${ZSTD_LIBRARY}")
+            message("ZCHUNK_LIBRARY = ${ZCHUNK_LIBRARY}")
             target_link_libraries(${target_name} PUBLIC
-                CURL::libcurl
-                ${CRYPTO_LIBRARIES}
+                ${CURL_LIBRARY}
+                ${CRYPTO_LIBRARY}
+                ${ZSTD_LIBRARY}
                 ${ZCHUNK_LIBRARY}
-                zstd::libzstd_static
             )
 
             add_definitions("-DCURL_STATICLIB")
             set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-            include_directories($ENV{CONDA_PREFIX}/Library/include/)
-            include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
+            #include_directories($ENV{CONDA_PREFIX}/Library/include/)
+            #include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
         endif()
     else ()
         message("   -> Dynamically linking against libpowerloader (shared) dependencies")
