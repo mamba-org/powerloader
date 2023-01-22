@@ -41,7 +41,10 @@ namespace powerloader
         // void add_extra_headers(Target* target);
         std::string format_url(Target* target) const override;
 
-        static MirrorID id(const std::string& host, const std::string& repo_prefix)
+        template <class... Args>
+        static MirrorID id(const std::string& host,
+                           const std::string& repo_prefix,
+                           [[maybe_unused]] Args&&... args)
         {
             return MirrorID(fmt::format("OCIMirror[{}/{}]", host, repo_prefix));
         }

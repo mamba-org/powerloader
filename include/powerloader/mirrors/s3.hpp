@@ -46,7 +46,10 @@ namespace powerloader
 
         ~S3Mirror();
 
-        static MirrorID id(const std::string& bucket_url, const std::string& region)
+        template <class... Args>
+        static MirrorID id(const std::string& bucket_url,
+                           const std::string& region,
+                           [[maybe_unused]] Args&&... args)
         {
             return MirrorID(fmt::format("S3Mirror[{}/{}]", bucket_url, region));
         }
