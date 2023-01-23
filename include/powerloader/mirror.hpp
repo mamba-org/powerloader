@@ -62,8 +62,10 @@ namespace powerloader
         }
     };
 
-    inline std::string strip_trailing_slash(const std::string& s) {
-        if (s.size() > 0 && s.back() == '/' && s != "file://") {
+    inline std::string strip_trailing_slash(const std::string& s)
+    {
+        if (s.size() > 0 && s.back() == '/' && s != "file://")
+        {
             return s.substr(0, s.size() - 1);
         }
         return s;
