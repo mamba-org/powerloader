@@ -86,6 +86,8 @@ namespace powerloader
         void reset(mirror_map_base new_values = {});
     };
 
+    using proxy_map_type = std::map<std::string, std::string>;
+
     class POWERLOADER_API Context
     {
     public:
@@ -122,6 +124,7 @@ namespace powerloader
         std::chrono::steady_clock::duration retry_default_timeout = std::chrono::seconds(2);
 
         mirror_map_type mirror_map;
+        proxy_map_type proxy_map;
 
         std::vector<std::string> additional_httpheaders;
 

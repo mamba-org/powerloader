@@ -69,6 +69,9 @@ namespace powerloader
         std::string m_password;
         split_function_type m_split_func;
 
+        // we copy over the proxy map from the context, otherwise we can't set new
+        // proxy options for each curl handle
+        proxy_map_type m_proxy_map;
 
         std::pair<std::string, std::string> split_path_tag(const std::string& path) const;
 

@@ -29,8 +29,7 @@ namespace powerloader
         std::vector<detail::InternalMirror> check_mirrors;
         for (const std::string& u : urls)
         {
-            CURLHandle handle(ctx);
-            handle.url(u);
+            CURLHandle handle(ctx, u);
             handle.setopt(CURLOPT_CONNECT_ONLY, 1L);
             check_mirrors.push_back(detail::InternalMirror{ u, std::move(handle), -1 });
         }

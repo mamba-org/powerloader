@@ -21,6 +21,7 @@ namespace powerloader
 {
     class Context;
     class CURLHandle;
+    using proxy_map_type = std::map<std::string, std::string>;
 
 #include <curl/curl.h>
 
@@ -66,7 +67,7 @@ namespace powerloader
         CURLHandle(const Context& ctx, const std::string& url);
         ~CURLHandle();
 
-        CURLHandle& url(const std::string& url);
+        CURLHandle& url(const std::string& url, const proxy_map_type& proxies);
         CURLHandle& accept_encoding();
         CURLHandle& user_agent(const std::string& user_agent);
 
@@ -134,6 +135,8 @@ namespace powerloader
         }
         return *this;
     }
+
+    std::optional<std::string> proxy_match(const proxy_map_type& ctx, const std::string& url);
 }
 
 #endif

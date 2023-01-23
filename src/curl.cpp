@@ -6,6 +6,7 @@
 #include <powerloader/curl.hpp>
 #include <powerloader/utils.hpp>
 #include <powerloader/context.hpp>
+#include <powerloader/url.hpp>
 
 namespace powerloader
 {
@@ -88,7 +89,7 @@ namespace powerloader
     CURLHandle::CURLHandle(const Context& ctx, const std::string& url)
         : CURLHandle(ctx)
     {
-        this->url(url);
+        this->url(url, ctx.proxy_map);
     }
 
     CURLHandle::~CURLHandle()
@@ -123,9 +124,18 @@ namespace powerloader
         return *this;
     }
 
-    CURLHandle& CURLHandle::url(const std::string& url)
+    CURLHandle& CURLHandle::url(const std::string& url, const proxy_map_type& proxies)
     {
         setopt(CURLOPT_URL, url.c_str());
+        auto match = proxy_match(proxies, url);
+        if (match)
+        {
+            setopt(CURLOPT_PROXY, match.value().c_str());
+        }
+        else
+        {
+            setopt(CURLOPT_PROXY, nullptr);
+        }
         return *this;
     }
 
@@ -372,5 +382,43 @@ namespace powerloader
         effective_url = handle.getinfo<decltype(effective_url)>(CURLINFO_EFFECTIVE_URL).value();
         downloaded_size
             = handle.getinfo<decltype(downloaded_size)>(CURLINFO_SIZE_DOWNLOAD_T).value();
+    }
+
+    std::optional<std::string> proxy_match(const proxy_map_type& proxies, const std::string& url)
+    {
+        // This is a reimplementation of requests.utils.select_proxy()
+        // of the python requests library used by conda
+        if (proxies.empty())
+        {
+            return std::nullopt;
+        }
+
+        auto handler = URLHandler(url);
+        auto scheme = handler.scheme();
+        auto host = handler.host();
+        std::vector<std::string> options;
+
+        if (host.empty())
+        {
+            options = {
+                scheme,
+                "all",
+            };
+        }
+        else
+        {
+            options = { scheme + "://" + host, scheme, "all://" + host, "all" };
+        }
+
+        for (auto& option : options)
+        {
+            auto proxy = proxies.find(option);
+            if (proxy != proxies.end())
+            {
+                return proxy->second;
+            }
+        }
+
+        return std::nullopt;
     }
 }

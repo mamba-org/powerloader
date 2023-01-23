@@ -560,7 +560,7 @@ namespace powerloader
         }
 
         // Set URL
-        h.url(full_url);
+        h.url(full_url, m_ctx.proxy_map);
 
         if (m_target->head_only())
         {

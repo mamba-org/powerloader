@@ -70,6 +70,10 @@ namespace powerloader
             : m_id(id)
             , m_url(url)
         {
+            if (ctx.max_downloads_per_mirror > 0)
+            {
+                m_stats.allowed_parallel_connections = ctx.max_downloads_per_mirror;
+            }
         }
 
         virtual ~Mirror();
