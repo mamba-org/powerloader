@@ -62,13 +62,20 @@ namespace powerloader
         }
     };
 
+    inline std::string strip_trailing_slash(const std::string& s) {
+        if (s.size() > 0 && s.back() == '/' && s != "file://") {
+            return s.substr(0, s.size() - 1);
+        }
+        return s;
+    }
+
     // mirrors should be dict -> urls mapping
     class POWERLOADER_API Mirror
     {
     public:
         Mirror(const MirrorID& id, const Context& ctx, const std::string& url)
             : m_id(id)
-            , m_url(url)
+            , m_url(strip_trailing_slash(url))
         {
             if (ctx.max_downloads_per_mirror > 0)
             {
