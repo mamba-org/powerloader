@@ -55,11 +55,18 @@ namespace powerloader
 
         if (ctx.disable_ssl)
         {
+            spdlog::warn("SSL verification is disabled");
             setopt(CURLOPT_SSL_VERIFYHOST, 0);
             setopt(CURLOPT_SSL_VERIFYPEER, 0);
+
+            // also disable proxy SSL verification
+            setopt(CURLOPT_PROXY_SSL_VERIFYPEER, 0L);
+            setopt(CURLOPT_PROXY_SSL_VERIFYHOST, 0L);
         }
         else
         {
+            spdlog::warn("SSL verification is ENABLED");
+
             setopt(CURLOPT_SSL_VERIFYHOST, 2);
             setopt(CURLOPT_SSL_VERIFYPEER, 1);
 
@@ -67,16 +74,16 @@ namespace powerloader
             CURLcode verifystatus = curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYSTATUS, 0);
             if (verifystatus != CURLE_OK && verifystatus != CURLE_NOT_BUILT_IN)
                 throw curl_error("Could not initialize CURL handle");
-        }
 
-        if (!ctx.ssl_ca_info.empty())
-        {
-            setopt(CURLOPT_CAINFO, ctx.ssl_ca_info.c_str());
-        }
+            if (!ctx.ssl_ca_info.empty())
+            {
+                setopt(CURLOPT_CAINFO, ctx.ssl_ca_info.c_str());
+            }
 
-        if (ctx.ssl_no_revoke)
-        {
-            setopt(CURLOPT_SSL_OPTIONS, ctx.ssl_no_revoke);
+            if (ctx.ssl_no_revoke)
+            {
+                setopt(CURLOPT_SSL_OPTIONS, ctx.ssl_no_revoke);
+            }
         }
 
         setopt(CURLOPT_FTP_USE_EPSV, (long) ctx.ftp_use_seepsv);
