@@ -213,15 +213,7 @@ namespace powerloader
 
         void set_auth(const std::string& user, const std::string& password);
 
-        bool prepare(Target* target) override;
-        bool prepare(const std::string& path, CURLHandle& handle) override;
-
-        bool needs_preparation(Target* target) const override;
         bool authenticate(CURLHandle& handle, const std::string& path) override;
-
-        std::vector<std::string> get_auth_headers(const std::string& path) const override;
-
-        std::string format_url(Target* target) const override;
 
     private:
         std::string m_auth_user;

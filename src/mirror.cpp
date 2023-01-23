@@ -185,21 +185,6 @@ namespace powerloader
         return true;
     }
 
-    bool HTTPMirror::prepare(Target* target)
-    {
-        return true;
-    }
-
-    bool HTTPMirror::prepare(const std::string& path, CURLHandle& handle)
-    {
-        return true;
-    }
-
-    bool HTTPMirror::needs_preparation(Target* target) const
-    {
-        return false;
-    }
-
     bool HTTPMirror::authenticate(CURLHandle& handle, const std::string& path)
     {
         if (!m_auth_password.empty())
@@ -217,16 +202,4 @@ namespace powerloader
         m_auth_user = user;
         m_auth_password = password;
     }
-
-
-    std::vector<std::string> HTTPMirror::get_auth_headers(const std::string& path) const
-    {
-        return {};
-    }
-
-    std::string HTTPMirror::format_url(Target* target) const
-    {
-        return join_url(url(), target->target().path());
-    }
-
 }
