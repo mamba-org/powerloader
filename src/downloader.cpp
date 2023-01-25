@@ -571,7 +571,6 @@ namespace powerloader
                 bool retry = false;
 
                 spdlog::error("Error during transfer");
-
                 // Call mirrorfailure callback
                 // LrMirrorFailureCb mf_cb = target->target().mirrorfailurecb;
                 // if (mf_cb)

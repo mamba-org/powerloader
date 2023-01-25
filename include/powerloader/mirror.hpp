@@ -63,10 +63,15 @@ namespace powerloader
     };
 
     // mirrors should be dict -> urls mapping
-    struct POWERLOADER_API Mirror
+    class POWERLOADER_API Mirror
     {
-        Mirror(MirrorID id, const Context& ctx, const std::string& url);
-        Mirror(const Context& ctx, const std::string& url);
+    public:
+        Mirror(const MirrorID& id, const Context& ctx, const std::string& url)
+            : m_id(id)
+            , m_url(url)
+        {
+        }
+
         virtual ~Mirror();
 
         Mirror(const Mirror&) = delete;
@@ -156,8 +161,8 @@ namespace powerloader
         }
 
     private:
-        std::string m_url;
         const MirrorID m_id;
+        const std::string m_url;
 
         Protocol m_protocol = Protocol::kHTTP;
         MirrorState m_state = MirrorState::READY;
@@ -178,6 +183,36 @@ namespace powerloader
         // count number of retries (this is not the same as failed transfers, as mutiple
         // transfers can be started at the same time, but should all be retried only once)
         std::size_t m_retry_counter = 0;
+    };
+
+    class POWERLOADER_API HTTPMirror : public Mirror
+    {
+    public:
+        HTTPMirror(const Context& ctx, const std::string& url)
+            : Mirror(HTTPMirror::id(url), ctx, url)
+        {
+        }
+
+        static MirrorID id(const std::string& url)
+        {
+            return MirrorID{ fmt::format("HTTPMirror[{}]", url) };
+        }
+
+        void set_auth(const std::string& user, const std::string& password);
+
+        bool prepare(Target* target) override;
+        bool prepare(const std::string& path, CURLHandle& handle) override;
+
+        bool needs_preparation(Target* target) const override;
+        bool authenticate(CURLHandle& handle, const std::string& path) override;
+
+        std::vector<std::string> get_auth_headers(const std::string& path) const override;
+
+        std::string format_url(Target* target) const override;
+
+    private:
+        std::string m_auth_user;
+        std::string m_auth_password;
     };
 
     bool sort_mirrors(std::vector<std::shared_ptr<Mirror>>& mirrors,
