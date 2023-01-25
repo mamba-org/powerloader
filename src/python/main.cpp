@@ -28,8 +28,7 @@ PYBIND11_MODULE(pypowerloader, m)
                       &DownloadTarget::progress_callback,
                       &DownloadTarget::set_progress_callback);
 
-    py::class_<MirrorID>(m, "MirrorID")
-        .def(py::init<const std::string&>());
+    py::class_<MirrorID>(m, "MirrorID").def(py::init<const std::string&>());
 
     py::class_<Mirror, std::shared_ptr<Mirror>>(m, "Mirror")
         .def(py::init<MirrorID, const Context&, const std::string&>());
