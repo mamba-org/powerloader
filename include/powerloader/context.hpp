@@ -149,7 +149,7 @@ namespace powerloader
 
     private:
         struct Impl;
-        std::unique_ptr<Impl> impl; // Private implementation details
+        std::unique_ptr<Impl> impl;  // Private implementation details
     };
 
 }

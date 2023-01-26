@@ -34,7 +34,7 @@ namespace powerloader
             throw std::runtime_error(
                 "powerloader::Context created more than once - instance must be unique");
 
-        if(options.ssl_backend)
+        if (options.ssl_backend)
         {
             impl->curl_setup = details::CURLSetup{ options.ssl_backend.value() };
         }
