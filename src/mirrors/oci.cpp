@@ -43,6 +43,7 @@ namespace powerloader
         : Mirror(OCIMirror::id(host, repo_prefix), ctx, host)
         , m_repo_prefix(repo_prefix)
         , m_scope("pull")
+        , m_proxy_map(ctx.proxy_map)
     {
     }
 
@@ -57,6 +58,7 @@ namespace powerloader
         , m_scope(scope)
         , m_username(username)
         , m_password(password)
+        , m_proxy_map(ctx.proxy_map)
     {
     }
 
@@ -143,7 +145,7 @@ namespace powerloader
         if (cbdata->token.empty() && need_auth())
         {
             std::string auth_url = get_auth_url(split_path, m_scope);
-            handle.url(auth_url);
+            handle.url(auth_url, m_proxy_map);
 
             handle.set_default_callbacks();
 
@@ -178,7 +180,7 @@ namespace powerloader
 
             std::string manifest_url = get_manifest_url(split_path, split_tag);
 
-            handle.url(manifest_url)
+            handle.url(manifest_url, m_proxy_map)
                 .add_headers(get_auth_headers(path))
                 .add_header("Accept: application/vnd.oci.image.manifest.v1+json");
 

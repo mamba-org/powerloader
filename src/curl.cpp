@@ -6,6 +6,7 @@
 #include <powerloader/curl.hpp>
 #include <powerloader/utils.hpp>
 #include <powerloader/context.hpp>
+#include <powerloader/url.hpp>
 
 namespace powerloader
 {
@@ -23,6 +24,7 @@ namespace powerloader
     {
         return m_serious;
     }
+
 
     /**************
      * CURLHandle*
@@ -54,11 +56,18 @@ namespace powerloader
 
         if (ctx.disable_ssl)
         {
+            spdlog::warn("SSL verification is disabled");
             setopt(CURLOPT_SSL_VERIFYHOST, 0);
             setopt(CURLOPT_SSL_VERIFYPEER, 0);
+
+            // also disable proxy SSL verification
+            setopt(CURLOPT_PROXY_SSL_VERIFYPEER, 0L);
+            setopt(CURLOPT_PROXY_SSL_VERIFYHOST, 0L);
         }
         else
         {
+            spdlog::warn("SSL verification is ENABLED");
+
             setopt(CURLOPT_SSL_VERIFYHOST, 2);
             setopt(CURLOPT_SSL_VERIFYPEER, 1);
 
@@ -66,16 +75,16 @@ namespace powerloader
             CURLcode verifystatus = curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYSTATUS, 0);
             if (verifystatus != CURLE_OK && verifystatus != CURLE_NOT_BUILT_IN)
                 throw curl_error("Could not initialize CURL handle");
-        }
 
-        if (!ctx.ssl_ca_info.empty())
-        {
-            setopt(CURLOPT_CAINFO, ctx.ssl_ca_info.c_str());
-        }
+            if (!ctx.ssl_ca_info.empty())
+            {
+                setopt(CURLOPT_CAINFO, ctx.ssl_ca_info.c_str());
+            }
 
-        if (ctx.ssl_no_revoke)
-        {
-            setopt(CURLOPT_SSL_OPTIONS, ctx.ssl_no_revoke);
+            if (ctx.ssl_no_revoke)
+            {
+                setopt(CURLOPT_SSL_OPTIONS, ctx.ssl_no_revoke);
+            }
         }
 
         setopt(CURLOPT_FTP_USE_EPSV, (long) ctx.ftp_use_seepsv);
@@ -88,7 +97,7 @@ namespace powerloader
     CURLHandle::CURLHandle(const Context& ctx, const std::string& url)
         : CURLHandle(ctx)
     {
-        this->url(url);
+        this->url(url, ctx.proxy_map);
     }
 
     CURLHandle::~CURLHandle()
@@ -123,9 +132,18 @@ namespace powerloader
         return *this;
     }
 
-    CURLHandle& CURLHandle::url(const std::string& url)
+    CURLHandle& CURLHandle::url(const std::string& url, const proxy_map_type& proxies)
     {
         setopt(CURLOPT_URL, url.c_str());
+        const auto match = proxy_match(proxies, url);
+        if (match)
+        {
+            setopt(CURLOPT_PROXY, match.value().c_str());
+        }
+        else
+        {
+            setopt(CURLOPT_PROXY, nullptr);
+        }
         return *this;
     }
 
@@ -372,5 +390,43 @@ namespace powerloader
         effective_url = handle.getinfo<decltype(effective_url)>(CURLINFO_EFFECTIVE_URL).value();
         downloaded_size
             = handle.getinfo<decltype(downloaded_size)>(CURLINFO_SIZE_DOWNLOAD_T).value();
+    }
+
+    std::optional<std::string> proxy_match(const proxy_map_type& proxies, const std::string& url)
+    {
+        // This is a reimplementation of requests.utils.select_proxy()
+        // of the python requests library used by conda
+        if (proxies.empty())
+        {
+            return std::nullopt;
+        }
+
+        auto handler = URLHandler(url);
+        auto scheme = handler.scheme();
+        auto host = handler.host();
+        std::vector<std::string> options;
+
+        if (host.empty())
+        {
+            options = {
+                scheme,
+                "all",
+            };
+        }
+        else
+        {
+            options = { scheme + "://" + host, scheme, "all://" + host, "all" };
+        }
+
+        for (auto& option : options)
+        {
+            auto proxy = proxies.find(option);
+            if (proxy != proxies.end())
+            {
+                return proxy->second;
+            }
+        }
+
+        return std::nullopt;
     }
 }

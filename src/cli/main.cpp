@@ -392,7 +392,7 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
             else if (kof == KindOf::kHTTP)
             {
                 spdlog::info("Adding HTTP mirror: {} -> {}", mirror_name, creds.url.url());
-                result.create_unique_mirror<Mirror>(mirror_name, ctx, creds.url.url());
+                result.create_unique_mirror<HTTPMirror>(mirror_name, ctx, creds.url.url());
             }
         }
     }

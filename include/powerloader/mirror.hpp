@@ -62,11 +62,29 @@ namespace powerloader
         }
     };
 
-    // mirrors should be dict -> urls mapping
-    struct POWERLOADER_API Mirror
+    inline std::string strip_trailing_slash(const std::string& s)
     {
-        Mirror(MirrorID id, const Context& ctx, const std::string& url);
-        Mirror(const Context& ctx, const std::string& url);
+        if (s.size() > 0 && s.back() == '/' && s != "file://")
+        {
+            return s.substr(0, s.size() - 1);
+        }
+        return s;
+    }
+
+    // mirrors should be dict -> urls mapping
+    class POWERLOADER_API Mirror
+    {
+    public:
+        Mirror(const MirrorID& id, const Context& ctx, const std::string& url)
+            : m_id(id)
+            , m_url(strip_trailing_slash(url))
+        {
+            if (ctx.max_downloads_per_mirror > 0)
+            {
+                m_stats.allowed_parallel_connections = ctx.max_downloads_per_mirror;
+            }
+        }
+
         virtual ~Mirror();
 
         Mirror(const Mirror&) = delete;
@@ -156,8 +174,8 @@ namespace powerloader
         }
 
     private:
-        std::string m_url;
         const MirrorID m_id;
+        const std::string m_url;
 
         Protocol m_protocol = Protocol::kHTTP;
         MirrorState m_state = MirrorState::READY;
@@ -178,6 +196,28 @@ namespace powerloader
         // count number of retries (this is not the same as failed transfers, as mutiple
         // transfers can be started at the same time, but should all be retried only once)
         std::size_t m_retry_counter = 0;
+    };
+
+    class POWERLOADER_API HTTPMirror : public Mirror
+    {
+    public:
+        HTTPMirror(const Context& ctx, const std::string& url)
+            : Mirror(HTTPMirror::id(url), ctx, url)
+        {
+        }
+
+        static MirrorID id(const std::string& url)
+        {
+            return MirrorID{ fmt::format("HTTPMirror[{}]", url) };
+        }
+
+        void set_auth(const std::string& user, const std::string& password);
+
+        bool authenticate(CURLHandle& handle, const std::string& path) override;
+
+    private:
+        std::string m_auth_user;
+        std::string m_auth_password;
     };
 
     bool sort_mirrors(std::vector<std::shared_ptr<Mirror>>& mirrors,

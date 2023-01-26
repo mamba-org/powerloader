@@ -38,6 +38,7 @@ namespace powerloader
 
     void Target::reset()
     {
+        spdlog::warn("Resetting target {}", m_target->destination_path().string());
         if (m_target->outfile() && !zck_running())
         {
             std::error_code ec;
@@ -108,14 +109,28 @@ namespace powerloader
 
     bool Target::truncate_transfer_file()
     {
+        spdlog::warn("Truncating transfer file ... ");
         std::ptrdiff_t offset = 0;
         std::error_code ec;
 
-        if (!m_target->outfile() || !m_target->outfile()->open())
+        spdlog::warn("NOT TRUNCATING BECAUSE FILE IS {} or {}",
+                     (bool) m_target->outfile(),
+                     m_target->outfile()->open());
+        if (!m_target->outfile())
+        {
             return true;
+        }
+
+        if (!m_target->outfile()->open())
+        {
+            fs::remove(m_target->outfile()->path());
+            return true;
+        }
 
         if (m_original_offset >= 0)
             offset = m_original_offset;
+
+        spdlog::warn("Truncating transfer file offset {}", offset);
 
         m_target->outfile()->truncate(offset, ec);
         if (ec)
@@ -545,7 +560,7 @@ namespace powerloader
         }
 
         // Set URL
-        h.url(full_url);
+        h.url(full_url, m_ctx.proxy_map);
 
         if (m_target->head_only())
         {
