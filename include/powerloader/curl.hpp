@@ -13,6 +13,11 @@
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 
+extern "C"
+{
+#include <curl/curl.h>
+}
+
 #include <powerloader/export.hpp>
 #include <powerloader/utils.hpp>
 #include <powerloader/enums.hpp>
@@ -22,8 +27,6 @@ namespace powerloader
     class Context;
     class CURLHandle;
     using proxy_map_type = std::map<std::string, std::string>;
-
-#include <curl/curl.h>
 
     enum class ssl_backend_t
     {
