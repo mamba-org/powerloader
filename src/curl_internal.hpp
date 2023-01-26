@@ -12,7 +12,7 @@ namespace powerloader::details
     public:
         explicit CURLSetup(const ssl_backend_t& ssl_backend)
         {
-            auto res
+            const auto res
                 = curl_global_sslset((curl_sslbackend) ssl_backend, nullptr, nullptr);
             if (res == CURLSSLSET_UNKNOWN_BACKEND)
             {

@@ -135,7 +135,7 @@ namespace powerloader
     CURLHandle& CURLHandle::url(const std::string& url, const proxy_map_type& proxies)
     {
         setopt(CURLOPT_URL, url.c_str());
-        auto match = proxy_match(proxies, url);
+        const auto match = proxy_match(proxies, url);
         if (match)
         {
             setopt(CURLOPT_PROXY, match.value().c_str());
