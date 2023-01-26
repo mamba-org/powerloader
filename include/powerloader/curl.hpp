@@ -46,12 +46,6 @@ namespace powerloader
         rustls = CURLSSLBACKEND_RUSTLS,
     };
 
-    /*
-    To set ssl backends, use the `init` function before using any other function from the
-    powerloader library.
-    */
-    bool init(const std::optional<ssl_backend_t>& ssl_backend = {});
-
     class POWERLOADER_API curl_error : public std::runtime_error
     {
     public:

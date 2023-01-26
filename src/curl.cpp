@@ -25,48 +25,6 @@ namespace powerloader
         return m_serious;
     }
 
-    class CURLSetup final
-    {
-    public:
-        CURLSetup(const std::optional<ssl_backend_t>& ssl_backend)
-        {
-            if (ssl_backend)
-            {
-                auto res
-                    = curl_global_sslset((curl_sslbackend) ssl_backend.value(), nullptr, nullptr);
-                if (res == CURLSSLSET_UNKNOWN_BACKEND)
-                {
-                    throw curl_error("unknown curl ssl backend");
-                }
-                else if (res == CURLSSLSET_NO_BACKENDS)
-                {
-                    throw curl_error("no curl ssl backend available");
-                }
-                else if (res == CURLSSLSET_TOO_LATE)
-                {
-                    throw curl_error("curl ssl backend set too late");
-                }
-                else if (res != CURLSSLSET_OK)
-                {
-                    throw curl_error("failed to set curl ssl backend");
-                }
-            }
-
-            if (curl_global_init(CURL_GLOBAL_ALL) != 0)
-                throw curl_error("failed to initialize curl");
-        }
-
-        ~CURLSetup()
-        {
-            curl_global_cleanup();
-        }
-    };
-
-    bool init(const std::optional<ssl_backend_t>& ssl_backend)
-    {
-        static CURLSetup setup(ssl_backend);
-        return true;
-    }
 
     /**************
      * CURLHandle*

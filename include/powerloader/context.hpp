@@ -11,6 +11,7 @@
 
 #include <powerloader/export.hpp>
 #include <powerloader/mirrorid.hpp>
+#include <powerloader/curl.hpp>
 
 namespace powerloader
 {
@@ -88,6 +89,13 @@ namespace powerloader
 
     using proxy_map_type = std::map<std::string, std::string>;
 
+    // Options provided when starting a powerloader context.
+    struct ContextOptions
+    {
+        // If set, specifies which SSL backend to use with CURL.
+        std::optional<ssl_backend_t> ssl_backend;
+    };
+
     class POWERLOADER_API Context
     {
     public:
@@ -131,13 +139,17 @@ namespace powerloader
         void set_verbosity(int v);
 
         // Throws if another instance already exists: there can only be one at any time!
-        Context();
+        Context(ContextOptions options = {});
         ~Context();
 
         Context(const Context&) = delete;
         Context& operator=(const Context&) = delete;
         Context(Context&&) = delete;
         Context& operator=(Context&&) = delete;
+
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> impl; // Private implementation details
     };
 
 }
