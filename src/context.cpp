@@ -5,6 +5,8 @@
 #include <set>
 #include <stdexcept>
 
+#include <spdlog/spdlog.h>
+
 #ifdef WITH_ZCHUNK
 extern "C"
 {
@@ -14,17 +16,30 @@ extern "C"
 
 #include <powerloader/mirror.hpp>
 
+#include "./curl_internal.hpp"
+
 
 namespace powerloader
 {
+    struct Context::Impl
+    {
+        std::optional<details::CURLSetup> curl_setup;
+    };
+
     static std::atomic<bool> is_context_alive{ false };
 
-    Context::Context()
+    Context::Context(ContextOptions options)
+        : impl(new Impl)
     {
         bool expected = false;
         if (!is_context_alive.compare_exchange_strong(expected, true))
             throw std::runtime_error(
                 "powerloader::Context created more than once - instance must be unique");
+
+        if (options.ssl_backend)
+        {
+            impl->curl_setup.emplace(options.ssl_backend.value());
+        }
 
         cache_dir = fs::absolute(fs::path(".pdcache"));
         if (!fs::exists(cache_dir))

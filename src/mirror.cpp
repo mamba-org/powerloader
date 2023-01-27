@@ -1,28 +1,41 @@
-#include <spdlog/fmt/fmt.h>
 
 #include <powerloader/mirror.hpp>
+
+#include <spdlog/spdlog.h>
+#include <fmt/core.h>
+
 #include <powerloader/mirrors/oci.hpp>
 #include "powerloader/mirrorid.hpp"
 #include "target.hpp"
 
+
 namespace powerloader
 {
-    Mirror::Mirror(MirrorID id, const Context& ctx, const std::string& url)
-        : m_url(url)
-        , m_id(id)
+    namespace
     {
-        if (url.back() == '/' && url != "file://")
-            m_url = m_url.substr(0, m_url.size() - 1);
+        std::string strip_trailing_slash(const std::string& s)
+        {
+            if (s.size() > 0 && s.back() == '/' && s != "file://")
+            {
+                return s.substr(0, s.size() - 1);
+            }
+            return s;
+        }
+    }
 
+    MirrorID Mirror::id(const std::string& url)
+    {
+        return MirrorID(fmt::format("Mirror[{}]", url));
+    }
+
+    Mirror::Mirror(const MirrorID& id, const Context& ctx, const std::string& url)
+        : m_id(id)
+        , m_url(strip_trailing_slash(url))
+    {
         if (ctx.max_downloads_per_mirror > 0)
         {
             m_stats.allowed_parallel_connections = ctx.max_downloads_per_mirror;
         }
-    }
-
-    Mirror::Mirror(const Context& ctx, const std::string& url)
-        : Mirror(Mirror::id(url), ctx, url)
-    {
     }
 
     Mirror::~Mirror() = default;
@@ -201,5 +214,33 @@ namespace powerloader
         }
 
         return true;
+    }
+
+    HTTPMirror::HTTPMirror(const Context& ctx, const std::string& url)
+        : Mirror(HTTPMirror::id(url), ctx, url)
+    {
+    }
+
+    MirrorID HTTPMirror::id(const std::string& url)
+    {
+        return MirrorID{ fmt::format("HTTPMirror[{}]", url) };
+    }
+
+    bool HTTPMirror::authenticate(CURLHandle& handle, const std::string& path)
+    {
+        if (!m_auth_password.empty())
+        {
+            spdlog::warn(
+                "Setting HTTP authentication for {} to {}:{}", path, m_auth_user, m_auth_password);
+            handle.setopt(CURLOPT_USERNAME, m_auth_user.c_str());
+            handle.setopt(CURLOPT_PASSWORD, m_auth_password.c_str());
+        }
+        return true;
+    }
+
+    void HTTPMirror::set_auth(const std::string& user, const std::string& password)
+    {
+        m_auth_user = user;
+        m_auth_password = password;
     }
 }

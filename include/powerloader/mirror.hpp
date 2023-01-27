@@ -2,12 +2,8 @@
 #define POWERLOADER_MIRROR_HPP
 
 #include <chrono>
-#include <iostream>
 #include <map>
-#include <sstream>
 #include <string>
-#include <spdlog/spdlog.h>
-#include <nlohmann/json.hpp>
 
 #include <powerloader/export.hpp>
 #include <powerloader/context.hpp>
@@ -63,10 +59,11 @@ namespace powerloader
     };
 
     // mirrors should be dict -> urls mapping
-    struct POWERLOADER_API Mirror
+    class POWERLOADER_API Mirror
     {
-        Mirror(MirrorID id, const Context& ctx, const std::string& url);
-        Mirror(const Context& ctx, const std::string& url);
+    public:
+        Mirror(const MirrorID& id, const Context& ctx, const std::string& url);
+
         virtual ~Mirror();
 
         Mirror(const Mirror&) = delete;
@@ -150,14 +147,11 @@ namespace powerloader
             return left.id() == right.id();
         }
 
-        static MirrorID id(const std::string& url)
-        {
-            return MirrorID(fmt::format("Mirror[{}]", url));
-        }
+        static MirrorID id(const std::string& url);
 
     private:
-        std::string m_url;
         const MirrorID m_id;
+        const std::string m_url;
 
         Protocol m_protocol = Protocol::kHTTP;
         MirrorState m_state = MirrorState::READY;
@@ -178,6 +172,22 @@ namespace powerloader
         // count number of retries (this is not the same as failed transfers, as mutiple
         // transfers can be started at the same time, but should all be retried only once)
         std::size_t m_retry_counter = 0;
+    };
+
+    class POWERLOADER_API HTTPMirror : public Mirror
+    {
+    public:
+        HTTPMirror(const Context& ctx, const std::string& url);
+
+        static MirrorID id(const std::string& url);
+
+        void set_auth(const std::string& user, const std::string& password);
+
+        bool authenticate(CURLHandle& handle, const std::string& path) override;
+
+    private:
+        std::string m_auth_user;
+        std::string m_auth_password;
     };
 
     bool sort_mirrors(std::vector<std::shared_ptr<Mirror>>& mirrors,

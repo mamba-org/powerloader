@@ -9,9 +9,14 @@
 #include <vector>
 #include <optional>
 
-#include <spdlog/fmt/fmt.h>
+#include <fmt/core.h>
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
+
+extern "C"
+{
+#include <curl/curl.h>
+}
 
 #include <powerloader/export.hpp>
 #include <powerloader/utils.hpp>
@@ -21,8 +26,25 @@ namespace powerloader
 {
     class Context;
     class CURLHandle;
+    using proxy_map_type = std::map<std::string, std::string>;
 
-#include <curl/curl.h>
+    enum class ssl_backend_t
+    {
+        none = CURLSSLBACKEND_NONE,
+        openssl = CURLSSLBACKEND_OPENSSL,
+        gnutls = CURLSSLBACKEND_GNUTLS,
+        nss = CURLSSLBACKEND_NSS,
+        gskit = CURLSSLBACKEND_GSKIT,
+        // polarssl = CURLSSLBACKEND_POLARSSL /* deprecated by curl */,
+        wolfssl = CURLSSLBACKEND_WOLFSSL,
+        schannel = CURLSSLBACKEND_SCHANNEL,
+        securetransport = CURLSSLBACKEND_SECURETRANSPORT,
+        // axtls = CURLSSLBACKEND_AXTLS, /* deprecated by curl */
+        mbedtls = CURLSSLBACKEND_MBEDTLS,
+        // mesalink = CURLSSLBACKEND_MESALINK, /* deprecated by curl */
+        bearssl = CURLSSLBACKEND_BEARSSL,
+        rustls = CURLSSLBACKEND_RUSTLS,
+    };
 
     class POWERLOADER_API curl_error : public std::runtime_error
     {
@@ -66,7 +88,7 @@ namespace powerloader
         CURLHandle(const Context& ctx, const std::string& url);
         ~CURLHandle();
 
-        CURLHandle& url(const std::string& url);
+        CURLHandle& url(const std::string& url, const proxy_map_type& proxies);
         CURLHandle& accept_encoding();
         CURLHandle& user_agent(const std::string& user_agent);
 
@@ -134,6 +156,8 @@ namespace powerloader
         }
         return *this;
     }
+
+    std::optional<std::string> proxy_match(const proxy_map_type& ctx, const std::string& url);
 }
 
 #endif
