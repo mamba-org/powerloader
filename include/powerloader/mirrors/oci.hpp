@@ -2,7 +2,7 @@
 #define POWERLOADER_OCI_HPP
 
 #include <optional>
-#include <spdlog/fmt/fmt.h>
+#include <fmt/core.h>
 
 #include <powerloader/export.hpp>
 #include <powerloader/mirror.hpp>

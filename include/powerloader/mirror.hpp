@@ -2,12 +2,8 @@
 #define POWERLOADER_MIRROR_HPP
 
 #include <chrono>
-#include <iostream>
 #include <map>
-#include <sstream>
 #include <string>
-#include <spdlog/spdlog.h>
-#include <nlohmann/json.hpp>
 
 #include <powerloader/export.hpp>
 #include <powerloader/context.hpp>

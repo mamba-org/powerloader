@@ -5,6 +5,8 @@
 #include <set>
 #include <stdexcept>
 
+#include <spdlog/spdlog.h>
+
 #ifdef WITH_ZCHUNK
 extern "C"
 {

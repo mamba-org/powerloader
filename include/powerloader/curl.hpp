@@ -9,7 +9,7 @@
 #include <vector>
 #include <optional>
 
-#include <spdlog/fmt/fmt.h>
+#include <fmt/core.h>
 #include <nlohmann/json.hpp>
 #include <tl/expected.hpp>
 

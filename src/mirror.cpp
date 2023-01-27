@@ -1,10 +1,13 @@
 
 #include <powerloader/mirror.hpp>
+
+#include <spdlog/spdlog.h>
+#include <fmt/core.h>
+
 #include <powerloader/mirrors/oci.hpp>
 #include "powerloader/mirrorid.hpp"
 #include "target.hpp"
 
-#include <fmt/core.h>
 
 namespace powerloader
 {

@@ -7,7 +7,6 @@
 #include <chrono>
 #include <map>
 #include <filesystem>
-#include <spdlog/spdlog.h>
 
 #include <powerloader/export.hpp>
 #include <powerloader/mirrorid.hpp>
