@@ -1,43 +1,26 @@
 #ifndef POWERLOADER_SRC_CURL_INTERNAL_HPP
 #define POWERLOADER_SRC_CURL_INTERNAL_HPP
 
+#include <optional>
+
 #include <powerloader/curl.hpp>
 
 namespace powerloader::details
 {
     // Scoped initialization and termination of CURL.
-    // This should never have more than one instance live at any time.
+    // This should never have more than one instance live at any time,
+    // this object's constructor will throw an `std::runtime_error` if it's the case.
     class CURLSetup final
     {
     public:
-        explicit CURLSetup(const ssl_backend_t& ssl_backend)
-        {
-            const auto res = curl_global_sslset((curl_sslbackend) ssl_backend, nullptr, nullptr);
-            if (res == CURLSSLSET_UNKNOWN_BACKEND)
-            {
-                throw curl_error("unknown curl ssl backend");
-            }
-            else if (res == CURLSSLSET_NO_BACKENDS)
-            {
-                throw curl_error("no curl ssl backend available");
-            }
-            else if (res == CURLSSLSET_TOO_LATE)
-            {
-                throw curl_error("curl ssl backend set too late");
-            }
-            else if (res != CURLSSLSET_OK)
-            {
-                throw curl_error("failed to set curl ssl backend");
-            }
+        explicit CURLSetup(const ssl_backend_t& ssl_backend);
+        ~CURLSetup();
 
-            if (curl_global_init(CURL_GLOBAL_ALL) != 0)
-                throw curl_error("failed to initialize curl");
-        }
+        CURLSetup(CURLSetup&&) = delete;
+        CURLSetup& operator=(CURLSetup&&) = delete;
 
-        ~CURLSetup()
-        {
-            curl_global_cleanup();
-        }
+        CURLSetup(const CURLSetup&) = delete;
+        CURLSetup& operator=(const CURLSetup&) = delete;
     };
 }
 #endif

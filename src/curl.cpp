@@ -8,6 +8,8 @@
 #include <powerloader/context.hpp>
 #include <powerloader/url.hpp>
 
+#include "curl_internal.hpp"
+
 namespace powerloader
 {
     /**************
@@ -428,5 +430,48 @@ namespace powerloader
         }
 
         return std::nullopt;
+    }
+
+    namespace details
+    {
+        static std::atomic<bool> is_curl_setup_alive{ false };
+
+        CURLSetup::CURLSetup(const ssl_backend_t& ssl_backend)
+        {
+            {
+                bool expected = false;
+                if (!is_curl_setup_alive.compare_exchange_strong(expected, true))
+                    throw std::runtime_error(
+                        "powerloader::CURLSetup created more than once - instance must be unique");
+            }
+
+            const auto res = curl_global_sslset((curl_sslbackend) ssl_backend, nullptr, nullptr);
+            if (res == CURLSSLSET_UNKNOWN_BACKEND)
+            {
+                throw curl_error("unknown curl ssl backend");
+            }
+            else if (res == CURLSSLSET_NO_BACKENDS)
+            {
+                throw curl_error("no curl ssl backend available");
+            }
+            else if (res == CURLSSLSET_TOO_LATE)
+            {
+                throw curl_error("curl ssl backend set too late");
+            }
+            else if (res != CURLSSLSET_OK)
+            {
+                throw curl_error("failed to set curl ssl backend");
+            }
+
+            if (curl_global_init(CURL_GLOBAL_ALL) != 0)
+                throw curl_error("failed to initialize curl");
+        }
+
+        CURLSetup::~CURLSetup()
+        {
+            curl_global_cleanup();
+            is_curl_setup_alive = false;
+        }
+
     }
 }

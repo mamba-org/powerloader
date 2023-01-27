@@ -38,7 +38,7 @@ namespace powerloader
 
         if (options.ssl_backend)
         {
-            impl->curl_setup = details::CURLSetup{ options.ssl_backend.value() };
+            impl->curl_setup.emplace(options.ssl_backend.value());
         }
 
         cache_dir = fs::absolute(fs::path(".pdcache"));
