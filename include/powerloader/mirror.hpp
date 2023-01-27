@@ -62,28 +62,12 @@ namespace powerloader
         }
     };
 
-    inline std::string strip_trailing_slash(const std::string& s)
-    {
-        if (s.size() > 0 && s.back() == '/' && s != "file://")
-        {
-            return s.substr(0, s.size() - 1);
-        }
-        return s;
-    }
-
     // mirrors should be dict -> urls mapping
     class POWERLOADER_API Mirror
     {
     public:
-        Mirror(const MirrorID& id, const Context& ctx, const std::string& url)
-            : m_id(id)
-            , m_url(strip_trailing_slash(url))
-        {
-            if (ctx.max_downloads_per_mirror > 0)
-            {
-                m_stats.allowed_parallel_connections = ctx.max_downloads_per_mirror;
-            }
-        }
+
+        Mirror(const MirrorID& id, const Context& ctx, const std::string& url);
 
         virtual ~Mirror();
 
@@ -168,10 +152,7 @@ namespace powerloader
             return left.id() == right.id();
         }
 
-        static MirrorID id(const std::string& url)
-        {
-            return MirrorID(fmt::format("Mirror[{}]", url));
-        }
+        static MirrorID id(const std::string& url);
 
     private:
         const MirrorID m_id;
@@ -201,15 +182,9 @@ namespace powerloader
     class POWERLOADER_API HTTPMirror : public Mirror
     {
     public:
-        HTTPMirror(const Context& ctx, const std::string& url)
-            : Mirror(HTTPMirror::id(url), ctx, url)
-        {
-        }
+        HTTPMirror(const Context& ctx, const std::string& url);
 
-        static MirrorID id(const std::string& url)
-        {
-            return MirrorID{ fmt::format("HTTPMirror[{}]", url) };
-        }
+        static MirrorID id(const std::string& url);
 
         void set_auth(const std::string& user, const std::string& password);
 
