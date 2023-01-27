@@ -62,7 +62,6 @@ namespace powerloader
     class POWERLOADER_API Mirror
     {
     public:
-
         Mirror(const MirrorID& id, const Context& ctx, const std::string& url);
 
         virtual ~Mirror();
