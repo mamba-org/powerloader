@@ -1,5 +1,9 @@
 ![](docs/assets/logo.png)
 
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/powerloader.svg)](https://github.com/conda-forge/powerloader-feedstock)
+
+----
+
 # The POWERLOADER
 
 This is a tool to download large files. This is to be used in `mamba` and potentially other package managers. It's a port of `librepo`, but extends it in several ways as well as being cross-platform (it should support Windows as well).
