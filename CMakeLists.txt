@@ -4,8 +4,8 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-project(powerloader)
 cmake_minimum_required(VERSION 3.20)
+project(powerloader)
 
 set(CMAKE_CXX_STANDARD 17)
 set(POWERLOADER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -254,23 +254,26 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                     ${POWERLOADER_FORCE_DYNAMIC_LIBS}
             )
         elseif (WIN32)
+            set_target_properties(${target_name} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+            target_compile_definitions(${target_name} PUBLIC _CRT_SECURE_NO_WARNINGS CURL_SATATICLIB ZCHUNK_STATIC_LIB)
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
             # For Windows we have a vcpkg based build system right now.
 
             find_package(CURL CONFIG REQUIRED)
-            find_library(CRYPTO_LIBRARIES NAMES libcrypto)
+            find_library(CRYPTO_LIBRARIES NAMES libcrypto REQUIRED)
             find_package(zstd CONFIG REQUIRED)
-            find_library(ZCHUNK_LIBRARY NAMES libzck)
+            find_library(ZCHUNK_LIBRARY NAMES libzck REQUIRED)
 
-            target_link_libraries(${target_name} PUBLIC
+            target_link_libraries(
+                ${target_name}
+                PUBLIC
                 CURL::libcurl
                 ${CRYPTO_LIBRARIES}
                 ${ZCHUNK_LIBRARY}
                 zstd::libzstd_static
+                ${SPDLOG_TARGET}
             )
 
-            add_definitions("-DCURL_STATICLIB")
-            set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
             include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
         endif()
@@ -351,6 +354,10 @@ endif ()
 
 if (BUILD_EXE)
     add_executable(powerloader ${POWERLOADER_SOURCE_DIR}/cli/main.cpp)
+    if (WIN32 AND BUILD_STATIC_DEPS)
+        set_target_properties(powerloader PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+
     target_include_directories(powerloader PUBLIC
         ${CURL_INCLUDE_DIRS}
         ${ZCK_INCLUDE_DIRS}
