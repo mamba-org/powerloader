@@ -17,16 +17,6 @@ namespace powerloader
     class Target;
     class Context;
 
-    enum class MirrorState
-    {
-        WAITING,
-        AUTHENTICATING,
-        READY,
-        RETRY_DELAY,
-        AUTHENTICATION_FAILED,
-        FAILED
-    };
-
     struct MirrorStats
     {
         // Maximum number of allowed parallel connections to this mirror. -1 means no
