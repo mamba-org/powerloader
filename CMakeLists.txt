@@ -183,13 +183,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
     find_package(tl-expected REQUIRED)
     find_package(spdlog REQUIRED)
 
-    if (MSVC)
-        set(SPDLOG_TARGET spdlog::spdlog_header_only)
-        set(WINSOCK_LIBS wsock32 ws2_32)
-    else()
-        set(SPDLOG_TARGET spdlog::spdlog)
-    endif()
-
+    set(SPDLOG_TARGET spdlog::spdlog_header_only)
 
     if (${deps_linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libpowerloader (static) dependencies")
@@ -246,6 +240,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
+            target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
             target_link_libraries(${target_name}
                 PUBLIC
                     tl::expected
@@ -264,6 +259,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
             find_package(zstd CONFIG REQUIRED)
             find_library(ZCHUNK_LIBRARY NAMES libzck REQUIRED)
 
+            target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
             target_link_libraries(
                 ${target_name}
                 PUBLIC
@@ -282,6 +278,10 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
 
         find_package(CURL REQUIRED)
         find_package(OpenSSL REQUIRED)
+
+        if (MSVC)
+            set(WINSOCK_LIBS wsock32 ws2_32)
+        endif()
 
         target_link_libraries(${target_name}
             PUBLIC
