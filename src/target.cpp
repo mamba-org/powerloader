@@ -548,7 +548,7 @@ namespace powerloader
             m_mirror->prepare(m_target->path(), h);
             m_state = DownloadState::kPREPARATION;
 
-            CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+            CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h.handle());
             if (cm_rc != CURLM_OK)
             {
                 spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));
@@ -698,7 +698,7 @@ namespace powerloader
         }
 
         // Add the new handle to the curl multi handle
-        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h.handle());
         if (cm_rc != CURLM_OK)
         {
             spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));

@@ -135,11 +135,6 @@ namespace powerloader
         }
     }  // namespace detail
 
-    inline std::string join_url()
-    {
-        return "";
-    }
-
     template <class S, class... Args>
     inline std::string join_url(const S& s, const Args&... args)
     {

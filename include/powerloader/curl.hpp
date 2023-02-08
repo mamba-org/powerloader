@@ -77,9 +77,6 @@ namespace powerloader
         nlohmann::json json() const;
     };
 
-    // TODO: rename this, try to not expose it
-    POWERLOADER_API CURL* get_handle(const Context& ctx);
-
     class POWERLOADER_API CURLHandle
     {
     public:
@@ -94,15 +91,12 @@ namespace powerloader
 
         Response perform();
         void finalize_transfer();
-        // TODO: should be private?
-        void finalize_transfer(Response& response);
 
         template <class T>
         tl::expected<T, CURLcode> getinfo(CURLINFO option);
 
-        // TODO: why do we need to expose these three methods
+        // TODO: why do we need to expose these methods
         CURL* handle();
-        operator CURL*();  // TODO: consider making this `explicit` or remove it
         CURL* ptr() const;
 
         CURLHandle& add_header(const std::string& header);
@@ -123,6 +117,7 @@ namespace powerloader
 
     private:
         void init_handle(const Context& ctx);
+        void finalize_transfer(Response& response);
 
         CURL* m_handle;
         curl_slist* p_headers = nullptr;
