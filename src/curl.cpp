@@ -230,11 +230,6 @@ namespace powerloader
         return m_handle;
     }
 
-    CURLHandle::operator CURL*()
-    {
-        return handle();
-    }
-
     CURL* CURLHandle::ptr() const
     {
         return m_handle;
