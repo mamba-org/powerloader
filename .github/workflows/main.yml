@@ -1,4 +1,4 @@
-name: CI
+name: CI shared
 on:
   push:
     branches:
@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        build_type: [static_build, shared_build]
 
     name: test
     steps:
@@ -28,18 +27,6 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: environment.yml
-
-      - name: static build option
-        if: matrix.build_type == 'static_build'
-        run: |
-          CMAKE_EXTRA_ARGS="$CMAKE_EXTRA_ARGS -DBUILD_STATIC=ON"
-          echo "CMAKE_EXTRA_ARGS=$CMAKE_EXTRA_ARGS" >> $GITHUB_ENV
-
-      - name: shared build option
-        if: matrix.build_type == 'shared_build'
-        run: |
-          CMAKE_EXTRA_ARGS="$CMAKE_EXTRA_ARGS -DBUILD_SHARED=ON"
-          echo "CMAKE_EXTRA_ARGS=$CMAKE_EXTRA_ARGS" >> $GITHUB_ENV
 
       - name: build powerloader
         if: runner.os != 'Windows'
@@ -51,9 +38,9 @@ jobs:
             -GNinja \
             -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
             -DWITH_ZCHUNK=$USE_ZCHUNK \
+            -DBUILD_SHARED=ON \
             -DENABLE_TESTS=ON \
-            -DBUILD_EXE=ON \
-            ${{ env.CMAKE_EXTRA_ARGS }}
+            -DBUILD_EXE=ON
           ninja
 
       - name: run powerloader tests
@@ -75,8 +62,8 @@ jobs:
           cmake .. -DCMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library ^
                    -DENABLE_TESTS=ON ^
                    -DWITH_ZCHUNK=OFF ^
+                   -DBUILD_SHARED=ON ^
                    -DBUILD_EXE=ON ^
-                   ${{ env.CMAKE_EXTRA_ARGS }} ^
                    -G "Ninja"
           ninja
           ninja test

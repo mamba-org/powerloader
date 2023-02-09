@@ -21,6 +21,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR};${CMAKE_MODULE_PATH}")
 
 @POWERLOADER_CONFIG_CODE@
 
+# TODO: when all the dependencies are packaged correclty,
+# find dep or dep-static depending on the available target
+# in @PROJECT_NAME@Targets.cmake
+
 include(CMakeFindDependencyMacro)
 find_dependency(CURL)
 find_dependency(OpenSSL)
@@ -30,11 +34,16 @@ find_dependency(tl-expected)
 find_dependency(spdlog)
 
 
-if(NOT TARGET libpowerloader)
+if(NOT TARGET libpowerloader AND NOT TARGET libpowerloader-static)
     include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+
+    if (TARGET libpowerloader-static)
+        get_target_property(@PROJECT_NAME@_INCLUDE_DIR libpowerloader-static INTERFACE_INCLUDE_DIRECTORIES)
+        get_target_property(@PROJECT_NAME@_STATIC_LIBRARY libpowerloader-static LOCATION)
 
     if (TARGET libpowerloader)
         get_target_property(@PROJECT_NAME@_INCLUDE_DIR libpowerloader INTERFACE_INCLUDE_DIRECTORIES)
         get_target_property(@PROJECT_NAME@_LIBRARY libpowerloader LOCATION)
     endif ()
+
 endif()

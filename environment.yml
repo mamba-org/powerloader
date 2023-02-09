@@ -2,21 +2,24 @@ name: powerloader
 channels:
 - conda-forge
 dependencies:
+  # libpowerloader
   - cmake
   - ninja
   - cxx-compiler
   - libcurl
   - openssl
   - nlohmann_json
-  - cli11
   - zchunk
   - spdlog
-  - doctest
+  - cpp-expected
+  # powerloader
+  - cli11
   - yaml-cpp
+  # Tests
+  - doctest
   - pytest
   - pyyaml
   - python
   - pybind11
   - requests
-  - cpp-expected
   - pytest-xprocess

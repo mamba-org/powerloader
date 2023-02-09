@@ -1,4 +1,4 @@
-name: Fully static build
+name: CI static
 
 on:
   push:
@@ -13,7 +13,7 @@ defaults:
     shell: bash -l {0}
 
 jobs:
-  powerloader_full_static:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -34,15 +34,15 @@ jobs:
             -GNinja \
             -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
             -DWITH_ZCHUNK=$USE_ZCHUNK \
-            -DBUILD_STATIC_DEPS=ON \
-            -DBUILD_EXE=OFF
+            -DBUILD_STATIC=ON \
+            -DBUILD_EXE=ON
           ninja
       - name: run powerloader tests
         run: |
           cd build
           ninja test
 
-  powerloader_full_static_win:
+  test_win:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
@@ -89,8 +89,8 @@ jobs:
             -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
             -D CMAKE_PREFIX_PATH="%VCPKG_ROOT%\installed\x64-windows-static;%CMAKE_PREFIX_PATH%" ^
             -D WITH_ZCHUNK=ON ^
-            -D BUILD_STATIC_DEPS=ON  ^
-            -D BUILD_EXE=OFF ^
+            -D BUILD_STATIC=ON  ^
+            -D BUILD_EXE=ON ^
             -G "Ninja"
           ninja
       - name: run powerloader test

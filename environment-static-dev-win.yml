@@ -2,6 +2,7 @@ name: powerloader-dev
 channels:
   - conda-forge
 dependencies:
+  # libpowerloader-static
   - vs2019_win-64
   - ninja
   - vcpkg
@@ -10,5 +11,8 @@ dependencies:
   - spdlog
   - nlohmann_json
   - zchunk-static
+  # powerloader
+  - cli11
+  - yaml-cpp
   # Tests
   - doctest
