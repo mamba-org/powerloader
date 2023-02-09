@@ -2,6 +2,7 @@ name: powerloader-dev
 channels:
   - conda-forge
 dependencies:
+  # libpowerloader-static
   - cmake
   - ninja
   - cxx-compiler
@@ -16,5 +17,8 @@ dependencies:
   - cpp-expected
   - spdlog
   - nlohmann_json
+  # powerloader
+  - cli11
+  - yaml-cpp
   # Tests
   - doctest

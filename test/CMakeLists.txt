@@ -12,7 +12,7 @@ set(TEST_SRCS
 )
 
 add_executable(test_powerloader ${TEST_SRCS})
-if (WIN32 AND BUILD_STATIC_DEPS)
+if (WIN32 AND BUILD_STATIC)
     set_target_properties(test_powerloader PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 

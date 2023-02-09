@@ -53,15 +53,12 @@ option(WITH_ZCHUNK "Enable zchunk" ON)
 option(DEV "Enable dev" OFF)
 option(BUILD_SHARED "Build shared powerloader library" OFF)
 option(BUILD_STATIC "Build static powerloader library" OFF)
-option(BUILD_STATIC_DEPS "Build static powerloader library with static linkage to its dependencies" OFF)
 option(BUILD_EXE "Build powerloader executable" OFF)
 option(WITH_ZSTD "Build powerloader with zstd" ON)
 
 # Test options
 option(ENABLE_TESTS "Enable tests" ON)
 option(ENABLE_PYTHON "Enable python bindings" OFF)
-
-
 
 if (WITH_ZCHUNK)
     find_library(ZCK_LIBRARY zck REQUIRED)
@@ -323,18 +320,13 @@ if (BUILD_STATIC)
     # On Windows, a static library should use a different output name
     # to avoid the conflict with the import library of a shared one.
     if (WIN32)
-        libpowerloader_create_target(libpowerloader-static STATIC SHARED libpowerloader_static)
+        libpowerloader_create_target(libpowerloader-static STATIC STATIC libpowerloader_static)
     else ()
-        libpowerloader_create_target(libpowerloader-static STATIC SHARED libpowerloader)
+        libpowerloader_create_target(libpowerloader-static STATIC STATIC libpowerloader)
     endif ()
 endif ()
 
-if (BUILD_STATIC_DEPS)
-    message(STATUS "Adding full-static libpowerloader target")
-    libpowerloader_create_target(libpowerloader-full-static STATIC STATIC libpowerloader_full_static)
-endif ()
-
-if (NOT (BUILD_SHARED OR BUILD_STATIC OR BUILD_STATIC_DEPS))
+if (NOT (BUILD_SHARED OR BUILD_STATIC))
     message(FATAL_ERROR "Select at least a build variant for libpowerloader")
 endif ()
 
@@ -345,8 +337,6 @@ if (BUILD_SHARED)
     set(powerloader_dependency libpowerloader)
 elseif (BUILD_STATIC)
     set(powerloader_dependency libpowerloader-static)
-else ()
-    set(powerloader_dependency libpowerloader-full-static)
 endif ()
 
 # powerloader executable
@@ -354,7 +344,7 @@ endif ()
 
 if (BUILD_EXE)
     add_executable(powerloader ${POWERLOADER_SOURCE_DIR}/cli/main.cpp)
-    if (WIN32 AND BUILD_STATIC_DEPS)
+    if (WIN32 AND BUILD_STATIC)
         set_target_properties(powerloader PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
