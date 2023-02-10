@@ -22,21 +22,6 @@ namespace powerloader
     class Target
     {
     public:
-        /** Header callback for CURL handles.
-         * It parses HTTP and FTP headers and try to find length of the content
-         * (file size of the target). If the size is different then the expected
-         * size, then the transfer is interrupted.
-         * This callback is used only if the expected size is specified.
-         */
-        static std::size_t header_callback(char* buffer,
-                                           std::size_t size,
-                                           std::size_t nitems,
-                                           Target* self);
-        static std::size_t write_callback(char* buffer,
-                                          std::size_t size,
-                                          std::size_t nitems,
-                                          Target* self);
-
         Target(const Context& ctx,
                std::shared_ptr<DownloadTarget> dl_target,
                mirror_set mirrors = {});
@@ -259,6 +244,21 @@ namespace powerloader
                                        std::size_t size,
                                        std::size_t nitems,
                                        Target* self);
+
+        /** Header callback for CURL handles.
+         * It parses HTTP and FTP headers and try to find length of the content
+         * (file size of the target). If the size is different then the expected
+         * size, then the transfer is interrupted.
+         * This callback is used only if the expected size is specified.
+         */
+        static std::size_t header_callback(char* buffer,
+                                           std::size_t size,
+                                           std::size_t nitems,
+                                           Target* self);
+        static std::size_t write_callback(char* buffer,
+                                          std::size_t size,
+                                          std::size_t nitems,
+                                          Target* self);
 
 #ifdef WITH_ZSTD
         std::unique_ptr<ZstdStream> m_zstd_stream;
