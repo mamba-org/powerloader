@@ -97,7 +97,6 @@ namespace powerloader
 
         // TODO: why do we need to expose these methods
         CURL* handle();
-        CURL* ptr() const;
 
         CURLHandle& add_header(const std::string& header);
         CURLHandle& add_headers(const std::vector<std::string>& headers);

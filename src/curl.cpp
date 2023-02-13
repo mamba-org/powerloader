@@ -225,10 +225,6 @@ namespace powerloader
         return m_handle;
     }
 
-    CURL* CURLHandle::ptr() const
-    {
-        return m_handle;
-    }
 
     CURLHandle& CURLHandle::add_header(const std::string& header)
     {
