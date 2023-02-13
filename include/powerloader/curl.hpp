@@ -95,8 +95,7 @@ namespace powerloader
         template <class T>
         tl::expected<T, CURLcode> getinfo(CURLINFO option);
 
-        // TODO: why do we need to expose these methods
-        CURL* handle();
+        bool handle_exists();
 
         CURLHandle& add_header(const std::string& header);
         CURLHandle& add_headers(const std::vector<std::string>& headers);
@@ -117,6 +116,7 @@ namespace powerloader
     private:
         void init_handle(const Context& ctx);
         void finalize_transfer(Response& response);
+        CURL* handle();
 
         CURL* m_handle;
         curl_slist* p_headers = nullptr;
@@ -124,6 +124,12 @@ namespace powerloader
 
         std::unique_ptr<Response> response;
         end_callback_type end_callback;
+
+        friend class CURLInterface;
+
+        friend void add_multipart_upload(CURLHandle& target,
+                     const std::vector<std::string>& files,
+                     const std::map<std::string, std::string>& extra_fields);
     };
 
     // TODO: restrict the possible implementations in the cpp file

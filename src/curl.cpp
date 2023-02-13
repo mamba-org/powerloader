@@ -225,6 +225,10 @@ namespace powerloader
         return m_handle;
     }
 
+    bool CURLHandle::handle_exists()
+    {
+        return (handle() != nullptr);
+    }
 
     CURLHandle& CURLHandle::add_header(const std::string& header)
     {
@@ -463,6 +467,20 @@ namespace powerloader
             curl_global_cleanup();
             is_curl_setup_alive = false;
         }
+    }
 
+    CURLMcode CURLInterface::multi_add_handle(CURLM* multi_handle, CURLHandle& h)
+    {
+        return curl_multi_add_handle(multi_handle, h.handle());
+    }
+
+    void CURLInterface::multi_remove_handle(CURLM* multihandle, CURLHandle& h)
+    {
+        curl_multi_remove_handle(multihandle, h.handle());
+    }
+
+    bool CURLInterface::handle_is_equal(CURLHandle* h, CURLMsg* msg)
+    {
+        return (h->handle() == msg->easy_handle);
     }
 }

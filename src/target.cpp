@@ -1,4 +1,5 @@
 #include "target.hpp"
+#include "curl_internal.hpp"
 
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
@@ -546,7 +547,7 @@ namespace powerloader
             m_mirror->prepare(m_target->path(), h);
             m_state = DownloadState::kPREPARATION;
 
-            CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h.handle());
+            CURLMcode cm_rc = CURLInterface::multi_add_handle(multi_handle, h);
             if (cm_rc != CURLM_OK)
             {
                 spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));
@@ -696,7 +697,7 @@ namespace powerloader
         }
 
         // Add the new handle to the curl multi handle
-        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h.handle());
+        CURLMcode cm_rc = CURLInterface::multi_add_handle(multi_handle, h);
         if (cm_rc != CURLM_OK)
         {
             spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));
