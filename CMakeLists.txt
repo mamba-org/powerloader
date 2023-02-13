@@ -171,6 +171,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
         target_compile_options(${target_name}
             PRIVATE
                 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic
+                -fvisibility=hidden
         )
     endif()
 
