@@ -40,10 +40,10 @@ if(NOT TARGET libpowerloader AND NOT TARGET libpowerloader-static)
     if (TARGET libpowerloader-static)
         get_target_property(@PROJECT_NAME@_INCLUDE_DIR libpowerloader-static INTERFACE_INCLUDE_DIRECTORIES)
         get_target_property(@PROJECT_NAME@_STATIC_LIBRARY libpowerloader-static LOCATION)
+    endif ()
 
     if (TARGET libpowerloader)
         get_target_property(@PROJECT_NAME@_INCLUDE_DIR libpowerloader INTERFACE_INCLUDE_DIRECTORIES)
         get_target_property(@PROJECT_NAME@_LIBRARY libpowerloader LOCATION)
     endif ()
-
 endif()
