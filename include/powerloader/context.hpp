@@ -26,13 +26,15 @@ namespace powerloader
 
     namespace details
     {
+        POWERLOADER_API
         bool already_exists(const MirrorID& id, const mirror_set& mirrors);
+        POWERLOADER_API
         bool is_every_mirror_unique_per_host(const mirror_map_base& mirrors);
     }
 
     // Registry of (host name -> list of mirrors) which guarantee that every list
     // of mirror have a unique set of mirrors (no duplicates).
-    class mirror_map_type : private mirror_map_base
+    class POWERLOADER_API mirror_map_type : private mirror_map_base
     {
     public:
         using mirror_map_base::clear;
