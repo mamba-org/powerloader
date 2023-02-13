@@ -26,7 +26,7 @@ jobs:
         with:
           environment-file: environment-static-dev.yml
 
-      - name: build powerloader
+      - name: configure powerloader build
         run: |
           mkdir build; cd build
           export USE_ZCHUNK=ON
@@ -36,7 +36,12 @@ jobs:
             -DWITH_ZCHUNK=$USE_ZCHUNK \
             -DBUILD_STATIC=ON \
             -DBUILD_EXE=ON
+
+      - name: build powerloader
+        run: |
+          cd build
           ninja
+
       - name: run powerloader tests
         run: |
           cd build
@@ -79,7 +84,7 @@ jobs:
           set CMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%
           if %errorlevel% neq 0 exit /b %errorlevel%
 
-      - name: build powerloader
+      - name: configure powerloader build
         shell: cmd /C CALL {0}
         run: |
           call micromamba activate build_env
@@ -92,7 +97,14 @@ jobs:
             -D BUILD_STATIC=ON  ^
             -D BUILD_EXE=ON ^
             -G "Ninja"
+
+      - name: build powerloader
+        shell: cmd /C CALL {0}
+        run: |
+          call micromamba activate build_env
+          cd build
           ninja
+
       - name: run powerloader test
         shell: cmd /C CALL {0}
         run: |

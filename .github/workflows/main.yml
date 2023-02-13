@@ -28,7 +28,7 @@ jobs:
         with:
           environment-file: environment.yml
 
-      - name: build powerloader
+      - name: configure powerloader build
         if: runner.os != 'Windows'
         shell: bash -l {0}
         run: |
@@ -41,16 +41,8 @@ jobs:
             -DBUILD_SHARED=ON \
             -DENABLE_TESTS=ON \
             -DBUILD_EXE=ON
-          ninja
 
-      - name: run powerloader tests
-        if: runner.os != 'Windows'
-        shell: bash -l {0}
-        run: |
-          cd build
-          ninja test
-
-      - name: build powerloader
+      - name: configure powerloader build
         if: runner.os == 'Windows'
         shell: cmd /C CALL {0}
         run: |
@@ -65,7 +57,35 @@ jobs:
                    -DBUILD_SHARED=ON ^
                    -DBUILD_EXE=ON ^
                    -G "Ninja"
+
+      - name: build powerloader
+        if: runner.os != 'Windows'
+        shell: bash -l {0}
+        run: |
+          cd build
           ninja
+
+      - name: build powerloader
+        if: runner.os == 'Windows'
+        shell: cmd /C CALL {0}
+        run: |
+          call activate powerloader
+          cd build
+          ninja
+
+      - name: run powerloader tests
+        if: runner.os != 'Windows'
+        shell: bash -l {0}
+        run: |
+          cd build
+          ninja test
+
+      - name: run powerloader tests
+        if: runner.os == 'Windows'
+        shell: cmd /C CALL {0}
+        run: |
+          call activate powerloader
+          cd build
           ninja test
 
       - name: Download test packages
