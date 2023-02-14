@@ -92,9 +92,6 @@ namespace powerloader
         Response perform();
         void finalize_transfer();
 
-        template <class T>
-        tl::expected<T, CURLcode> getinfo(CURLINFO option);
-
         bool handle_exists();
 
         CURLHandle& add_header(const std::string& header);
@@ -116,7 +113,11 @@ namespace powerloader
     private:
         void init_handle(const Context& ctx);
         void finalize_transfer(Response& response);
+
         CURL* handle();
+
+        template <class T>
+        tl::expected<T, CURLcode> getinfo(CURLINFO option);
 
         CURL* m_handle;
         curl_slist* p_headers = nullptr;

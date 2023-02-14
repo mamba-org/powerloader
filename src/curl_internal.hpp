@@ -39,6 +39,9 @@ namespace powerloader
                                  CURLHandle& h);
 
         static bool handle_is_equal(CURLHandle* h, CURLMsg* msg);
+
+        template <class T>
+        static tl::expected<T, CURLcode> get_info_wrapped(CURLHandle& h, CURLINFO option);
     };
 }
 #endif

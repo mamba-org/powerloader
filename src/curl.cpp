@@ -382,11 +382,11 @@ namespace powerloader
     void Response::fill_values(CURLHandle& handle)
     {
         average_speed
-            = handle.getinfo<decltype(average_speed)>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
-        http_status = handle.getinfo<decltype(http_status)>(CURLINFO_RESPONSE_CODE).value();
-        effective_url = handle.getinfo<decltype(effective_url)>(CURLINFO_EFFECTIVE_URL).value();
+            = CURLInterface::get_info_wrapped<decltype(average_speed)>(handle, CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
+        http_status = CURLInterface::get_info_wrapped<decltype(http_status)>(handle, CURLINFO_RESPONSE_CODE).value();
+        effective_url = CURLInterface::get_info_wrapped<decltype(effective_url)>(handle, CURLINFO_EFFECTIVE_URL).value();
         downloaded_size
-            = handle.getinfo<decltype(downloaded_size)>(CURLINFO_SIZE_DOWNLOAD_T).value();
+            = CURLInterface::get_info_wrapped<decltype(downloaded_size)>(handle, CURLINFO_SIZE_DOWNLOAD_T).value();
     }
 
     std::optional<std::string> proxy_match(const proxy_map_type& proxies, const std::string& url)
@@ -482,5 +482,11 @@ namespace powerloader
     bool CURLInterface::handle_is_equal(CURLHandle* h, CURLMsg* msg)
     {
         return (h->handle() == msg->easy_handle);
+    }
+
+    template <class T>
+    tl::expected<T, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h, CURLINFO option)
+    {
+        return h.getinfo<T>(option);
     }
 }
