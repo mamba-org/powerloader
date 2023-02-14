@@ -129,8 +129,8 @@ namespace powerloader
         friend class CURLInterface;
 
         friend void add_multipart_upload(CURLHandle& target,
-                     const std::vector<std::string>& files,
-                     const std::map<std::string, std::string>& extra_fields);
+                                         const std::vector<std::string>& files,
+                                         const std::map<std::string, std::string>& extra_fields);
     };
 
     // TODO: restrict the possible implementations in the cpp file

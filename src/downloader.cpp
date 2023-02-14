@@ -515,7 +515,8 @@ namespace powerloader
 
             for (auto* target : m_running_transfers)
             {
-                if (target->curl_handle() && CURLInterface::handle_is_equal(target->curl_handle(), msg))
+                if (target->curl_handle()
+                    && CURLInterface::handle_is_equal(target->curl_handle(), msg))
                 {
                     current_target = target;
                     break;

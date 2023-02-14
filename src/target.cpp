@@ -64,7 +64,8 @@ namespace powerloader
 
             if (!ec && m_ctx.preserve_filetime)
             {
-                auto remote_filetime = CURLInterface::get_info_wrapped<curl_off_t>(*m_curl_handle, CURLINFO_FILETIME_T);
+                auto remote_filetime = CURLInterface::get_info_wrapped<curl_off_t>(
+                    *m_curl_handle, CURLINFO_FILETIME_T);
                 if (!remote_filetime || remote_filetime.value() < 0)
                     spdlog::debug("Unable to get remote time of retrieved document");
 
@@ -170,7 +171,8 @@ namespace powerloader
     std::size_t zckheadercb(char* buffer, std::size_t size, std::size_t nitems, Target* self)
     {
         assert(self && self->m_target);
-        if (CURLInterface::get_info_wrapped<long>(*(self->m_curl_handle), CURLINFO_RESPONSE_CODE) == 200)
+        if (CURLInterface::get_info_wrapped<long>(*(self->m_curl_handle), CURLINFO_RESPONSE_CODE)
+            == 200)
         {
             spdlog::info("Too many ranges were attempted in one download");
             self->m_range_fail = 1;

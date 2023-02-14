@@ -32,11 +32,9 @@ namespace powerloader
         CURLInterface() = delete;
         ~CURLInterface() = delete;
 
-        static CURLMcode multi_add_handle(CURLM* multi_handle,
-                                   CURLHandle& h);
+        static CURLMcode multi_add_handle(CURLM* multi_handle, CURLHandle& h);
 
-        static void multi_remove_handle(CURLM* multihandle,
-                                 CURLHandle& h);
+        static void multi_remove_handle(CURLM* multihandle, CURLHandle& h);
 
         static bool handle_is_equal(CURLHandle* h, CURLMsg* msg);
 

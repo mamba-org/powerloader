@@ -161,7 +161,8 @@ namespace powerloader
                 CURLInterface::multi_remove_handle(multihandle, el.handle);
 
                 // Calculate plain_connect_time
-                auto effective_url = CURLInterface::get_info_wrapped<std::string>(el.handle, CURLINFO_EFFECTIVE_URL);
+                auto effective_url = CURLInterface::get_info_wrapped<std::string>(
+                    el.handle, CURLINFO_EFFECTIVE_URL);
 
                 if (!effective_url)
                 {
@@ -176,10 +177,12 @@ namespace powerloader
                 else
                 {
                     // Get connect time
-                    curl_off_t namelookup_time
-                        = CURLInterface::get_info_wrapped<curl_off_t>(el.handle, CURLINFO_NAMELOOKUP_TIME_T).value_or(0);
-                    curl_off_t connect_time
-                        = CURLInterface::get_info_wrapped<curl_off_t>(el.handle, CURLINFO_CONNECT_TIME_T).value_or(0);
+                    curl_off_t namelookup_time = CURLInterface::get_info_wrapped<curl_off_t>(
+                                                     el.handle, CURLINFO_NAMELOOKUP_TIME_T)
+                                                     .value_or(0);
+                    curl_off_t connect_time = CURLInterface::get_info_wrapped<curl_off_t>(
+                                                  el.handle, CURLINFO_CONNECT_TIME_T)
+                                                  .value_or(0);
 
                     if (connect_time == 0)
                     {
