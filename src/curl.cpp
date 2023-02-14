@@ -495,4 +495,17 @@ namespace powerloader
     {
         return h.getinfo<T>(option);
     }
+
+    template tl::expected<long, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                          CURLINFO option);
+    template tl::expected<char*, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                           CURLINFO option);
+    template tl::expected<double, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                            CURLINFO option);
+    template tl::expected<curl_slist*, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                                 CURLINFO option);
+    template tl::expected<long long, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                               CURLINFO option);
+    template tl::expected<std::string, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                                 CURLINFO option);
 }
