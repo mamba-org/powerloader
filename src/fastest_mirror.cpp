@@ -32,7 +32,7 @@ namespace powerloader
         for (const std::string& u : urls)
         {
             CURLHandle handle(ctx, u);
-            handle.setopt(CURLOPT_CONNECT_ONLY, 1L);
+            CURLInterface::set_opt_wrapped(handle, CURLOPT_CONNECT_ONLY, 1L);
             check_mirrors.push_back(detail::InternalMirror{ u, std::move(handle), -1 });
         }
         return fastestmirror_perform(check_mirrors, 1000000);

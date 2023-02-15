@@ -98,9 +98,6 @@ namespace powerloader
         CURLHandle& add_headers(const std::vector<std::string>& headers);
         CURLHandle& reset_headers();
 
-        template <class T>
-        CURLHandle& setopt(CURLoption opt, const T& val);
-
         void set_default_callbacks();
         CURLHandle& set_end_callback(end_callback_type func);
 
@@ -118,6 +115,9 @@ namespace powerloader
 
         template <class T>
         tl::expected<T, CURLcode> getinfo(CURLINFO option);
+
+        template <class T>
+        CURLHandle& setopt(CURLoption opt, const T& val);
 
         CURL* m_handle;
         curl_slist* p_headers = nullptr;

@@ -1,10 +1,10 @@
-#include <powerloader/mirrors/oci.hpp>
-
 #include <filesystem>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
+#include <powerloader/mirrors/oci.hpp>
+#include "curl_internal.hpp"
 
 namespace powerloader
 {
@@ -91,8 +91,8 @@ namespace powerloader
                               const std::string& reference) const
     {
         std::string preupload_url = mirror.get_preupload_url(reference);
-        auto response = CURLHandle(ctx, preupload_url)
-                            .setopt(CURLOPT_CUSTOMREQUEST, "POST")
+        CURLHandle handle(ctx, preupload_url);
+        auto response = CURLInterface::set_opt_wrapped(handle, CURLOPT_CUSTOMREQUEST, "POST")
                             .add_headers(mirror.get_auth_headers(reference))
                             .perform();
 
@@ -109,7 +109,7 @@ namespace powerloader
         CURLHandle chandle(ctx, upload_url);
         // for uploading we always use application/octet-stream. The proper mimetypes
         // are defined in the manifest
-        chandle.setopt(CURLOPT_UPLOAD, 1L)
+        CURLInterface::set_opt_wrapped(chandle, CURLOPT_UPLOAD, 1L)
             .add_headers(mirror.get_auth_headers(reference))
             .add_header(fmt::format("Content-Type: application/octet-stream", mime_type));
 

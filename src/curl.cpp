@@ -325,12 +325,12 @@ namespace powerloader
 
             if (fsize != -1)
             {
-                curl.setopt(CURLOPT_INFILESIZE_LARGE, fsize);
+                CURLInterface::set_opt_wrapped(curl, CURLOPT_INFILESIZE_LARGE, fsize);
             }
 
-            curl.setopt(CURLOPT_UPLOAD, 1L);
-            curl.setopt(CURLOPT_READFUNCTION, read_callback<S>);
-            curl.setopt(CURLOPT_READDATA, &stream);
+            CURLInterface::set_opt_wrapped(curl, CURLOPT_UPLOAD, 1L);
+            CURLInterface::set_opt_wrapped(curl, CURLOPT_READFUNCTION, read_callback<S>);
+            CURLInterface::set_opt_wrapped(curl, CURLOPT_READDATA, &stream);
             return curl;
         }
     }

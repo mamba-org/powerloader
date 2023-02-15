@@ -7,7 +7,7 @@
 #include <powerloader/mirrors/oci.hpp>
 #include "powerloader/mirrorid.hpp"
 #include "target.hpp"
-
+#include "curl_internal.hpp"
 
 namespace powerloader
 {
@@ -232,8 +232,8 @@ namespace powerloader
         {
             spdlog::warn(
                 "Setting HTTP authentication for {} to {}:{}", path, m_auth_user, m_auth_password);
-            handle.setopt(CURLOPT_USERNAME, m_auth_user.c_str());
-            handle.setopt(CURLOPT_PASSWORD, m_auth_password.c_str());
+            CURLInterface::set_opt_wrapped(handle, CURLOPT_USERNAME, m_auth_user.c_str());
+            CURLInterface::set_opt_wrapped(handle, CURLOPT_PASSWORD, m_auth_password.c_str());
         }
         return true;
     }

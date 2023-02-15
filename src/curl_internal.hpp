@@ -40,6 +40,15 @@ namespace powerloader
 
         template <class T>
         static tl::expected<T, CURLcode> get_info_wrapped(CURLHandle& h, CURLINFO option);
+
+        template <class T>
+        static CURLHandle& set_opt_wrapped(CURLHandle& h, CURLoption opt, const T& val);
     };
+
+    template <class T>
+    CURLHandle& CURLInterface::set_opt_wrapped(CURLHandle& h, CURLoption opt, const T& val)
+    {
+        return h.setopt<T>(opt, val);
+    }
 }
 #endif

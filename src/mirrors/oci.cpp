@@ -2,6 +2,7 @@
 
 #include <powerloader/mirrors/oci.hpp>
 #include "target.hpp"
+#include "curl_internal.hpp"
 
 namespace powerloader
 {
@@ -151,11 +152,11 @@ namespace powerloader
 
             if (!m_username.empty())
             {
-                handle.setopt(CURLOPT_USERNAME, m_username.c_str());
+                CURLInterface::set_opt_wrapped(handle, CURLOPT_USERNAME, m_username.c_str());
             }
             if (!m_password.empty())
             {
-                handle.setopt(CURLOPT_PASSWORD, m_password.c_str());
+                CURLInterface::set_opt_wrapped(handle, CURLOPT_PASSWORD, m_password.c_str());
             }
 
             auto end_callback = [&cbdata](const Response& response)
