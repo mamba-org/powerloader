@@ -211,7 +211,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
             foreach(LIB ${REQUIRED_STATIC_DEPS})
                 message("Searching for ${LIB}")
                 set(TMP_LIB "${LIB}-NOTFOUND")
-                find_library(TMP_LIB NAMES "${LIB}")
+                find_library(TMP_LIB REQUIRED NAMES "${LIB}")
                 list(APPEND STATIC_DEPS "${TMP_LIB}")
             endforeach(LIB)
 
