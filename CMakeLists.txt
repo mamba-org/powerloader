@@ -180,8 +180,7 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
 
     find_package(tl-expected REQUIRED)
     find_package(spdlog REQUIRED)
-
-    set(SPDLOG_TARGET spdlog::spdlog_header_only)
+    find_package(fmt REQUIRED)
 
     if (${deps_linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libpowerloader (static) dependencies")
@@ -242,7 +241,8 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
             target_link_libraries(${target_name}
                 PUBLIC
                     tl::expected
-                    ${SPDLOG_TARGET}
+                    spdlog::spdlog_header_only
+                    fmt::fmt-header-only
                     ${STATIC_DEPS}
                     ${POWERLOADER_FORCE_DYNAMIC_LIBS}
             )
@@ -265,7 +265,8 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
                 ${CRYPTO_LIBRARIES}
                 ${ZCHUNK_LIBRARY}
                 zstd::libzstd_static
-                ${SPDLOG_TARGET}
+                fmt::fmt-header-only
+                spdlog::spdlog_header_only
             )
 
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
@@ -284,7 +285,8 @@ macro(libpowerloader_create_target target_name linkage deps_linkage output_name)
         target_link_libraries(${target_name}
             PUBLIC
                 tl::expected
-                ${SPDLOG_TARGET}
+                fmt::fmt
+                spdlog::spdlog_header_only
             PRIVATE
                 ${CURL_LIBRARIES}
                 ${ZCK_LIBRARY}
@@ -345,7 +347,7 @@ endif ()
 
 if (BUILD_EXE)
     add_executable(powerloader ${POWERLOADER_SOURCE_DIR}/cli/main.cpp)
-    if (WIN32 AND BUILD_STATIC)
+    if (WIN32 AND NOT BUILD_SHARED)
         set_target_properties(powerloader PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
