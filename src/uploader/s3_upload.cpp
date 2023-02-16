@@ -3,6 +3,8 @@
 
 #include <powerloader/mirrors/s3.hpp>
 
+#include "curl_internal.hpp"
+
 namespace powerloader
 {
     Response s3_upload(const Context& ctx,

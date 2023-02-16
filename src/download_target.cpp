@@ -1,6 +1,9 @@
 #include "powerloader/context.hpp"
 #include <powerloader/download_target.hpp>
 
+#include "curl_internal.hpp"
+
+
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
 #endif

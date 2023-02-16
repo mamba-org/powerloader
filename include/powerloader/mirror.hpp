@@ -16,6 +16,7 @@ namespace powerloader
 {
     class Target;
     class Context;
+    class CURLHandle;
 
     enum class MirrorState
     {

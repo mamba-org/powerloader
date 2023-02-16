@@ -3,12 +3,15 @@
 
 #include <optional>
 #include <fmt/core.h>
+#include <nlohmann/json.hpp>
 
 #include <powerloader/export.hpp>
 #include <powerloader/mirror.hpp>
 
 namespace powerloader
 {
+    class Response;
+
     class POWERLOADER_API OCIMirror : public Mirror
     {
     public:
@@ -57,7 +60,7 @@ namespace powerloader
         {
             OCIMirror* self;
             Target* target;
-            Response response;
+            Response* response;
             std::string sha256sum, token, buffer;
         };
 

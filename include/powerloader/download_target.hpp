@@ -13,7 +13,7 @@
 
 namespace powerloader
 {
-
+    class Response;
     struct zck_target;
 
     struct POWERLOADER_API CacheControl

@@ -15,6 +15,8 @@
 
 #include "compression.hpp"
 
+#include "curl_internal.hpp"
+
 namespace powerloader
 {
     namespace fs = std::filesystem;

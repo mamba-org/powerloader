@@ -8,6 +8,7 @@
 #include "powerloader/mirrorid.hpp"
 #include "target.hpp"
 
+#include "curl_internal.hpp"
 
 namespace powerloader
 {
