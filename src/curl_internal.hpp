@@ -1,17 +1,11 @@
 #ifndef POWERLOADER_SRC_CURL_INTERNAL_HPP
 #define POWERLOADER_SRC_CURL_INTERNAL_HPP
 
-#include <filesystem>
-#include <functional>
-#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <optional>
 
 #include <fmt/core.h>
-#include <nlohmann/json.hpp>
-#include <tl/expected.hpp>
 
 #include <powerloader/export.hpp>
 #include <powerloader/utils.hpp>
@@ -21,9 +15,9 @@
 namespace powerloader
 {
     class Context;
-    class CURLHandle;
     using proxy_map_type = std::map<std::string, std::string>;
 
+    // If needed, this can be moved to curl.hpp
     class POWERLOADER_API curl_error : public std::runtime_error
     {
     public:
@@ -32,27 +26,6 @@ namespace powerloader
 
     private:
         bool m_serious;
-    };
-
-    struct POWERLOADER_API Response
-    {
-        std::map<std::string, std::string> headers;
-
-        curl_off_t average_speed = -1;
-        curl_off_t downloaded_size = -1;
-        long http_status = 0;
-        std::string effective_url;
-
-        bool ok() const;
-
-        tl::expected<std::string, std::out_of_range> get_header(const std::string& header) const;
-
-        void fill_values(CURLHandle& handle);
-
-        // These are only working _if_ you are filling the content (e.g. by using the default
-        // `h.perform() method)
-        std::optional<std::string> content;
-        nlohmann::json json() const;
     };
 
     class POWERLOADER_API CURLHandle
@@ -73,7 +46,7 @@ namespace powerloader
         template <class T>
         tl::expected<T, CURLcode> getinfo(CURLINFO option);
 
-        // TODO: why do we need to expose this method
+        // This is made public because it is used internally in quite some files
         CURL* handle();
 
         CURLHandle& add_header(const std::string& header);

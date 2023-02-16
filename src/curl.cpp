@@ -3,7 +3,6 @@
 #include <sstream>
 #include <spdlog/spdlog.h>
 
-#include <powerloader/curl.hpp>
 #include <powerloader/utils.hpp>
 #include <powerloader/context.hpp>
 #include <powerloader/url.hpp>

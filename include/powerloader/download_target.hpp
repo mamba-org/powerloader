@@ -6,14 +6,12 @@
 #include <powerloader/export.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/url.hpp>
-#include <powerloader/curl.hpp>
 #include <powerloader/mirror.hpp>
 #include <powerloader/fileio.hpp>
 #include <powerloader/errors.hpp>
 
 namespace powerloader
 {
-    class Response;
     struct zck_target;
 
     struct POWERLOADER_API CacheControl

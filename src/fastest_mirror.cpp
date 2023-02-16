@@ -3,7 +3,6 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
-#include <powerloader/curl.hpp>
 #include <powerloader/utils.hpp>
 
 #include "curl_internal.hpp"
