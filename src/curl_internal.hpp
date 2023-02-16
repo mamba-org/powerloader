@@ -73,9 +73,8 @@ namespace powerloader
         template <class T>
         tl::expected<T, CURLcode> getinfo(CURLINFO option);
 
-        // TODO: why do we need to expose these methods
+        // TODO: why do we need to expose this method
         CURL* handle();
-        CURL* ptr() const;
 
         CURLHandle& add_header(const std::string& header);
         CURLHandle& add_headers(const std::vector<std::string>& headers);

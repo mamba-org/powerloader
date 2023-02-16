@@ -169,9 +169,7 @@ namespace powerloader
     std::size_t zckheadercb(char* buffer, std::size_t size, std::size_t nitems, Target* self)
     {
         assert(self && self->m_target);
-        long code = -1;
-        curl_easy_getinfo(self->m_curl_handle->ptr(), CURLINFO_RESPONSE_CODE, &code);
-        if (code == 200)
+        if (self->m_curl_handle->getinfo<long>(CURLINFO_RESPONSE_CODE) == 200)
         {
             spdlog::info("Too many ranges were attempted in one download");
             self->m_range_fail = 1;
