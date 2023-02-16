@@ -78,6 +78,11 @@ namespace powerloader
             if (verifystatus != CURLE_OK && verifystatus != CURLE_NOT_BUILT_IN)
                 throw curl_error("Could not initialize CURL handle");
 
+            if (ctx.ssl_no_default_ca_info)
+            {
+                setopt<char*>(CURLOPT_CAINFO, nullptr);
+            }
+
             if (!ctx.ssl_ca_info.empty())
             {
                 setopt(CURLOPT_CAINFO, ctx.ssl_ca_info.c_str());
