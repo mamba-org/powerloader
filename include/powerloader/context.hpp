@@ -109,6 +109,9 @@ namespace powerloader
         bool ssl_no_revoke = false;
         fs::path ssl_ca_info;
         int ssl_backend = -1;
+        // Sets the ca info of curl to nullptr
+        // instead of the default value.
+        bool ssl_no_default_ca_info = false;
 
         bool validate_checksum = true;
 
