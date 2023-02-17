@@ -60,7 +60,8 @@ namespace powerloader
         if (v > 2)
         {
             spdlog::set_level(spdlog::level::warn);
-        } else if (v > 0)
+        }
+        else if (v > 0)
         {
 #ifdef WITH_ZCHUNK
             zck_set_log_level(ZCK_LOG_DEBUG);
@@ -78,7 +79,7 @@ namespace powerloader
     {
         spdlog::set_level(log_level);
 #ifdef WITH_ZCHUNK
-        if(log_level <= spdlog::level::debug)
+        if (log_level <= spdlog::level::debug)
         {
             zck_set_log_level(ZCK_LOG_DEBUG);
         }
