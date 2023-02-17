@@ -8,6 +8,8 @@
 #include <map>
 #include <filesystem>
 
+#include <spdlog/spdlog.h>
+
 #include <powerloader/export.hpp>
 #include <powerloader/mirrorid.hpp>
 #include <powerloader/curl.hpp>
@@ -141,6 +143,7 @@ namespace powerloader
         std::vector<std::string> additional_httpheaders;
 
         void set_verbosity(int v);
+        void set_log_level(spdlog::level::level_enum);
 
         // Throws if another instance already exists: there can only be one at any time!
         Context(ContextOptions options = {});
