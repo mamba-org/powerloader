@@ -41,6 +41,7 @@ namespace powerloader
     Downloader::~Downloader()
     {
         curl_multi_cleanup(multi_handle);
+        multi_handle = nullptr;
     }
 
     void Downloader::add(const std::shared_ptr<DownloadTarget>& dl_target)

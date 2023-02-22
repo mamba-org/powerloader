@@ -55,6 +55,12 @@ namespace powerloader
         // After calling this fonction, no other operations are valid except destroying this object.
         bool download(DownloadOptions options = {});
 
+        Downloader(const Downloader&) = delete;
+        Downloader& operator=(const Downloader&) = delete;
+
+        Downloader(Downloader&&) = delete;
+        Downloader& operator=(Downloader&&) = delete;
+
     private:
         /** Check the finished transfer
          * Evaluate CURL return code and status code of protocol if needed.
