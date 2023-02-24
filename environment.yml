@@ -6,7 +6,7 @@ dependencies:
   - cmake
   - ninja
   - cxx-compiler
-  - libcurl <=7.87
+  - libcurl >=7.88.1
   - openssl
   - nlohmann_json
   - zchunk

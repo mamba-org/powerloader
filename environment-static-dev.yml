@@ -6,7 +6,7 @@ dependencies:
   - cmake
   - ninja
   - cxx-compiler
-  - libcurl-static
+  - libcurl-static >=7.88.1
   - openssl
   - libopenssl-static
   - libnghttp2-static
