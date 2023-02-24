@@ -442,8 +442,16 @@ namespace powerloader
 
         target->prepare_for_transfer(multi_handle, full_url, protocol);
 
+        if(target->failed())
+        {
+            spdlog::error("target preparation failed: {} ", (void*)target);
+            return false;
+        }
+
         if (target->zck_state() == ZckState::kFINISHED)
+        {
             return prepare_next_transfer(candidate_found);
+        }
 
         // Add the transfer to the list of running transfers
         m_running_transfers.push_back(target);
@@ -518,11 +526,17 @@ namespace powerloader
                 if (target->curl_handle() && target->curl_handle()->handle() == msg->easy_handle)
                 {
                     current_target = target;
+                    spdlog::info("received DONE message for target: curl handle = {}, target = {}", (void*)msg->easy_handle, (void*)current_target);
                     break;
                 }
             }
 
-            assert(current_target);
+            //assert(current_target);
+            if(!current_target)
+            {
+                spdlog::error("received DONE message from unknown target: curl handle = {}, running transfers left = {}", (void*)msg->easy_handle, m_running_transfers.size());
+                continue;
+            }
 
             char* tmp_effective_url = nullptr;
 
@@ -531,7 +545,7 @@ namespace powerloader
             // Make the effective url persistent to survive the curl_easy_cleanup()
             std::string effective_url(tmp_effective_url);
 
-            spdlog::info("Download finished {}", current_target->target().path());
+            spdlog::info("Download finished {}, running transfers left = {}", current_target->target().path(), m_running_transfers.size());
 
             // Check status of finished transfer
             bool transfer_err = false;
@@ -562,6 +576,7 @@ namespace powerloader
 
             m_running_transfers.erase(
                 std::find(m_running_transfers.begin(), m_running_transfers.end(), current_target));
+            spdlog::info("Removed target from the running list: curl handle = {}, target = {}, running transfers left = {}", (void*)msg->easy_handle, (void*)current_target, m_running_transfers.size());
 
             // TODO: consider moving this call inside Target::finis_transfer()
             current_target->complete_mirror_usage(transfer_err == false, result);

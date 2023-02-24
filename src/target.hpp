@@ -169,6 +169,11 @@ namespace powerloader
             return m_state;
         }
 
+        bool failed() const noexcept
+        {
+            return m_state == DownloadState::kFAILED;
+        }
+
         ZckState zck_state() const noexcept
         {
             return m_zck_state;
