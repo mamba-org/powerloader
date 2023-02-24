@@ -25,6 +25,7 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: environment-static-dev.yml
+          condarc-file: .condarc
 
       - name: configure powerloader build
         run: |
@@ -58,6 +59,7 @@ jobs:
           environment-file: environment-static-dev-win.yml
           environment-name: build_env
           cache-env: true
+          condarc-file: .condarc
 
       - name: fix up vcpkg recipes
         shell: python
