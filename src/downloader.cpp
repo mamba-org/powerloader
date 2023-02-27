@@ -407,7 +407,10 @@ namespace powerloader
 
         // Error
         if (!next_target)
+        {
+            spdlog::error("next target selection failed (skipped): {}", next_target.error().reason);
             return false;
+        }
 
         auto [target, full_url] = next_target.value();
 
