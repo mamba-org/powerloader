@@ -530,7 +530,6 @@ namespace powerloader
                 }
             }
 
-            // assert(current_target);
             if (!current_target)
             {
                 spdlog::error(
