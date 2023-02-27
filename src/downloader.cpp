@@ -442,7 +442,7 @@ namespace powerloader
 
         target->prepare_for_transfer(multi_handle, full_url, protocol);
 
-        if(target->failed())
+        if (target->failed())
         {
             spdlog::error("target preparation failed (skipped) ");
             return false;
@@ -530,10 +530,12 @@ namespace powerloader
                 }
             }
 
-            //assert(current_target);
-            if(!current_target)
+            // assert(current_target);
+            if (!current_target)
             {
-                spdlog::error("Received DONE message from unknown target - running transfers left = {}", m_running_transfers.size());
+                spdlog::error(
+                    "Received DONE message from unknown target - running transfers left = {}",
+                    m_running_transfers.size());
                 continue;
             }
 
@@ -544,7 +546,8 @@ namespace powerloader
             // Make the effective url persistent to survive the curl_easy_cleanup()
             std::string effective_url(tmp_effective_url);
 
-            spdlog::info("Download finished - running transfers left = {}", m_running_transfers.size());
+            spdlog::info("Download finished - running transfers left = {}",
+                         m_running_transfers.size());
 
             // Check status of finished transfer
             bool transfer_err = false;
