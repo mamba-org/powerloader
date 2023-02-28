@@ -308,7 +308,8 @@ namespace powerloader
     }
 
     // Select next target
-    tl::expected<std::pair<Target*, std::string>, DownloaderError> Downloader::select_next_target()
+    tl::expected<std::pair<Target*, std::string>, DownloaderError> Downloader::select_next_target(
+        bool allow_failure)
     {
         for (auto* target : m_targets)
         {
@@ -334,9 +335,15 @@ namespace powerloader
             auto res = select_suitable_mirror(target);
             if (!res)
             {
-                // TODO: review this: why is the callback called without changing the state
-                // of the target? (see Target::set_failed() for example).
-                target->call_end_callback(TransferStatus::kERROR);
+                // TODO: this error can be misleading when we got 404 results
+                // on all the mirrors. The real failure reason is not that we do
+                // not have suitable mirrors, but rather than the ressource does not
+                // exist (which can be ok in some cases).
+                target->set_failed(res.error());
+                if (allow_failure)
+                {
+                    continue;
+                }
                 return tl::unexpected(res.error());
             }
 
@@ -398,12 +405,12 @@ namespace powerloader
         return std::make_pair(nullptr, std::string());
     }
 
-    bool Downloader::prepare_next_transfer(bool* candidate_found)
+    bool Downloader::prepare_next_transfer(bool* candidate_found, bool allow_failure)
     {
         Protocol protocol = Protocol::kOTHER;
 
         *candidate_found = false;
-        auto next_target = select_next_target();
+        auto next_target = select_next_target(allow_failure);
 
         // Error
         if (!next_target)
@@ -415,7 +422,9 @@ namespace powerloader
         auto [target, full_url] = next_target.value();
 
         if (!target)  // Nothing to do
+        {
             return true;
+        }
 
         if (target->mirror() && target->mirror()->need_wait_for_retry())
         {
@@ -453,7 +462,7 @@ namespace powerloader
 
         if (target->zck_state() == ZckState::kFINISHED)
         {
-            return prepare_next_transfer(candidate_found);
+            return prepare_next_transfer(candidate_found, allow_failure);
         }
 
         // Add the transfer to the list of running transfers
@@ -461,7 +470,7 @@ namespace powerloader
         return true;
     }
 
-    bool Downloader::prepare_next_transfers()
+    bool Downloader::prepare_next_transfers(bool allow_failure)
     {
         std::size_t length = m_running_transfers.size();
         std::size_t free_slots = max_parallel_connections - length;
@@ -469,8 +478,10 @@ namespace powerloader
         while (free_slots > 0)
         {
             bool candidate_found;
-            if (!prepare_next_transfer(&candidate_found))
+            if (!prepare_next_transfer(&candidate_found, allow_failure))
+            {
                 return false;
+            }
             if (!candidate_found)
                 break;
             free_slots--;
@@ -478,8 +489,9 @@ namespace powerloader
 
         // Set maximal speed for each target
         if (!set_max_speeds_to_transfers())
+        {
             return false;
-
+        }
         return true;
     }
 
@@ -506,7 +518,7 @@ namespace powerloader
         return is_max_mirrors_unlimited() || num_of_tried_mirrors < max_mirrors_to_try;
     }
 
-    bool Downloader::check_msgs(bool lfailfast)
+    bool Downloader::check_msgs(bool failfast, bool allow_failure)
     {
         int msgs_in_queue;
         while (CURLMsg* msg = curl_multi_info_read(multi_handle, &msgs_in_queue))
@@ -662,7 +674,7 @@ namespace powerloader
                     assert(!result);
                     const CbReturnCode rc = current_target->set_failed(result.error());
 
-                    if (lfailfast || rc == CbReturnCode::kERROR)
+                    if (failfast || rc == CbReturnCode::kERROR)
                     {
                         // Fail fast is enabled, fail on any error
                         fail_fast_err = true;
@@ -692,7 +704,7 @@ namespace powerloader
 
         // At this point, after handles of finished transfers were removed
         // from the multi_handle, we could add new waiting transfers.
-        return prepare_next_transfers();
+        return prepare_next_transfers(allow_failure);
     }
 
     bool Downloader::download(DownloadOptions options)
@@ -705,7 +717,7 @@ namespace powerloader
             target->check_if_already_finished();
         }
 
-        prepare_next_transfers();
+        prepare_next_transfers(options.allow_failure);
 
         while (true)
         {
@@ -715,7 +727,7 @@ namespace powerloader
             {
                 throw std::runtime_error(curl_multi_strerror(code));
             }
-            bool check = check_msgs(failfast);
+            bool check = check_msgs(options.failfast, options.allow_failure);
             if (!check)
             {
                 // curl_multi_cleanup(multi_handle);
