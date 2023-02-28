@@ -407,7 +407,10 @@ namespace powerloader
 
         // Error
         if (!next_target)
+        {
+            spdlog::error("next target selection failed (skipped): {}", next_target.error().reason);
             return false;
+        }
 
         auto [target, full_url] = next_target.value();
 
@@ -442,8 +445,16 @@ namespace powerloader
 
         target->prepare_for_transfer(multi_handle, full_url, protocol);
 
+        if (target->failed())
+        {
+            spdlog::error("target preparation failed (skipped) ");
+            return false;
+        }
+
         if (target->zck_state() == ZckState::kFINISHED)
+        {
             return prepare_next_transfer(candidate_found);
+        }
 
         // Add the transfer to the list of running transfers
         m_running_transfers.push_back(target);
@@ -522,7 +533,13 @@ namespace powerloader
                 }
             }
 
-            assert(current_target);
+            if (!current_target)
+            {
+                spdlog::error(
+                    "Received DONE message from unknown target - running transfers left = {}",
+                    m_running_transfers.size());
+                continue;
+            }
 
             char* tmp_effective_url = nullptr;
 
@@ -531,7 +548,8 @@ namespace powerloader
             // Make the effective url persistent to survive the curl_easy_cleanup()
             std::string effective_url(tmp_effective_url);
 
-            spdlog::info("Download finished {}", current_target->target().path());
+            spdlog::info("Download finished - running transfers left = {}",
+                         m_running_transfers.size());
 
             // Check status of finished transfer
             bool transfer_err = false;
