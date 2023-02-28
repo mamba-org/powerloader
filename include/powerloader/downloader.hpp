@@ -39,6 +39,8 @@ namespace powerloader
     {
         // Extracts zchunk files which have been downloaded if true.
         bool extract_zchunk_files = true;
+        bool failfast = false;
+        bool allow_failure = false;
     };
 
     class POWERLOADER_API Downloader
@@ -82,11 +84,12 @@ namespace powerloader
         tl::expected<std::shared_ptr<Mirror>, DownloaderError> select_suitable_mirror(
             Target* target);
 
-        tl::expected<std::pair<Target*, std::string>, DownloaderError> select_next_target();
+        tl::expected<std::pair<Target*, std::string>, DownloaderError> select_next_target(
+            bool allow_failure);
 
-        bool prepare_next_transfer(bool* candidate_found);
+        bool prepare_next_transfer(bool* candidate_found, bool allow_failure);
 
-        bool prepare_next_transfers();
+        bool prepare_next_transfers(bool allow_failure);
 
         /**
          * @brief Returns whether the download can be retried, using the same URL in
@@ -98,12 +101,11 @@ namespace powerloader
          * @return Return true when another chance to download is allowed.
          */
         bool can_retry_download(int num_of_tried_mirrors, const std::string& url);
-        bool check_msgs(bool failfast);
+        bool check_msgs(bool failfast, bool allow_failure);
         bool set_max_speeds_to_transfers();
 
         void extract_zchunk_files();
 
-        bool failfast = false;
         CURLM* multi_handle;
         const Context& ctx;
 

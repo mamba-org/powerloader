@@ -97,8 +97,14 @@ namespace powerloader
             {
                 m_response.fill_values(*m_curl_handle);
             }
-            rc = m_target->end_callback()(status, m_response);
-
+            try
+            {
+                rc = m_target->end_callback()(status, m_response);
+            }
+            catch (...)
+            {
+                rc = CbReturnCode::kERROR;
+            }
             if (rc == CbReturnCode::kERROR)
             {
                 spdlog::error("End-Callback returned an error");
