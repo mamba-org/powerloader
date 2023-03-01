@@ -109,7 +109,7 @@ namespace powerloader
         return rank;
     }
 
-    bool Mirror::prepare(Target*)
+    bool Mirror::prepare(Target&)
     {
         m_state = MirrorState::READY;
         return true;
@@ -121,7 +121,7 @@ namespace powerloader
         return true;
     }
 
-    bool Mirror::needs_preparation(Target*) const
+    bool Mirror::needs_preparation(const Target&) const
     {
         return false;
     }
@@ -136,9 +136,9 @@ namespace powerloader
         return {};
     }
 
-    std::string Mirror::format_url(Target* target) const
+    std::string Mirror::format_url(const Target& target) const
     {
-        return join_url(m_url, target->target().path());
+        return join_url(m_url, target.target().path());
     }
 
     /** Sort mirrors. Penalize the error ones.

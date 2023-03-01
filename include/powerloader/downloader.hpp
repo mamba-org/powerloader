@@ -82,7 +82,7 @@ namespace powerloader
         bool is_max_mirrors_unlimited();
 
         tl::expected<std::shared_ptr<Mirror>, DownloaderError> select_suitable_mirror(
-            Target* target);
+            Target& target);
 
         tl::expected<std::pair<Target*, std::string>, DownloaderError> select_next_target(
             bool allow_failure);
@@ -109,7 +109,7 @@ namespace powerloader
         CURLM* multi_handle;
         const Context& ctx;
 
-        std::vector<Target*> m_targets;
+        std::vector<std::unique_ptr<Target>> m_targets;
         std::vector<Target*> m_running_transfers;
 
         int allowed_mirror_failures = 3;

@@ -549,7 +549,7 @@ namespace powerloader
         m_curl_handle.reset(new CURLHandle(m_ctx));
         CURLHandle& h = *(m_curl_handle);
 
-        if (m_mirror && m_mirror->needs_preparation(this))
+        if (m_mirror && m_mirror->needs_preparation(*this))
         {
             m_mirror->prepare(m_target->path(), h);
             m_state = DownloadState::kPREPARATION;

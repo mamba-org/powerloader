@@ -64,9 +64,9 @@ namespace powerloader
         std::string aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
 
         bool authenticate(CURLHandle& handle, const std::string& path) override;
-        std::string format_url(Target* target) const override;
-        bool needs_preparation(Target* target) const override;
-        bool prepare(Target* target) override;
+        std::string format_url(const Target& target) const override;
+        bool needs_preparation(const Target& target) const override;
+        bool prepare(Target& target) override;
     };
 
 
