@@ -19,6 +19,7 @@ jobs:
       uses: mamba-org/provision-with-micromamba@main
       with:
         environment-file: .github/linters_env.yml
+        condarc-file: .condarc
     - name: Run all linters
       shell: bash -l {0}
       run: |
