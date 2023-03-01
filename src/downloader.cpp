@@ -56,7 +56,7 @@ namespace powerloader
             throw std::runtime_error("No mirrors found for " + dl_target->mirror_name());
         }
 
-        m_targets.emplace_back(new Target(ctx, dl_target, std::move(mirrors)));
+        m_targets.emplace_back(std::make_unique<Target>(ctx, dl_target, std::move(mirrors)));
     }
 
     /** Check the finished transfer
@@ -205,11 +205,9 @@ namespace powerloader
     }
 
     tl::expected<std::shared_ptr<Mirror>, DownloaderError> Downloader::select_suitable_mirror(
-        Target* target)
+        Target& target)
     {
-        assert(target);
-
-        if (target->mirrors().empty())
+        if (target.mirrors().empty())
         {
             return tl::unexpected(DownloaderError{
                 ErrorLevel::FATAL, ErrorCode::PD_MIRRORS, "No mirrors added for target" });
@@ -227,7 +225,7 @@ namespace powerloader
         // number of allowed failures equal to dd->allowed_mirror_failures.
         do
         {
-            for (const auto& mirror : target->mirrors())
+            for (const auto& mirror : target.mirrors())
             {
                 const auto mirror_stats = mirror->stats();
                 if (mirrors_iterated == 0)
@@ -236,7 +234,7 @@ namespace powerloader
                     {
                         reiterate = true;
                     }
-                    if (target->tried_mirrors().count(mirror))
+                    if (target.tried_mirrors().count(mirror))
                     {
                         // This mirror was already tried for this target
                         continue;
@@ -264,7 +262,7 @@ namespace powerloader
                 }
 
                 if (mirrors_iterated == 0 && mirror->protocol() == Protocol::kFTP
-                    && target->target().is_zchunk())
+                    && target.target().is_zchunk())
                 {
                     continue;
                 }
@@ -297,22 +295,24 @@ namespace powerloader
                 // This mirror looks suitable - use it
                 return mirror;
             }
-        } while (reiterate && target->retries() < static_cast<std::size_t>(allowed_mirror_failures)
+        } while (reiterate && target.retries() < static_cast<std::size_t>(allowed_mirror_failures)
                  && ++mirrors_iterated < std::size_t(allowed_mirror_failures));
 
         return tl::unexpected(DownloaderError({ ErrorLevel::FATAL,
                                                 ErrorCode::PD_NOURL,
                                                 fmt::format("No suitable mirror found for {}::{}",
-                                                            target->target().mirror_name(),
-                                                            target->target().path()) }));
+                                                            target.target().mirror_name(),
+                                                            target.target().path()) }));
     }
 
     // Select next target
     tl::expected<std::pair<Target*, std::string>, DownloaderError> Downloader::select_next_target(
         bool allow_failure)
     {
-        for (auto* target : m_targets)
+        for (auto&& target : m_targets)
         {
+            assert(target);
+
             std::shared_ptr<Mirror> mirror;
             std::string full_url;
 
@@ -332,7 +332,7 @@ namespace powerloader
             }
 
             // Find a suitable mirror
-            auto res = select_suitable_mirror(target);
+            auto res = select_suitable_mirror(*target);
             if (!res)
             {
                 // TODO: this error can be misleading when we got 404 results
@@ -353,15 +353,15 @@ namespace powerloader
 
             // TODO: create a `name()` or similar function
             spdlog::info("Selected mirror: {}", mirror->url());
-            if (mirror && !mirror->needs_preparation(target))
+            if (mirror && !mirror->needs_preparation(*target))
             {
-                full_url = mirror->format_url(target);
+                full_url = mirror->format_url(*target);
                 target->change_mirror(mirror);
             }
             else
             {
                 // No free mirror
-                if (!mirror->needs_preparation(target))
+                if (!mirror->needs_preparation(*target))
                 {
                     spdlog::info("Currently there is no free mirror for {}",
                                  target->target().path());
@@ -377,7 +377,7 @@ namespace powerloader
                 spdlog::info("Skipping {} because offline mode is active", full_url);
 
                 // Mark the target as failed
-                const auto cb_ret = target->set_failed(DownloaderError{
+                const auto cb_ret [[maybe_unused]] = target->set_failed(DownloaderError{
                     ErrorLevel::FATAL,
                     ErrorCode::PD_NOURL,
                     "Cannot download: offline mode is specified and no local URL is available." });
@@ -397,7 +397,7 @@ namespace powerloader
                 // Note: mirror is nullptr if base_url is used
                 target->change_mirror(mirror);
                 target->reset_response();
-                return std::make_pair(target, full_url);
+                return std::make_pair(target.get(), full_url);
             }
         }
 
@@ -712,7 +712,7 @@ namespace powerloader
         int still_running, repeats = 0;
         const long max_wait_msecs = 1000;
 
-        for (auto* target : m_targets)
+        for (auto&& target : m_targets)
         {
             target->check_if_already_finished();
         }
@@ -826,7 +826,7 @@ namespace powerloader
 #ifdef WITH_ZCHUNK
         std::set<DownloadTarget*> dl_targets;  // TODO: replace by flat_set when available.
 
-        for (auto* target : m_targets)
+        for (auto&& target : m_targets)
         {
             dl_targets.insert(&target->target());
         }

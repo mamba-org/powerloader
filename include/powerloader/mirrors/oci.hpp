@@ -36,10 +36,10 @@ namespace powerloader
         // is also dependent on each target unfortunately?!
         bool prepare(const std::string& path, CURLHandle& handle) override;
         bool need_auth() const;
-        bool needs_preparation(Target* target) const override;
+        bool needs_preparation(const Target& target) const override;
 
         // void add_extra_headers(Target* target);
-        std::string format_url(Target* target) const override;
+        std::string format_url(const Target& target) const override;
 
         template <class... Args>
         static MirrorID id(const std::string& host,
@@ -75,7 +75,7 @@ namespace powerloader
 
         std::pair<std::string, std::string> split_path_tag(const std::string& path) const;
 
-        AuthCallbackData* get_data(Target* target) const;
+        AuthCallbackData* get_data(const Target& target) const;
 
 
         // upload specific functions
