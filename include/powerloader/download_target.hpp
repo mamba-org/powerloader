@@ -6,14 +6,12 @@
 #include <powerloader/export.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/url.hpp>
-#include <powerloader/curl.hpp>
 #include <powerloader/mirror.hpp>
 #include <powerloader/fileio.hpp>
 #include <powerloader/errors.hpp>
 
 namespace powerloader
 {
-
     struct zck_target;
 
     struct POWERLOADER_API CacheControl
@@ -80,8 +78,8 @@ namespace powerloader
             m_error = std::move(err);
         }
 
-        /// Returns a DownloadError if there was a falure at download or none if no error was set so
-        /// far.
+        /// Returns a DownloadError if there was a failure at download or none if no error was set
+        /// so far.
         std::optional<DownloaderError> get_error() const noexcept
         {
             return m_error;

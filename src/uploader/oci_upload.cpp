@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
+#include "curl_internal.hpp"
 
 namespace powerloader
 {

@@ -1,4 +1,4 @@
-#include <powerloader/curl.hpp>
+#include <curl_internal.hpp>
 
 void
 add_multipart_upload(CURLHandle& target,

@@ -21,7 +21,6 @@ extern "C"
 
 #include <powerloader/export.hpp>
 #include <powerloader/context.hpp>
-#include <powerloader/curl.hpp>
 #include <powerloader/download_target.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/mirror.hpp>

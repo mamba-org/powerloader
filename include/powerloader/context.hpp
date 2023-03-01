@@ -7,6 +7,7 @@
 #include <chrono>
 #include <map>
 #include <filesystem>
+#include <optional>
 
 #include <spdlog/spdlog.h>
 

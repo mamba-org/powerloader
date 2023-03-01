@@ -9,7 +9,6 @@
 
 namespace powerloader
 {
-
     class Target;
 
     struct POWERLOADER_API S3CanonicalRequest

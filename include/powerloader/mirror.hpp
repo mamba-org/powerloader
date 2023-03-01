@@ -7,7 +7,6 @@
 
 #include <powerloader/export.hpp>
 #include <powerloader/context.hpp>
-#include <powerloader/curl.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/utils.hpp>
 #include <powerloader/mirrorid.hpp>
@@ -16,6 +15,7 @@ namespace powerloader
 {
     class Target;
     class Context;
+    class CURLHandle;
 
     enum class MirrorState
     {

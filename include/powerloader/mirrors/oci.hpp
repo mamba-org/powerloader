@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <fmt/core.h>
+#include <nlohmann/json.hpp>
 
 #include <powerloader/export.hpp>
 #include <powerloader/mirror.hpp>

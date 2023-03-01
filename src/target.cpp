@@ -175,9 +175,7 @@ namespace powerloader
     std::size_t zckheadercb(char* buffer, std::size_t size, std::size_t nitems, Target* self)
     {
         assert(self && self->m_target);
-        long code = -1;
-        curl_easy_getinfo(self->m_curl_handle->ptr(), CURLINFO_RESPONSE_CODE, &code);
-        if (code == 200)
+        if (self->m_curl_handle->getinfo<long>(CURLINFO_RESPONSE_CODE) == 200)
         {
             spdlog::info("Too many ranges were attempted in one download");
             self->m_range_fail = 1;
@@ -554,7 +552,7 @@ namespace powerloader
             m_mirror->prepare(m_target->path(), h);
             m_state = DownloadState::kPREPARATION;
 
-            CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+            CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h.handle());
             if (cm_rc != CURLM_OK)
             {
                 spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));
@@ -704,7 +702,7 @@ namespace powerloader
         }
 
         // Add the new handle to the curl multi handle
-        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h.handle());
         if (cm_rc != CURLM_OK)
         {
             spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));

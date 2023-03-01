@@ -3,7 +3,6 @@
 #include <sstream>
 #include <spdlog/spdlog.h>
 
-#include <powerloader/curl.hpp>
 #include <powerloader/utils.hpp>
 #include <powerloader/context.hpp>
 #include <powerloader/url.hpp>
@@ -227,16 +226,6 @@ namespace powerloader
     {
         if (p_headers)
             setopt(CURLOPT_HTTPHEADER, p_headers);
-        return m_handle;
-    }
-
-    CURLHandle::operator CURL*()
-    {
-        return handle();
-    }
-
-    CURL* CURLHandle::ptr() const
-    {
         return m_handle;
     }
 

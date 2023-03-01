@@ -16,13 +16,14 @@
 namespace fs = std::filesystem;
 
 #include <powerloader/context.hpp>
-#include <powerloader/curl.hpp>
+// #include <powerloader/curl.hpp>
 #include <powerloader/download_target.hpp>
 #include <powerloader/downloader.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/mirror.hpp>
 #include <powerloader/utils.hpp>
 #include "target.hpp"
+
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
 #endif

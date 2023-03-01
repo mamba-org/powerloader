@@ -3,8 +3,9 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
-#include <powerloader/curl.hpp>
 #include <powerloader/utils.hpp>
+
+#include "curl_internal.hpp"
 
 namespace powerloader
 {
@@ -54,9 +55,9 @@ namespace powerloader
             std::size_t handles_added = 0;
             for (auto& el : mirrors)
             {
-                if (el.handle)
+                if (el.handle.handle())
                 {
-                    curl_multi_add_handle(multihandle, el.handle);
+                    curl_multi_add_handle(multihandle, el.handle.handle());
                     handles_added++;
                     spdlog::info("Checking URL: {}", el.url);
                 }
@@ -156,7 +157,7 @@ namespace powerloader
             for (auto& el : mirrors)
             {
                 // Remove handle
-                curl_multi_remove_handle(multihandle, el.handle);
+                curl_multi_remove_handle(multihandle, el.handle.handle());
 
                 // Calculate plain_connect_time
                 auto effective_url = el.handle.getinfo<std::string>(CURLINFO_EFFECTIVE_URL);

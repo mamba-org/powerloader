@@ -7,13 +7,14 @@
 #include <spdlog/spdlog.h>
 
 #include <powerloader/export.hpp>
-#include <powerloader/curl.hpp>
 #include <powerloader/download_target.hpp>
 #include <powerloader/enums.hpp>
 #include <powerloader/mirror.hpp>
 #include <powerloader/utils.hpp>
 
 #include "compression.hpp"
+
+#include "curl_internal.hpp"
 
 namespace powerloader
 {
