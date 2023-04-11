@@ -51,7 +51,7 @@ namespace powerloader
             if (!m_fs)
             {
                 ec.assign(GetLastError(), std::generic_category());
-                spdlog::error("Could not open file: {}", ec.message());
+                spdlog::error("Could not open file {}: {}", file_path.string(), ec.message());
             }
         }
 #else
@@ -66,7 +66,7 @@ namespace powerloader
             else
             {
                 ec.assign(errno, std::generic_category());
-                spdlog::error("Could not open file: {}", ec.message());
+                spdlog::error("Could not open file {}: {}", file_path.string(), ec.message());
             }
         }
 #endif
@@ -137,6 +137,18 @@ namespace powerloader
             return ::ftell(m_fs);
         }
 
+        char get() const
+        {
+            int res = ::fgetc(m_fs);
+            if (res == EOF && ferror(m_fs) != 0)
+            {
+                // TODO handle this
+                clearerr(m_fs);
+                throw std::runtime_error("Got error from get()");
+            }
+            return res;
+        }
+
         std::streamoff seek(unsigned long long offset, int origin) const noexcept
         {
             assert(offset < LLONG_MAX);
@@ -161,6 +173,13 @@ namespace powerloader
                           std::size_t element_count) const noexcept
         {
             return ::fwrite(buffer, element_size, element_count, m_fs);
+        }
+
+
+        template<class C>
+        std::size_t write(const std::basic_string<C>& str) const noexcept
+        {
+            return ::fwrite(str.c_str(), sizeof(C), str.size(), m_fs);
         }
 
         std::streamoff put(int c) const noexcept

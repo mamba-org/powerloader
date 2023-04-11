@@ -399,7 +399,6 @@ parse_mirrors(const Context& ctx, const YAML::Node& node)
     return result;
 }
 
-
 int
 main(int argc, char** argv)
 {
