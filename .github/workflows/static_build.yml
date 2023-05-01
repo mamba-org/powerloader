@@ -13,7 +13,7 @@ defaults:
     shell: bash -l {0}
 
 jobs:
-  test:
+  teststatic:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -26,6 +26,8 @@ jobs:
         with:
           environment-file: environment-static-dev.yml
           condarc-file: .condarc
+        env:
+          ACTIONS_STEP_DEBUG: true
 
       - name: configure powerloader build
         run: |
