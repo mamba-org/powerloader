@@ -68,8 +68,10 @@ jobs:
       - name: build powerloader
         if: runner.os != 'Windows'
         shell: bash -l {0}
-        working-directory: build
-        run: ninja
+        # working-directory: build
+        run: |
+          cd build
+          ninja
 
       - name: build powerloader
         if: runner.os == 'Windows'
