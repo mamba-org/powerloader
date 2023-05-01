@@ -25,7 +25,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: environment-static-dev.yml
-          condarc-file: ./.condarc
+          condarc-file: .condarc
         env:
           ACTIONS_RUNNER_DEBUG: true
 
