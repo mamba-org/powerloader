@@ -28,6 +28,7 @@ jobs:
         with:
           environment-file: environment.yml
           condarc-file: .condarc
+          init-shell: bash${{ runner.os == 'Windows' && ' cmd.exe' }}
 
       - name: configure powerloader build
         if: runner.os != 'Windows'
