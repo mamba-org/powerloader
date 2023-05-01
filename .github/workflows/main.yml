@@ -47,11 +47,16 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd /C CALL {0}
         run: |
-          call activate powerloader
+          call micromamba activate powerloader
+          if %errorlevel% neq 0 exit /b %errorlevel%
           echo %CONDA_PREFIX%
+          if %errorlevel% neq 0 exit /b %errorlevel%
           echo %PATH%
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library ^
                    -DENABLE_TESTS=ON ^
                    -DWITH_ZCHUNK=OFF ^
@@ -63,15 +68,20 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash -l {0}
         run: |
+          call micromamba activate powerloader
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja
 
       - name: build powerloader
         if: runner.os == 'Windows'
         shell: cmd /C CALL {0}
         run: |
-          call activate powerloader
+          call micromamba activate powerloader
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja
 
       - name: run powerloader tests
@@ -85,8 +95,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd /C CALL {0}
         run: |
-          call activate powerloader
+          call micromamba activate powerloader
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja test
 
       - name: Download test packages
