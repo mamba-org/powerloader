@@ -27,8 +27,6 @@ jobs:
           environment-file: environment-static-dev.yml
           condarc-file: .condarc
           init-shell: bash${{ runner.os == 'Windows' && ' cmd.exe' || '' }}
-        env:
-          ACTIONS_RUNNER_DEBUG: true
 
       - name: configure powerloader build
         run: |
