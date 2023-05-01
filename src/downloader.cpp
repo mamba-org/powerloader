@@ -23,6 +23,7 @@ namespace fs = std::filesystem;
 #include <powerloader/mirror.hpp>
 #include <powerloader/utils.hpp>
 #include "target.hpp"
+#include "curl_internal.hpp"
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
 #endif
@@ -538,7 +539,8 @@ namespace powerloader
 
             for (auto* target : m_running_transfers)
             {
-                if (target->curl_handle() && target->curl_handle()->handle() == msg->easy_handle)
+                if (target->curl_handle()
+                    && CURLInterface::handle_is_equal(target->curl_handle(), msg))
                 {
                     current_target = target;
                     break;

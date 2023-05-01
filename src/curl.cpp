@@ -230,14 +230,9 @@ namespace powerloader
         return m_handle;
     }
 
-    CURLHandle::operator CURL*()
+    bool CURLHandle::handle_exists()
     {
-        return handle();
-    }
-
-    CURL* CURLHandle::ptr() const
-    {
-        return m_handle;
+        return (handle() != nullptr);
     }
 
     CURLHandle& CURLHandle::add_header(const std::string& header)
@@ -335,12 +330,12 @@ namespace powerloader
 
             if (fsize != -1)
             {
-                curl.setopt(CURLOPT_INFILESIZE_LARGE, fsize);
+                CURLInterface::set_opt_wrapped(curl, CURLOPT_INFILESIZE_LARGE, fsize);
             }
 
-            curl.setopt(CURLOPT_UPLOAD, 1L);
-            curl.setopt(CURLOPT_READFUNCTION, read_callback<S>);
-            curl.setopt(CURLOPT_READDATA, &stream);
+            CURLInterface::set_opt_wrapped(curl, CURLOPT_UPLOAD, 1L);
+            CURLInterface::set_opt_wrapped(curl, CURLOPT_READFUNCTION, read_callback<S>);
+            CURLInterface::set_opt_wrapped(curl, CURLOPT_READDATA, &stream);
             return curl;
         }
     }
@@ -391,12 +386,18 @@ namespace powerloader
 
     void Response::fill_values(CURLHandle& handle)
     {
-        average_speed
-            = handle.getinfo<decltype(average_speed)>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
-        http_status = handle.getinfo<decltype(http_status)>(CURLINFO_RESPONSE_CODE).value();
-        effective_url = handle.getinfo<decltype(effective_url)>(CURLINFO_EFFECTIVE_URL).value();
-        downloaded_size
-            = handle.getinfo<decltype(downloaded_size)>(CURLINFO_SIZE_DOWNLOAD_T).value();
+        average_speed = CURLInterface::get_info_wrapped<decltype(average_speed)>(
+                            handle, CURLINFO_SPEED_DOWNLOAD_T)
+                            .value_or(0);
+        http_status
+            = CURLInterface::get_info_wrapped<decltype(http_status)>(handle, CURLINFO_RESPONSE_CODE)
+                  .value();
+        effective_url = CURLInterface::get_info_wrapped<decltype(effective_url)>(
+                            handle, CURLINFO_EFFECTIVE_URL)
+                            .value();
+        downloaded_size = CURLInterface::get_info_wrapped<decltype(downloaded_size)>(
+                              handle, CURLINFO_SIZE_DOWNLOAD_T)
+                              .value();
     }
 
     std::optional<std::string> proxy_match(const proxy_map_type& proxies, const std::string& url)
@@ -477,6 +478,39 @@ namespace powerloader
             curl_global_cleanup();
             is_curl_setup_alive = false;
         }
-
     }
+
+    CURLMcode CURLInterface::multi_add_handle(CURLM* multi_handle, CURLHandle& h)
+    {
+        return curl_multi_add_handle(multi_handle, h.handle());
+    }
+
+    void CURLInterface::multi_remove_handle(CURLM* multihandle, CURLHandle& h)
+    {
+        curl_multi_remove_handle(multihandle, h.handle());
+    }
+
+    bool CURLInterface::handle_is_equal(CURLHandle* h, CURLMsg* msg)
+    {
+        return (h->handle() == msg->easy_handle);
+    }
+
+    template <class T>
+    tl::expected<T, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h, CURLINFO option)
+    {
+        return h.getinfo<T>(option);
+    }
+
+    template tl::expected<long, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                          CURLINFO option);
+    template tl::expected<char*, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                           CURLINFO option);
+    template tl::expected<double, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                            CURLINFO option);
+    template tl::expected<curl_slist*, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                                 CURLINFO option);
+    template tl::expected<long long, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                               CURLINFO option);
+    template tl::expected<std::string, CURLcode> CURLInterface::get_info_wrapped(CURLHandle& h,
+                                                                                 CURLINFO option);
 }

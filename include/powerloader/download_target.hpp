@@ -13,7 +13,6 @@
 
 namespace powerloader
 {
-
     struct zck_target;
 
     struct POWERLOADER_API CacheControl
@@ -21,12 +20,6 @@ namespace powerloader
         std::string etag;
         std::string cache_control;
         std::string last_modified;
-    };
-
-    enum CompressionType
-    {
-        NONE,
-        ZSTD,
     };
 
     class POWERLOADER_API DownloadTarget
@@ -80,8 +73,8 @@ namespace powerloader
             m_error = std::move(err);
         }
 
-        /// Returns a DownloadError if there was a falure at download or none if no error was set so
-        /// far.
+        /// Returns a DownloadError if there was a failure at download or none if no error was set
+        /// so far.
         std::optional<DownloaderError> get_error() const noexcept
         {
             return m_error;

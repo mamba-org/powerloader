@@ -77,9 +77,6 @@ namespace powerloader
         nlohmann::json json() const;
     };
 
-    // TODO: rename this, try to not expose it
-    POWERLOADER_API CURL* get_handle(const Context& ctx);
-
     class POWERLOADER_API CURLHandle
     {
     public:
@@ -94,23 +91,12 @@ namespace powerloader
 
         Response perform();
         void finalize_transfer();
-        // TODO: should be private?
-        void finalize_transfer(Response& response);
 
-        template <class T>
-        tl::expected<T, CURLcode> getinfo(CURLINFO option);
-
-        // TODO: why do we need to expose these three methods
-        CURL* handle();
-        operator CURL*();  // TODO: consider making this `explicit` or remove it
-        CURL* ptr() const;
+        bool handle_exists();
 
         CURLHandle& add_header(const std::string& header);
         CURLHandle& add_headers(const std::vector<std::string>& headers);
         CURLHandle& reset_headers();
-
-        template <class T>
-        CURLHandle& setopt(CURLoption opt, const T& val);
 
         void set_default_callbacks();
         CURLHandle& set_end_callback(end_callback_type func);
@@ -123,6 +109,15 @@ namespace powerloader
 
     private:
         void init_handle(const Context& ctx);
+        void finalize_transfer(Response& response);
+
+        CURL* handle();
+
+        template <class T>
+        tl::expected<T, CURLcode> getinfo(CURLINFO option);
+
+        template <class T>
+        CURLHandle& setopt(CURLoption opt, const T& val);
 
         CURL* m_handle;
         curl_slist* p_headers = nullptr;
@@ -130,6 +125,12 @@ namespace powerloader
 
         std::unique_ptr<Response> response;
         end_callback_type end_callback;
+
+        friend class CURLInterface;
+
+        friend void add_multipart_upload(CURLHandle& target,
+                                         const std::vector<std::string>& files,
+                                         const std::map<std::string, std::string>& extra_fields);
     };
 
     // TODO: restrict the possible implementations in the cpp file

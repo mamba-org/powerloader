@@ -23,4 +23,32 @@ namespace powerloader::details
         CURLSetup& operator=(const CURLSetup&) = delete;
     };
 }
+
+namespace powerloader
+{
+    class CURLInterface
+    {
+    public:
+        CURLInterface() = delete;
+        ~CURLInterface() = delete;
+
+        static CURLMcode multi_add_handle(CURLM* multi_handle, CURLHandle& h);
+
+        static void multi_remove_handle(CURLM* multihandle, CURLHandle& h);
+
+        static bool handle_is_equal(CURLHandle* h, CURLMsg* msg);
+
+        template <class T>
+        static tl::expected<T, CURLcode> get_info_wrapped(CURLHandle& h, CURLINFO option);
+
+        template <class T>
+        static CURLHandle& set_opt_wrapped(CURLHandle& h, CURLoption opt, const T& val);
+    };
+
+    template <class T>
+    CURLHandle& CURLInterface::set_opt_wrapped(CURLHandle& h, CURLoption opt, const T& val)
+    {
+        return h.setopt<T>(opt, val);
+    }
+}
 #endif

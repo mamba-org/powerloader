@@ -6,6 +6,8 @@
 #include <powerloader/curl.hpp>
 #include <powerloader/utils.hpp>
 
+#include "curl_internal.hpp"
+
 namespace powerloader
 {
     namespace detail
@@ -30,7 +32,7 @@ namespace powerloader
         for (const std::string& u : urls)
         {
             CURLHandle handle(ctx, u);
-            handle.setopt(CURLOPT_CONNECT_ONLY, 1L);
+            CURLInterface::set_opt_wrapped(handle, CURLOPT_CONNECT_ONLY, 1L);
             check_mirrors.push_back(detail::InternalMirror{ u, std::move(handle), -1 });
         }
         return fastestmirror_perform(check_mirrors, 1000000);
@@ -54,9 +56,9 @@ namespace powerloader
             std::size_t handles_added = 0;
             for (auto& el : mirrors)
             {
-                if (el.handle)
+                if (el.handle.handle_exists())
                 {
-                    curl_multi_add_handle(multihandle, el.handle);
+                    CURLInterface::multi_add_handle(multihandle, el.handle);
                     handles_added++;
                     spdlog::info("Checking URL: {}", el.url);
                 }
@@ -156,10 +158,11 @@ namespace powerloader
             for (auto& el : mirrors)
             {
                 // Remove handle
-                curl_multi_remove_handle(multihandle, el.handle);
+                CURLInterface::multi_remove_handle(multihandle, el.handle);
 
                 // Calculate plain_connect_time
-                auto effective_url = el.handle.getinfo<std::string>(CURLINFO_EFFECTIVE_URL);
+                auto effective_url = CURLInterface::get_info_wrapped<std::string>(
+                    el.handle, CURLINFO_EFFECTIVE_URL);
 
                 if (!effective_url)
                 {
@@ -174,10 +177,12 @@ namespace powerloader
                 else
                 {
                     // Get connect time
-                    curl_off_t namelookup_time
-                        = el.handle.getinfo<curl_off_t>(CURLINFO_NAMELOOKUP_TIME_T).value_or(0);
-                    curl_off_t connect_time
-                        = el.handle.getinfo<curl_off_t>(CURLINFO_CONNECT_TIME_T).value_or(0);
+                    curl_off_t namelookup_time = CURLInterface::get_info_wrapped<curl_off_t>(
+                                                     el.handle, CURLINFO_NAMELOOKUP_TIME_T)
+                                                     .value_or(0);
+                    curl_off_t connect_time = CURLInterface::get_info_wrapped<curl_off_t>(
+                                                  el.handle, CURLINFO_CONNECT_TIME_T)
+                                                  .value_or(0);
 
                     if (connect_time == 0)
                     {

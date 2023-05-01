@@ -1,4 +1,5 @@
 #include "target.hpp"
+#include "curl_internal.hpp"
 
 #ifdef WITH_ZCHUNK
 #include "zck.hpp"
@@ -63,7 +64,8 @@ namespace powerloader
 
             if (!ec && m_ctx.preserve_filetime)
             {
-                auto remote_filetime = m_curl_handle->getinfo<curl_off_t>(CURLINFO_FILETIME_T);
+                auto remote_filetime = CURLInterface::get_info_wrapped<curl_off_t>(
+                    *m_curl_handle, CURLINFO_FILETIME_T);
                 if (!remote_filetime || remote_filetime.value() < 0)
                     spdlog::debug("Unable to get remote time of retrieved document");
 
@@ -175,9 +177,8 @@ namespace powerloader
     std::size_t zckheadercb(char* buffer, std::size_t size, std::size_t nitems, Target* self)
     {
         assert(self && self->m_target);
-        long code = -1;
-        curl_easy_getinfo(self->m_curl_handle->ptr(), CURLINFO_RESPONSE_CODE, &code);
-        if (code == 200)
+        if (CURLInterface::get_info_wrapped<long>(*(self->m_curl_handle), CURLINFO_RESPONSE_CODE)
+            == 200)
         {
             spdlog::info("Too many ranges were attempted in one download");
             self->m_range_fail = 1;
@@ -532,8 +533,9 @@ namespace powerloader
     {
         assert(m_curl_handle);
         assert(m_ctx.max_speed_limit > 0);
-        m_curl_handle->setopt(CURLOPT_MAX_RECV_SPEED_LARGE,
-                              static_cast<curl_off_t>(m_ctx.max_speed_limit));
+        CURLInterface::set_opt_wrapped(*m_curl_handle,
+                                       CURLOPT_MAX_RECV_SPEED_LARGE,
+                                       static_cast<curl_off_t>(m_ctx.max_speed_limit));
     }
 
     void Target::reset_response()
@@ -554,7 +556,7 @@ namespace powerloader
             m_mirror->prepare(m_target->path(), h);
             m_state = DownloadState::kPREPARATION;
 
-            CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+            CURLMcode cm_rc = CURLInterface::multi_add_handle(multi_handle, h);
             if (cm_rc != CURLM_OK)
             {
                 spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));
@@ -570,7 +572,7 @@ namespace powerloader
 
         if (m_target->head_only())
         {
-            h.setopt(CURLOPT_NOBODY, true);
+            CURLInterface::set_opt_wrapped(h, CURLOPT_NOBODY, true);
         }
         // Prepare FILE
 #ifdef WITH_ZCHUNK
@@ -636,33 +638,34 @@ namespace powerloader
             curl_off_t used_offset = m_original_offset;
 
             spdlog::info("Trying to resume from offset {}", used_offset);
-            h.setopt(CURLOPT_RESUME_FROM_LARGE, used_offset);
+            CURLInterface::set_opt_wrapped(h, CURLOPT_RESUME_FROM_LARGE, used_offset);
         }
 
         if (m_target->byterange_start() > 0)
         {
             assert(!m_target->resume() && m_target->range().empty());
-            h.setopt(CURLOPT_RESUME_FROM_LARGE, (curl_off_t) m_target->byterange_start());
+            CURLInterface::set_opt_wrapped(
+                h, CURLOPT_RESUME_FROM_LARGE, (curl_off_t) m_target->byterange_start());
         }
 
         // Set range if user specified one
         if (!m_target->range().empty())
         {
             assert(!m_target->resume() && !m_target->byterange_start());
-            h.setopt(CURLOPT_RANGE, m_target->range());
+            CURLInterface::set_opt_wrapped(h, CURLOPT_RANGE, m_target->range());
         }
 
         // Prepare progress callback
         if (m_target->progress_callback())
         {
-            h.setopt(CURLOPT_XFERINFOFUNCTION, &Target::progress_callback);
-            h.setopt(CURLOPT_NOPROGRESS, 0);
-            h.setopt(CURLOPT_XFERINFODATA, this);
+            CURLInterface::set_opt_wrapped(h, CURLOPT_XFERINFOFUNCTION, &Target::progress_callback);
+            CURLInterface::set_opt_wrapped(h, CURLOPT_NOPROGRESS, 0);
+            CURLInterface::set_opt_wrapped(h, CURLOPT_XFERINFODATA, this);
         }
 
         // Prepare header callback
-        h.setopt(CURLOPT_HEADERFUNCTION, &Target::header_callback);
-        h.setopt(CURLOPT_HEADERDATA, this);
+        CURLInterface::set_opt_wrapped(h, CURLOPT_HEADERFUNCTION, &Target::header_callback);
+        CURLInterface::set_opt_wrapped(h, CURLOPT_HEADERDATA, this);
 
         if (!m_target->head_only())
         {
@@ -670,15 +673,16 @@ namespace powerloader
             {
 #ifdef WITH_ZSTD
                 m_zstd_stream = std::make_unique<ZstdStream>(&Target::write_callback, this);
-                h.setopt(CURLOPT_WRITEFUNCTION, &ZstdStream::write_callback);
-                h.setopt(CURLOPT_WRITEDATA, m_zstd_stream.get());
+                CURLInterface::set_opt_wrapped(
+                    h, CURLOPT_WRITEFUNCTION, &ZstdStream::write_callback);
+                CURLInterface::set_opt_wrapped(h, CURLOPT_WRITEDATA, m_zstd_stream.get());
 #endif
             }
             // Prepare write callback
             else
             {
-                h.setopt(CURLOPT_WRITEFUNCTION, &Target::write_callback);
-                h.setopt(CURLOPT_WRITEDATA, this);
+                CURLInterface::set_opt_wrapped(h, CURLOPT_WRITEFUNCTION, &Target::write_callback);
+                CURLInterface::set_opt_wrapped(h, CURLOPT_WRITEDATA, this);
             }
         }
 
@@ -704,7 +708,7 @@ namespace powerloader
         }
 
         // Add the new handle to the curl multi handle
-        CURLMcode cm_rc = curl_multi_add_handle(multi_handle, h);
+        CURLMcode cm_rc = CURLInterface::multi_add_handle(multi_handle, h);
         if (cm_rc != CURLM_OK)
         {
             spdlog::error("curl_multi_add_handle() failed: {}", curl_multi_strerror(cm_rc));

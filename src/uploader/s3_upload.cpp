@@ -2,6 +2,7 @@
 #include <spdlog/fmt/fmt.h>
 
 #include <powerloader/mirrors/s3.hpp>
+#include "curl_internal.hpp"
 
 namespace powerloader
 {
@@ -25,7 +26,7 @@ namespace powerloader
 
         std::ifstream ufile(file, std::ios::in | std::ios::binary);
 
-        uploadrequest.setopt(CURLOPT_INFILESIZE_LARGE, fsize)
+        CURLInterface::set_opt_wrapped(uploadrequest, CURLOPT_INFILESIZE_LARGE, fsize)
             .add_headers(mirror.get_auth_headers(request))
             .upload(ufile);
 
