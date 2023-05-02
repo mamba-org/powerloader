@@ -26,7 +26,6 @@ jobs:
         with:
           environment-file: environment-static-dev.yml
           condarc-file: .condarc
-          init-shell: bash${{ runner.os == 'Windows' && ' cmd.exe' || '' }}
 
       - name: configure powerloader build
         run: |
@@ -61,6 +60,9 @@ jobs:
           environment-name: build_env
           cache-environment: true
           condarc-file: .condarc
+          init-shell: >-
+            bash
+            cmd.exe
 
       - name: fix up vcpkg recipes
         shell: python
