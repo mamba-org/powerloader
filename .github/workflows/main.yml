@@ -93,7 +93,6 @@ jobs:
         run: |
           call micromamba activate powerloader
           if %errorlevel% neq 0 exit /b %errorlevel%
-          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja test
 
       - name: Download test packages
