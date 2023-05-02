@@ -53,6 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # TODO: once CI works again, use this instead of provision-with-micromamba
       # - name: create build environment
       #   uses: mamba-org/setup-micromamba@v1
       #   with:
