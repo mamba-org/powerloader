@@ -1,3 +1,9 @@
+> [!WARNING]
+> Powerloader features have been implemented in mamba directly. Powerloader is archived, no further public
+> updates will be made.
+
+
+
 ![](docs/assets/logo.png)
 
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/powerloader.svg)](https://github.com/conda-forge/powerloader-feedstock)
